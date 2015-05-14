@@ -1,9 +1,8 @@
-var expect = require('chai').expect,
-    spacebunny = require('../spacebunny'),
-    Client = spacebunny.Client;
+var expect = require('chai').expect;
+var client = require('../spacebunny');
 
 describe('#constructor', function() {
-  it('returns array of channels', function() {
-    expect(Client({})).to.deep.equal({ channels: [ 'messages', 'alarms' ]});
+  it('returns an object containing configurations', function() {
+    expect(client.authenticate()).to.deep.equal({ channels: [ 'messages', 'alarms' ]});
   });
 });

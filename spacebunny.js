@@ -1,3 +1,4 @@
-var Client = require('./lib/client.js');
+'use strict';
+var client = require('./lib/client');
 
-module.exports.Client = Client;
+module.exports = client;
