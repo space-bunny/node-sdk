@@ -20,7 +20,7 @@ describe('AmqpClient', function() {
 
   context('#publish', function() {
 
-    it('should be publish message on a specific channel', function(done) {
+    it('should publish message on a specific channel', function(done) {
       amqpClient = new AmqpClient(options);
       // var channel = amqpClient.channels()[0];
       var channel = 'messages';
@@ -38,7 +38,7 @@ describe('AmqpClient', function() {
 
     it('should call receive callback', function(done) {
       var messageCallback = function(message) {
-        console.log(message);
+        console.log(message.content);
       }
 
       var amqpClient = new AmqpClient(options);
