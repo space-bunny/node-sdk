@@ -29,7 +29,14 @@ describe('SpaceBunny', function() {
         var res = {
           connection: {
             host: "localhost",
-            port: 5672,
+            protocols: {
+              "amqp": {
+                "port": 5672
+              },
+              "mqtt": {
+                "port": 1883
+              }
+            },
             username: "75833f07-b8e0-4767-9f9a-6ffb976d12c0",
             password: "2kiqPkvx2tLDc7dcQSvYV37ogye8KDdSVUa5YUax",
             vhost: "/66787782"

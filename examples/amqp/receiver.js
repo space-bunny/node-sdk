@@ -1,6 +1,5 @@
 'use strict';
 var appRoot = require('app-root-path');
-console.log(appRoot + '/index');
 var AmqpClient = require(appRoot + '/index').AmqpClient;
 
 var messageCallback = function(message) {
