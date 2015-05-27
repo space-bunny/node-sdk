@@ -23,7 +23,7 @@ describe('AmqpClient', function() {
     it('should publish message on a specific channel', function(done) {
       // var channel = amqpClient.channels()[0];
       var channel = 'messages';
-      amqpClient.publish(channel, "my message").should.eventually.be.fulfilled;
+      amqpClient.publish(channel, "my message").should.be.fulfilled;
       done();
     });
 
@@ -35,7 +35,7 @@ describe('AmqpClient', function() {
       var messageCallback = function(message) {
         console.log(message.content);
       }
-      amqpClient.onReceive(messageCallback).should.eventually.be.fulfilled;
+      amqpClient.onReceive(messageCallback).should.be.fulfilled;
       done();
     });
 
@@ -43,7 +43,7 @@ describe('AmqpClient', function() {
 
   context('#connect', function() {
     it('should be fulfilled', function(done) {
-      amqpClient.connect().should.eventually.be.fulfilled;
+      amqpClient._connect().should.be.fulfilled;
       done();
     });
   });
@@ -51,8 +51,8 @@ describe('AmqpClient', function() {
   context('#disconnect', function() {
 
     it('should be resolved with open connection', function(done) {
-      amqpClient.connect().then(function (conn) {
-        amqpClient.disconnect().should.eventually.be.fulfilled;
+      amqpClient._connect().then(function (conn) {
+        amqpClient.disconnect().should.be.fulfilled;
         done();
       }).catch(function(reason) {
         console.error('fail %s', reason.stack);
@@ -60,9 +60,10 @@ describe('AmqpClient', function() {
     });
 
     it('should be rejected with closed connection', function(done) {
-      amqpClient.disconnect().should.eventually.be.rejected;
+      amqpClient.disconnect().should.be.rejected;
       done();
     });
+
   });
 
   it('should return routing key for a channel', function(done) {
