@@ -35,7 +35,13 @@ describe('SpaceBunny', function() {
               },
               "mqtt": {
                 "port": 1883
-              }
+              },
+              "stomp": {
+                "port": 61613
+              },
+              "web_stomp": {
+                "port": 15674
+              }              
             },
             username: "75833f07-b8e0-4767-9f9a-6ffb976d12c0",
             password: "2kiqPkvx2tLDc7dcQSvYV37ogye8KDdSVUa5YUax",

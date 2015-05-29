@@ -9,7 +9,6 @@ define({
         url: 'localhost:3000', // 'https://api.spacebunny.io',
         api_version: '/v1',
         path: '/device_configurations'
-      }      
+      }
     }
-
 });

@@ -11,4 +11,4 @@ mqttClient.onReceive(messageCallback).then(function(res) {
   console.log(res);
 }).catch(function(reason) {
   console.error(reason);
-})
+});

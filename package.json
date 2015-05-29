@@ -18,6 +18,7 @@
   "author": "Giovanni Foiani <giovanni@fancypixel.it> (http://fancypixel.it)",
   "license": "MIT",
   "devDependencies": {
+    "app-root-path": "^1.0.0",
     "chai": "^2.3.0",
     "chai-as-promised": "^5.0.0",
     "gulp": "^3.8.11",
@@ -25,17 +26,19 @@
     "gulp-jsdoc-to-markdown": "^1.1.1",
     "gulp-rename": "^1.2.2",
     "gulp-util": "^3.0.4",
-    "mocha": "^2.2.5"
+    "json-loader": "^0.5.2",
+    "mocha": "^2.2.5",
+    "node-libs-browser": "^0.5.2",
+    "webpack": "^1.9.10"
   },
   "dependencies": {
     "amqplib": "^0.3.2",
-    "app-root-path": "^1.0.0",
     "bluebird": "^2.9.25",
     "error-factory": "^0.1.5",
     "merge": "^1.2.0",
     "mqtt": "^1.2.0",
     "node-constants": "0.0.2",
-    "sync-request": "^2.0.1",
-    "winston": "^1.0.0"
+    "stompjs": "^2.3.3",
+    "sync-request": "^2.0.1"
   }
 }

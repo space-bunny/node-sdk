@@ -11,6 +11,10 @@ A small library providing utility methods to connect to Space Bunny IoT platform
 
   npm test
 
+## Generate documentation
+
+  gulp docs
+
 ## Release History
 
   * 0.1.0 Initial release
