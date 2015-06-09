@@ -1,8 +1,8 @@
 module.exports = {
   context: __dirname,
-  entry: "./index.js",
+  entry: "./web_index.js",
   output: {
-      path: __dirname + '/web_builds',
+      path: __dirname + '/dist',
       filename: "spacebunny.js"
   },
   resolve: {

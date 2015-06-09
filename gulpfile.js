@@ -5,6 +5,7 @@ var gutil = require("gulp-util");
 var gulpJsdoc2md = require("gulp-jsdoc-to-markdown");
 var rename = require("gulp-rename");
 var concat = require("gulp-concat");
+var uglify = require('gulp-uglify');
 
 gulp.task("docs", function(){
   return gulp.src(["index.js","lib/*.js", "lib/*/*.js"])
@@ -16,4 +17,11 @@ gulp.task("docs", function(){
         path.extname = ".md";
     }))
     .pipe(gulp.dest("docs"));
+});
+
+gulp.task('compress', function() {
+  return gulp.src('dist/spacebunny.js')
+    .pipe(uglify())
+    .pipe(gulp.dest('dist/min'))
+    .pipe(gulp.dest('examples/web_stomp'));
 });
