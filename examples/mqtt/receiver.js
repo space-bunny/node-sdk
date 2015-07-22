@@ -6,7 +6,7 @@ var messageCallback = function(topic, message) {
   console.log(topic + ': ' + message);
 };
 
-var mqttClient = new MqttClient({ apiKey: 'my-api-key' });
+var mqttClient = new MqttClient({ apiKey: 'your-api-key' });
 mqttClient.onReceive(messageCallback).then(function(res) {
   console.log(res);
 }).catch(function(reason) {

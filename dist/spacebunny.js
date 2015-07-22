@@ -190,8 +190,8 @@
 	          client.heartbeat.incoming = 0;
 	        }
 	        var headers = merge(parent._connectionHeaders, {
-	          login: connectionParams.username,
-	          passcode: connectionParams.password,
+	          login: connectionParams.device_id,
+	          passcode: connectionParams.secret,
 	          host: connectionParams.vhost
 	        });
 	        client.connect(headers, function(frame) {
@@ -408,7 +408,7 @@
 	 * @return the device ID for the current device
 	 */
 	SpaceBunny.prototype.deviceId = function () {
-	  this._deviceId = this._deviceId || this._connectionParams.username;
+	  this._deviceId = this._deviceId || this._connectionParams.device_id;
 	  return this._deviceId;
 	};
 
@@ -8368,10 +8368,10 @@
 			"email": "brian@worlize.com",
 			"url": "https://www.worlize.com/"
 		},
-		"version": "1.0.18",
+		"version": "1.0.19",
 		"repository": {
 			"type": "git",
-			"url": "https://github.com/theturtle32/WebSocket-Node.git"
+			"url": "git+https://github.com/theturtle32/WebSocket-Node.git"
 		},
 		"homepage": "https://github.com/theturtle32/WebSocket-Node",
 		"engines": {
@@ -8379,7 +8379,7 @@
 		},
 		"dependencies": {
 			"debug": "~2.1.0",
-			"nan": "~1.0.0",
+			"nan": "1.8.x",
 			"typedarray-to-buffer": "~3.0.0"
 		},
 		"devDependencies": {
@@ -8403,15 +8403,16 @@
 			"lib": "./lib"
 		},
 		"browser": "lib/browser.js",
-		"gitHead": "2888a6d8c6ea0211b429000d43ed5da76124733f",
+		"license": "Apache-2.0",
+		"gitHead": "da3bd5b04e9442c84881b2e9c13432cdbbae1f16",
 		"bugs": {
 			"url": "https://github.com/theturtle32/WebSocket-Node/issues"
 		},
-		"_id": "websocket@1.0.18",
-		"_shasum": "140280dcc90ed42caa7a701e182a8c9e2dec75ef",
+		"_id": "websocket@1.0.19",
+		"_shasum": "e62dbf1a3c5e0767425db7187cfa38f921dfb42c",
 		"_from": "websocket@latest",
-		"_npmVersion": "2.6.1",
-		"_nodeVersion": "1.4.3",
+		"_npmVersion": "2.10.1",
+		"_nodeVersion": "0.12.4",
 		"_npmUser": {
 			"name": "theturtle32",
 			"email": "brian@worlize.com"
@@ -8423,10 +8424,10 @@
 			}
 		],
 		"dist": {
-			"shasum": "140280dcc90ed42caa7a701e182a8c9e2dec75ef",
-			"tarball": "http://registry.npmjs.org/websocket/-/websocket-1.0.18.tgz"
+			"shasum": "e62dbf1a3c5e0767425db7187cfa38f921dfb42c",
+			"tarball": "http://registry.npmjs.org/websocket/-/websocket-1.0.19.tgz"
 		},
-		"_resolved": "https://registry.npmjs.org/websocket/-/websocket-1.0.18.tgz"
+		"_resolved": "https://registry.npmjs.org/websocket/-/websocket-1.0.19.tgz"
 	}
 
 /***/ },

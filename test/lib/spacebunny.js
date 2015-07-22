@@ -25,7 +25,7 @@ describe('SpaceBunny', function() {
 
     context('when Api Key is passed', function() {
       it('should set connection parameters', function(done) {
-        options.apiKey = '75833f07-b8e0-4767-9f9a-6ffb976d12c0:DTGmcSpjS_rXerxvPPzYZQ';
+        options.apiKey = '2726ed64-e8a8-44ec-89d3-ea1900b5b049:8pXevK_ZTskzdPdCfXrjTQ';
         var res = {
           connection: {
             host: "localhost",
@@ -41,11 +41,11 @@ describe('SpaceBunny', function() {
               },
               "web_stomp": {
                 "port": 15674
-              }              
+              }
             },
-            username: "75833f07-b8e0-4767-9f9a-6ffb976d12c0",
-            password: "2kiqPkvx2tLDc7dcQSvYV37ogye8KDdSVUa5YUax",
-            vhost: "/66787782"
+            device_id: "2726ed64-e8a8-44ec-89d3-ea1900b5b049",
+            secret: "Eo7en6TVjomJg45oH7iJjNmBgdtP8G9kURZrHzQa",
+            vhost: "/28507946"
           }
         };
         client = new SpaceBunny(options)

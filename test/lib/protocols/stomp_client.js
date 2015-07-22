@@ -14,7 +14,8 @@ describe('StompClient', function() {
   var stompClient;
 
   beforeEach(function(){
-    options = { apiKey: '75833f07-b8e0-4767-9f9a-6ffb976d12c0:DTGmcSpjS_rXerxvPPzYZQ' };
+    //  TODO get valid Apikey for current database    
+    options = { apiKey: '2726ed64-e8a8-44ec-89d3-ea1900b5b049:8pXevK_ZTskzdPdCfXrjTQ' };
   });
 
   context('#publish', function() {
