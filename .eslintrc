@@ -1,0 +1,25 @@
+{
+  "parser": "babel-eslint",
+  "extends": "eslint-config-airbnb",
+  "env": {
+    "browser": true,
+    "node": true,
+    "mocha": true
+  },
+  "globals": {
+    "chai": true
+  },
+  "rules": {
+    "no-trailing-spaces": [1, { "skipBlankLines": true }],
+    "quotes": [2, "single", "avoid-escape"],
+    "comma-dangle": [2, "never"],
+    "no-unused-vars": [1, {"vars": "all", "args": "after-used"}],
+    "brace-style": [0, "1tbs", {"allowSingleLine": true}],
+    "no-underscore-dangle": 0,
+    "space-in-brackets": 0,
+    "func-names": 0,
+    "no-else-return": 0,
+    "no-param-reassign": 0,
+    "no-reserved-keys": 0,
+  }
+}

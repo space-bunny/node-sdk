@@ -1,0 +1,1 @@
+{"version":3,"sources":["web_index.js"],"names":[],"mappings":";;;;;;;;;;AAGA,MAAM,CAAC,WAAW,yBAAc,CAAC","file":"web_index.js","sourcesContent":["import 'source-map-support/register';\n\nimport StompClient from './protocols/stomp_client';\nwindow.StompClient = StompClient;\n"],"sourceRoot":"/Users/gfoiani/Dev/work/JS/spacebunny-node/src"}

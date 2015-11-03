@@ -58,7 +58,7 @@
           $('#messages').append('<div>' + message.body + '</div>');
         };
         if(window.WebSocket) {
-          webStompClient = new StompClient({ apiKey: '75833f07-b8e0-4767-9f9a-6ffb976d12c0:DTGmcSpjS_rXerxvPPzYZQ' });
+          webStompClient = new StompClient({ apiKey: 'your-api-key' });
           webStompClient.onReceive(messageCallback).then(function(res) {
             console.log(res);
           }).catch(function(reason) {
