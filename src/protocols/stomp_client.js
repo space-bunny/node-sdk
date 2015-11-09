@@ -43,7 +43,8 @@ class StompClient extends SpaceBunny {
     // subscribe for input messages
     return new Promise((resolve, reject) => {
       this._connect().then((client) => {
-        client.subscribe(this._subcriptionFor('exchange', 'input'), function(message) {
+        // amq/queue is the form for existing queues
+        client.subscribe(this._subcriptionFor('amq/queue', 'input'), function(message) {
           callback(message);
           resolve(true);
         });
@@ -153,7 +154,7 @@ class StompClient extends SpaceBunny {
    * @return a string that represents the topic name for that channel
    */
   _subcriptionFor(type, channel) {
-    return `/${type}/${channel}/${this.deviceId()}.${channel}`;
+    return `/${type}/${this.deviceId()}.${channel}`;
   }
 
   /**

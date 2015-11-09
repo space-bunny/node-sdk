@@ -30,20 +30,6 @@ gulp.task('build', function() {
     }))
     .pipe(sourcemaps.write('.', { sourceRoot: paths.sourceRoot }))
     .pipe(gulp.dest(paths.dest));
-
-  // const tasks = folders.map(function(element) {
-  //   return gulp.src(element.src)
-  //     .pipe(babel({
-  //       presets: ['babel-preset-es2015']
-  //     }))
-  //     .pipe(sourcemaps.write('.', { sourceRoot: element.sourceRoot }))
-  //     .pipe(gulp.dest(element.dest));
-  // });
-  // return merge(tasks);
-});
-
-gulp.task('watch', function() {
-  gulp.watch(paths.src, ['build']);
 });
 
 gulp.task('webpack', ['build'], function(callback) {
@@ -75,4 +61,8 @@ gulp.task('docs', function() {
       filePath.extname = '.md';
     }))
     .pipe(gulp.dest('docs'));
+});
+
+gulp.task('watch', function() {
+  gulp.watch(paths.src, ['build']);
 });

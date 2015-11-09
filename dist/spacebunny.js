@@ -5671,7 +5671,8 @@
 	      // subscribe for input messages
 	      return new _bluebird2.default(function (resolve, reject) {
 	        _this2._connect().then(function (client) {
-	          client.subscribe(_this2._subcriptionFor('exchange', 'input'), function (message) {
+	          // amq/queue is the form for existing queues
+	          client.subscribe(_this2._subcriptionFor('amq/queue', 'input'), function (message) {
 	            callback(message);
 	            resolve(true);
 	          });
@@ -5801,7 +5802,7 @@
 	  }, {
 	    key: '_subcriptionFor',
 	    value: function _subcriptionFor(type, channel) {
-	      return '/' + type + '/' + channel + '/' + this.deviceId() + '.' + channel;
+	      return '/' + type + '/' + this.deviceId() + '.' + channel;
 	    }
 
 	    /**

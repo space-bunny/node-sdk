@@ -83,7 +83,6 @@ class AmqpClient extends SpaceBunny {
   }
 
   /**
-   * @private
    * Destroy the connection between the amqp client and broker
    *
    * @return a promise containing the result of the operation
