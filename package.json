@@ -50,6 +50,7 @@
   "dependencies": {
     "amqplib": "^0.4.0",
     "bluebird": "^3.0.2",
+    "dotenv": "^1.2.0",
     "error-factory": "^0.1.5",
     "merge": "^1.2.0",
     "mqtt": "^1.4.1",

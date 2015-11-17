@@ -1,10 +1,13 @@
 'use strict';
+require('dotenv').config({ path: __dirname + '/../.env' });
 var define = require("node-constants")(exports);
+var env = process.env.NODE_ENV;
+var url = (env == 'development') ? 'http://localhost:3000' : 'http://demo.spacebunny.io';
 
 define({
   CONFIG: {
     endpoint: {
-      url: 'localhost:3000', // 'https://api.spacebunny.io',
+      url: url,
       api_version: '/v1',
       path: '/device_configurations'
     }

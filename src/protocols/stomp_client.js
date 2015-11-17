@@ -67,7 +67,7 @@ class StompClient extends SpaceBunny {
     // Publish message
     return new Promise((resolve, reject) => {
       this._connect().then((client) => {
-        client.send(this._destinationFor('exchange', channel), this._connectionHeaders, message);
+        client.send(this._destinationFor('exchange', channel), this._connectionHeaders, this._encapsulateContent(message));
         resolve(true);
       }).catch(function(reason) {
         reject(reason);

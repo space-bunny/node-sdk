@@ -69,7 +69,8 @@ class MqttClient extends SpaceBunny {
     return new Promise((resolve, reject) => {
       this._connect().then((client) => {
         client.on('connect', () => {
-          client.publish(this._topicFor(channel), new Buffer(message), merge(this._connectionOpts, opts), function() {
+          const bufferedMessage = new Buffer(this._encapsulateContent(message));
+          client.publish(this._topicFor(channel), bufferedMessage, merge(this._connectionOpts, opts), function() {
             resolve(true);
           });
         });

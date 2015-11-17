@@ -65,14 +65,15 @@ class AmqpClient extends SpaceBunny {
    * @param {Object} message - the message payload
    * @return promise containing true if the
    */
-  publish(channel, message, opts) {
+  publish(channel, message, opts = {}) {
+    opts = merge(this._publishArgs, opts);
     return new Promise((resolve, reject) => {
       this._createChannel().then((ch) => {
         this._amqpChannels.output = ch;
+        const bufferedMessage = new Buffer(this._encapsulateContent(message));
         return when.all([
           this._amqpChannels.output.checkExchange(this.deviceId()),
-          this._amqpChannels.output.publish(this.deviceId(), this._routingKeyFor(channel), new Buffer(message),
-            merge(this._publishArgs, opts))
+          this._amqpChannels.output.publish(this.deviceId(), this._routingKeyFor(channel), bufferedMessage, opts)
         ]);
       }).then(function(res) {
         resolve(res);

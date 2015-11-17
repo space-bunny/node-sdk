@@ -77,7 +77,7 @@ class SpaceBunny {
     }
 
     // Contact endpoint to retrieve configs
-    const uri = `http://${CONFIG.endpoint.url}${CONFIG.endpoint.api_version}${CONFIG.endpoint.path}`;
+    const uri = `${CONFIG.endpoint.url}${CONFIG.endpoint.api_version}${CONFIG.endpoint.path}`;
     try {
       const args = { headers: { 'Api-Key': this._apiKey } };
       const response = request('GET', uri, args);
@@ -86,6 +86,16 @@ class SpaceBunny {
     } catch (ex) {
       throw new SpaceBunnyErrors.EndPointError(ex);
     }
+  }
+
+  _encapsulateContent(content) {
+    let encapsulatedContent = content;
+    try {
+      encapsulatedContent = JSON.stringify(content);
+    } catch (ex) {
+      encapsulatedContent = content;
+    }
+    return encapsulatedContent;
   }
 
 }
