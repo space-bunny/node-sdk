@@ -46,8 +46,10 @@ class StompClient extends SpaceBunny {
         // amq/queue is the form for existing queues
         client.subscribe(this._subcriptionFor('amq/queue', 'input'), function(message) {
           callback(message);
-          resolve(true);
+        }, function(reason) {
+          reject(reason);
         });
+        resolve(true);
       }).catch(function(reason) {
         reject(reason);
       });
