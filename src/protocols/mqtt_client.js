@@ -40,7 +40,7 @@ class MqttClient extends SpaceBunny {
     // subscribe for input messages
     return new Promise((resolve, reject) => {
       this._connect().then((client) => {
-        client.subscribe(this._topicFor('input'), merge(this._connectionOpts, opts), function(err) {
+        client.subscribe(this._topicFor(this._inputTopic), merge(this._connectionOpts, opts), function(err) {
           if (err) {
             reject(false);
           } else {

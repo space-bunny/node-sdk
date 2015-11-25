@@ -27,6 +27,7 @@ class StompClient extends SpaceBunny {
       'accept-version': '1.0,1.1,1.2',
       'heart-beat': '10000,10000'
     };
+    this._existingQueuePrefix = 'amq/queue';
     this.connection();
   }
 
@@ -44,7 +45,7 @@ class StompClient extends SpaceBunny {
     return new Promise((resolve, reject) => {
       this._connect().then((client) => {
         // amq/queue is the form for existing queues
-        client.subscribe(this._subcriptionFor('amq/queue', 'input'), function(message) {
+        client.subscribe(this._subcriptionFor(this._existingQueuePrefix, this._inputTopic), function(message) {
           callback(message);
         }, function(reason) {
           reject(reason);

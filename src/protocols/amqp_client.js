@@ -44,9 +44,9 @@ class AmqpClient extends SpaceBunny {
     return new Promise((resolve, reject) => {
       this._createChannel('input').then((channel) => {
         this._amqpChannels.input = channel;
-        return this._amqpChannels.input.checkQueue(`${this.deviceId()}.input`, this._inputQueueArgs);
+        return this._amqpChannels.input.checkQueue(`${this.deviceId()}.${this._inputTopic}`, this._inputQueueArgs);
       }).then(() => {
-        return this._amqpChannels.input.consume(`${this.deviceId()}.input`, (message) => {
+        return this._amqpChannels.input.consume(`${this.deviceId()}.${this._inputTopic}`, (message) => {
           callback(this._parseContent(message));
         }, merge(this._subscribeArgs, opts) );
       }).then(function() {

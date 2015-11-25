@@ -25,6 +25,7 @@ class SpaceBunny {
     this._channels = this._opts.channels;
     this._endPointConfigs = this._opts.endPointConfigs;
     this._deviceId = this._opts.deviceId;
+    this._inputTopic = 'inbox';
   }
 
   /**

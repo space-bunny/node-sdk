@@ -5649,6 +5649,7 @@
 	      'accept-version': '1.0,1.1,1.2',
 	      'heart-beat': '10000,10000'
 	    };
+	    _this._existingQueuePrefix = 'amq/queue';
 	    _this.connection();
 	    return _this;
 	  }
@@ -5672,10 +5673,12 @@
 	      return new _bluebird2.default(function (resolve, reject) {
 	        _this2._connect().then(function (client) {
 	          // amq/queue is the form for existing queues
-	          client.subscribe(_this2._subcriptionFor('amq/queue', 'input'), function (message) {
+	          client.subscribe(_this2._subcriptionFor(_this2._existingQueuePrefix, _this2._inputTopic), function (message) {
 	            callback(message);
-	            resolve(true);
+	          }, function (reason) {
+	            reject(reason);
 	          });
+	          resolve(true);
 	        }).catch(function (reason) {
 	          reject(reason);
 	        });
@@ -5700,7 +5703,7 @@
 	      // Publish message
 	      return new _bluebird2.default(function (resolve, reject) {
 	        _this3._connect().then(function (client) {
-	          client.send(_this3._destinationFor('exchange', channel), _this3._connectionHeaders, message);
+	          client.send(_this3._destinationFor('exchange', channel), _this3._connectionHeaders, _this3._encapsulateContent(message));
 	          resolve(true);
 	        }).catch(function (reason) {
 	          reject(reason);
@@ -12223,6 +12226,7 @@
 	    this._channels = this._opts.channels;
 	    this._endPointConfigs = this._opts.endPointConfigs;
 	    this._deviceId = this._opts.deviceId;
+	    this._inputTopic = 'inbox';
 	  }
 
 	  /**
@@ -12296,6 +12300,17 @@
 	      } catch (ex) {
 	        throw new _spacebunny_errors2.default.EndPointError(ex);
 	      }
+	    }
+	  }, {
+	    key: '_encapsulateContent',
+	    value: function _encapsulateContent(content) {
+	      var encapsulatedContent = content;
+	      try {
+	        encapsulatedContent = JSON.stringify(content);
+	      } catch (ex) {
+	        encapsulatedContent = content;
+	      }
+	      return encapsulatedContent;
 	    }
 	  }]);
 
