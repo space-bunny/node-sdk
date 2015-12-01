@@ -22,6 +22,7 @@ class AmqpClient extends SpaceBunny {
    */
   constructor(opts) {
     super(opts);
+    this._protocol = 'amqp';
     this._conn = undefined;
     this._amqpChannels = {};
     this._inputQueueArgs = { };
@@ -120,7 +121,8 @@ class AmqpClient extends SpaceBunny {
         resolve(this._conn);
       } else {
         const connectionParams = this._connectionParams;
-        const connectionString = `amqp://${connectionParams.device_id}:${connectionParams.secret}@${connectionParams.host}:${connectionParams.protocols.amqp.port}/${connectionParams.vhost.replace('/', '%2f')}`;
+        // TODO if ssl change connections string and connection parameters
+        const connectionString = `amqp://${connectionParams.deviceId}:${connectionParams.secret}@${connectionParams.host}:${connectionParams.protocols.amqp.port}/${connectionParams.vhost.replace('/', '%2f')}`;
         amqp.connect(connectionString).then((conn) => {
           process.once('SIGINT', function() { conn.close(); });
           this._conn = conn;

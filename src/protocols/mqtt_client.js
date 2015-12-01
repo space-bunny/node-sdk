@@ -22,6 +22,7 @@ class MqttClient extends SpaceBunny {
 
   constructor(opts) {
     super(opts);
+    this._protocol = 'mqtt';
     this._client = undefined;
     this._connectionOpts = { qos: 1 };
     this._connectTimeout = 5000;
@@ -121,9 +122,9 @@ class MqttClient extends SpaceBunny {
           const client = mqtt.connect({
             host: connectionParams.host,
             port: connectionParams.protocols.mqtt.port,
-            username: `${connectionParams.vhost}:${connectionParams.device_id}`,
+            username: `${connectionParams.vhost}:${connectionParams.deviceId}`,
             password: connectionParams.secret,
-            clientId: connectionParams.device_id,
+            clientId: connectionParams.deviceId,
             connectTimeout: opts.connectTimeout || this._connectTimeout
           });
           client.on('error', function(reason) {

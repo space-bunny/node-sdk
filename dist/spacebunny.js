@@ -5643,6 +5643,11 @@
 
 	    var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(StompClient).call(this, opts));
 
+	    if ((typeof process === 'undefined' ? 'undefined' : _typeof(process)) === 'object' && process + '' === '[object process]') {
+	      _this._protocol = 'stomp';
+	    } else {
+	      _this._protocol = 'web_stomp';
+	    }
 	    _this._client = undefined;
 	    _this._connectionHeaders = {
 	      'max_hbrlck_fails': 10,
@@ -5775,7 +5780,7 @@
 	                client.heartbeat.incoming = 0;
 	              }
 	              var headers = (0, _merge2.default)(_this5._connectionHeaders, {
-	                login: connectionParams.device_id,
+	                login: connectionParams.deviceId,
 	                passcode: connectionParams.secret,
 	                host: connectionParams.vhost
 	              });
@@ -12219,14 +12224,18 @@
 	  function SpaceBunny(opts) {
 	    _classCallCheck(this, SpaceBunny);
 
-	    this._opts = (0, _merge2.default)({}, opts);
-	    this._connectionParams = this._opts.connection;
-	    this._apiKey = this._opts.apiKey;
-	    this._endPoint = this._opts.endPoint;
-	    this._channels = this._opts.channels;
-	    this._endPointConfigs = this._opts.endPointConfigs;
-	    this._deviceId = this._opts.deviceId;
-	    this._inputTopic = 'inbox';
+	    this._connectionParams = (0, _merge2.default)({}, opts);
+	    this._endPointConfigs = {};
+	    this._channels = this._connectionParams.channels;
+	    this._apiKey = this._connectionParams.apiKey;
+	    this._deviceId = this._connectionParams.deviceId;
+	    this._secret = this._connectionParams.secret;
+	    this._host = this._connectionParams.host;
+	    this._port = this._connectionParams.port;
+	    this._vhost = this._connectionParams.vhost;
+	    this._protocol = 'amqp';
+	    this._ssl = this._connectionParams.ssl || false;
+	    this._inputTopic = this._connectionParams.inputTopic || 'inbox';
 	  }
 
 	  /**
@@ -12240,12 +12249,31 @@
 	  _createClass(SpaceBunny, [{
 	    key: 'connection',
 	    value: function connection() {
-	      if (this._apiKey !== undefined && this._connectionParams === undefined) {
-	        this._connectionParams = this._endPointConfigurations().connection;
-	      } else if (this._apiKey === undefined && this._connectionParams === undefined) {
-	        throw new _spacebunny_errors2.default.ApiKeyOrConfigurationsRequired('Missing configurations');
+	      // Contact endpoint to retrieve configs
+	      var uri = '' + CONFIG.endpoint.url + CONFIG.endpoint.api_version + CONFIG.endpoint.path;
+	      if (this._apiKey) {
+	        // Get configs from endpoint
+	        try {
+	          var args = { headers: { 'Api-Key': this._apiKey } };
+	          var response = (0, _syncRequest2.default)('GET', uri, args);
+	          this._endPointConfigs = JSON.parse(response.getBody());
+	          this._connectionParams = this._endPointConfigs.connection;
+	          this._connectionParams.deviceId = this._connectionParams.device_id;
+	        } catch (ex) {
+	          throw new _spacebunny_errors2.default.EndPointError(ex);
+	        }
+	      } else if (this._deviceId && this._secret && this._host && this._port && this._vhost) {
+	        // Manually provided configs
+	        this._connectionParams.protocols = {};
+	        if (this._ssl) {
+	          this._connectionParams.protocols[this._protocol] = { ssl_port: this._port };
+	        } else {
+	          this._connectionParams.protocols[this._protocol] = { port: this._port };
+	        }
+	      } else {
+	        // No configs or missing some info
+	        throw new _spacebunny_errors2.default.ApiKeyOrConfigurationsRequired('Missing Api Key or wrong connection parameters');
 	      }
-	      return this._connectionParams;
 	    }
 
 	    /**
@@ -12255,7 +12283,7 @@
 	  }, {
 	    key: 'channels',
 	    value: function channels() {
-	      this._channels = this._endPointConfigs.channels || this._channels;
+	      this._channels = this._endPointConfigs.channels || this._channels || [];
 	      return this._channels.map(function (obj) {
 	        return obj.name;
 	      });
@@ -12268,39 +12296,12 @@
 	  }, {
 	    key: 'deviceId',
 	    value: function deviceId() {
-	      this._deviceId = this._deviceId || this._connectionParams.device_id;
+	      this._deviceId = this._deviceId || this._connectionParams.deviceId;
 	      return this._deviceId;
 	    }
 
 	    // ------------ PRIVATE METHODS -------------------
 
-	    /**
-	     * @private
-	     * Return configs from the Space Bunny ndpoint
-	     * it caches configurations so if you ask multiple
-	     * time for configurations it makes only one request
-	     *
-	     * @return an Object containing endpoint configurations
-	     */
-
-	  }, {
-	    key: '_endPointConfigurations',
-	    value: function _endPointConfigurations() {
-	      if (this._endPointConfigs !== undefined) {
-	        return this._endPointConfigs;
-	      }
-
-	      // Contact endpoint to retrieve configs
-	      var uri = '' + CONFIG.endpoint.url + CONFIG.endpoint.api_version + CONFIG.endpoint.path;
-	      try {
-	        var args = { headers: { 'Api-Key': this._apiKey } };
-	        var response = (0, _syncRequest2.default)('GET', uri, args);
-	        this._endPointConfigs = JSON.parse(response.getBody());
-	        return this._endPointConfigs;
-	      } catch (ex) {
-	        throw new _spacebunny_errors2.default.EndPointError(ex);
-	      }
-	    }
 	  }, {
 	    key: '_encapsulateContent',
 	    value: function _encapsulateContent(content) {
@@ -13442,7 +13443,8 @@
 	__webpack_require__(46).config({ path: __dirname + '/../.env' });
 	var define = __webpack_require__(47)(exports);
 	var env = process.env.NODE_ENV;
-	var url = env == 'development' ? 'http://localhost:3000' : 'http://demo.spacebunny.io';
+	// var url = (env == 'development') ? 'http://localhost:3000' : 'http://demo.spacebunny.io';
+	var url = 'http://localhost:3000';
 
 	define({
 	  CONFIG: {

@@ -21,6 +21,11 @@ import SpaceBunny from '../spacebunny';
 class StompClient extends SpaceBunny {
   constructor(opts) {
     super(opts);
+    if (typeof process === 'object' && process + '' === '[object process]') {
+      this._protocol = 'stomp';
+    } else {
+      this._protocol = 'web_stomp';
+    }
     this._client = undefined;
     this._connectionHeaders = {
       'max_hbrlck_fails': 10,
@@ -131,7 +136,7 @@ class StompClient extends SpaceBunny {
             client.heartbeat.incoming = 0;
           }
           const headers = merge(this._connectionHeaders, {
-            login: connectionParams.device_id,
+            login: connectionParams.deviceId,
             passcode: connectionParams.secret,
             host: connectionParams.vhost
           });
