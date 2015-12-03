@@ -20,13 +20,32 @@
       </ul>
     </nav>
 
-    <div class="content large-12 small-12">
-      <div class="large-6 small-6 columns">
-        <h3>Received Messages</h3>
-        <hr>
-        <div id="messages"></div>
+    <div class="content small-12 columns">
+      <div class="small-1 columns">
+        <label for="api-key">Api Key</label>
       </div>
-      <div class="large-6 small-6 columns">
+      <div class="small-5 columns">
+        <input type="text" name="api-key" id="api-key" value="">
+      </div>
+      <div class="small-3 columns">
+        <button type="button" name="connect-button" id="connect-button" class="small success">Connect</button>
+        <button type="button" name="disconnect-button" id="disconnect-button" class="small secondary" disabled="disabled">Disconnect</button>
+      </div>
+      <div class="small-3 columns end" id="flash-messages"></div>
+    </div>
+
+    <div class="content small-12">
+      <div class="small-6 columns">
+        <div class="small-10 columns">
+          <h3>Received Messages</h3>
+        </div>
+        <div class="small-2 columns end">
+          <button type="button" name="clear-button" id="clear-button" class="small">Clear</button>
+        </div>
+        <hr>
+        <div class="small-12 columns end" id="messages"></div>
+      </div>
+      <div class="small-6 columns end">
         <h3>Send a Message</h3>
         <hr>
         <span>
@@ -34,7 +53,7 @@
           <input type="text" name="channel-name" id="channel-name" value="">
         </span>
         <textarea id="message-text" rows="10"></textarea>
-        <button type="button" name="send-button" id="send-button" class="small">Send</button>
+        <button type="button" name="send-button" id="send-button" class="small" disabled="disabled">Send</button>
         <div id="flash-messages"></div>
       </div>
     </div>
@@ -47,6 +66,27 @@
     <script>
       $(document).ready(function() {
         var webStompClient = undefined;
+
+        var toggleButtons = function(action) {
+          if(action == 'connect') {
+            $('#connect-button').attr('disabled','disabled');
+            $('#disconnect-button').removeAttr('disabled');
+            $('#send-button').removeAttr('disabled');
+            $('#connect-button').removeClass('success');
+            $('#connect-button').addClass('secondary');
+            $('#disconnect-button').removeClass('secondary');
+            $('#disconnect-button').addClass('alert');
+          } else if (action == 'disconnect') {
+            $('#disconnect-button').attr('disabled','disabled');
+            $('#send-button').attr('disabled','disabled');
+            $('#connect-button').removeAttr('disabled');
+            $('#connect-button').removeClass('secondary');
+            $('#connect-button').addClass('success');
+            $('#disconnect-button').removeClass('alert');
+            $('#disconnect-button').addClass('secondary');
+          }
+        }
+
         var flashMessage = function(message, type) {
           var content = "<div data-alert class='alert-box " + type + "'>" +
             "<div>" + message + "</div>" +
@@ -58,27 +98,40 @@
           $('#messages').append('<div>' + message.body + '</div>');
         };
         if(window.WebSocket) {
-          // Manual Config
-          // var connectionParams = {
-          //   deviceId: 'device-id',
-          //   secret: 'device-secret',
-          //   host: 'hostname',
-          //   port: 15674, // default for WEB STOMP
-          //   vhost: 'vhost',
-          //   channels: [ { name: 'data' }, { name: 'alarms' } ]
-          // };
 
-          // Auto Config
-          var connectionParams = { apiKey: 'your-api-key' };
+          $('#clear-button').click(function(e) {
+            e.preventDefault();
+            $('#messages').html('');
+          });
 
-          webStompClient = new StompClient(connectionParams);
-          webStompClient.onReceive(messageCallback).then(function(res) {
-            console.log(res);
-          }).catch(function(reason) {
-            console.error(reason);
+          $('#disconnect-button').click(function(e) {
+            e.preventDefault();
+            webStompClient.disconnect().then(function() {
+              toggleButtons('disconnect');
+              flashMessage('Successfully disconnected!', 'success');
+            }).catch(function(reason) {
+              console.error(reason);
+            });
+          });
+
+          $('#connect-button').click(function(e) {
+            e.preventDefault();
+
+            // Auto Config
+            var apiKey = $('#api-key').val() || undefined;
+            var connectionParams = { apiKey: apiKey };
+
+            webStompClient = new StompClient(connectionParams);
+            webStompClient.onReceive(messageCallback).then(function(res) {
+              toggleButtons('connect');
+              flashMessage('Successfully connected!', 'success');
+            }).catch(function(reason) {
+              console.error(reason);
+            });
           });
 
           $('#send-button').click(function() {
+            e.preventDefault();
             var messageText = $('#message-text').val();
             var channel = $('#channel-name').val();
             if(channel === undefined) {

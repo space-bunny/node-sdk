@@ -27,6 +27,7 @@ class StompClient extends SpaceBunny {
       this._protocol = 'web_stomp';
     }
     this._client = undefined;
+    this._subscription = undefined;
     this._connectionHeaders = {
       'max_hbrlck_fails': 10,
       'accept-version': '1.0,1.1,1.2',
@@ -50,7 +51,7 @@ class StompClient extends SpaceBunny {
     return new Promise((resolve, reject) => {
       this._connect().then((client) => {
         // amq/queue is the form for existing queues
-        client.subscribe(this._subcriptionFor(this._existingQueuePrefix, this._inputTopic), function(message) {
+        this._subscription = client.subscribe(this._subcriptionFor(this._existingQueuePrefix, this._inputTopic), function(message) {
           callback(message);
         }, function(reason) {
           reject(reason);
@@ -93,7 +94,8 @@ class StompClient extends SpaceBunny {
       if (this._client === undefined) {
         reject('Invalid connection');
       } else {
-        this._client.disconnect().then(function() {
+        this._subscription.unsubscribe();
+        this._client.disconnect(function() {
           resolve(true);
         }).catch(function(reason) {
           reject(reason);
