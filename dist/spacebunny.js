@@ -2085,7 +2085,7 @@
 	      }
 
 	      // valid surrogate pair
-	      codePoint = leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00 | 0x10000
+	      codePoint = (leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00) + 0x10000
 	    } else if (leadSurrogate) {
 	      // valid bmp char, but last char was a lead
 	      if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
@@ -5599,7 +5599,7 @@
 	}
 
 	function _typeof(obj) {
-	  return obj && obj.constructor === Symbol ? "symbol" : typeof obj;
+	  return obj && typeof Symbol !== "undefined" && obj.constructor === Symbol ? "symbol" : typeof obj;
 	}
 
 	function _classCallCheck(instance, Constructor) {
@@ -6062,7 +6062,7 @@
 	 * 
 	 */
 	/**
-	 * bluebird build version 3.0.2
+	 * bluebird build version 3.0.5
 	 * Features enabled: core, race, call_get, generators, map, nodeify, promisify, props, reduce, settle, some, using, timers, filter, any, each
 	*/
 	!function(e){if(true)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.Promise=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof _dereq_=="function"&&_dereq_;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof _dereq_=="function"&&_dereq_;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
@@ -6629,7 +6629,7 @@
 
 	Promise.prototype._promiseCreated = function() {};
 	Promise.prototype._pushContext = function() {};
-	Promise.prototype._popContext = function() {return 0;};
+	Promise.prototype._popContext = function() {return null;};
 	Promise._peekContext = Promise.prototype._peekContext = function() {};
 
 	function Context() {
@@ -6637,7 +6637,7 @@
 	}
 	Context.prototype._pushContext = function () {
 	    if (this._trace !== undefined) {
-	        this._trace._promisesCreated = 0;
+	        this._trace._promiseCreated = null;
 	        contextStack.push(this._trace);
 	    }
 	};
@@ -6645,11 +6645,11 @@
 	Context.prototype._popContext = function () {
 	    if (this._trace !== undefined) {
 	        var trace = contextStack.pop();
-	        var ret = trace._promisesCreated;
-	        trace._promisesCreated = 0;
+	        var ret = trace._promiseCreated;
+	        trace._promiseCreated = null;
 	        return ret;
 	    }
-	    return 0;
+	    return null;
 	};
 
 	function createContext() {
@@ -6672,7 +6672,7 @@
 	    Promise._peekContext = Promise.prototype._peekContext = peekContext;
 	    Promise.prototype._promiseCreated = function() {
 	        var ctx = this._peekContext();
-	        if (ctx) ctx._promisesCreated++;
+	        if (ctx && ctx._promiseCreated == null) ctx._promiseCreated = this;
 	    };
 	};
 	return Context;
@@ -6694,8 +6694,10 @@
 	var formatStack = null;
 	var indentStackFrames = false;
 	var printWarning;
-	var debugging =!!(true || util.env("BLUEBIRD_DEBUG") ||
-	                               util.env("NODE_ENV") === "development");
+	var debugging = !!(util.env("BLUEBIRD_DEBUG") != 0 &&
+	                        (true ||
+	                         util.env("BLUEBIRD_DEBUG") ||
+	                         util.env("NODE_ENV") === "development"));
 	var warnings = !!(util.env("BLUEBIRD_WARNINGS") != 0 &&
 	    (debugging || util.env("BLUEBIRD_WARNINGS")));
 	var longStackTraces = !!(util.env("BLUEBIRD_LONG_STACK_TRACES") != 0 &&
@@ -6755,8 +6757,8 @@
 	    return (this._bitField & 1048576) > 0;
 	};
 
-	Promise.prototype._warn = function(message, shouldUseOwnTrace) {
-	    return warn(message, shouldUseOwnTrace, this);
+	Promise.prototype._warn = function(message, shouldUseOwnTrace, promise) {
+	    return warn(message, shouldUseOwnTrace, promise || this);
 	};
 
 	Promise.onPossiblyUnhandledRejection = function (fn) {
@@ -6935,14 +6937,14 @@
 	    }
 	}
 
-	function checkForgottenReturns(returnValue, promisesCreated, name, promise) {
+	function checkForgottenReturns(returnValue, promiseCreated, name, promise) {
 	    if (returnValue === undefined &&
-	        promisesCreated > 0 &&
+	        promiseCreated !== null &&
 	        config.longStackTraces &&
 	        config.warnings) {
 	        var msg = "a promise was created in a " + name +
 	            " handler but was not returned from it";
-	        promise._warn(msg);
+	        promise._warn(msg, true, promiseCreated);
 	    }
 	}
 
@@ -7431,7 +7433,7 @@
 	    if (util.isNode && process.stderr.isTTY) {
 	        printWarning = function(message, isSoft) {
 	            var color = isSoft ? "\u001b[33m" : "\u001b[31m";
-	            process.stderr.write(color + message + "\u001b[0m\n");
+	            console.warn(color + message + "\u001b[0m\n");
 	        };
 	    } else if (!util.isNode && typeof (new Error().stack) === "string") {
 	        printWarning = function(message, isSoft) {
@@ -8278,10 +8280,10 @@
 	        var receiver = promise._boundValue();
 	        promise._pushContext();
 	        var ret = tryCatch(callback).call(receiver, value, index, length);
-	        var promisesCreated = promise._popContext();
+	        var promiseCreated = promise._popContext();
 	        debug.checkForgottenReturns(
 	            ret,
-	            promisesCreated,
+	            promiseCreated,
 	            preservedValues !== null ? "Promise.filter" : "Promise.map",
 	            promise
 	        );
@@ -8389,7 +8391,9 @@
 	        ret._captureStackTrace();
 	        ret._pushContext();
 	        var value = tryCatch(fn).apply(this, arguments);
-	        ret._popContext();
+	        var promiseCreated = ret._popContext();
+	        debug.checkForgottenReturns(
+	            value, promiseCreated, "Promise.method", ret);
 	        ret._resolveFromSyncValue(value);
 	        return ret;
 	    };
@@ -8412,7 +8416,9 @@
 	    } else {
 	        value = tryCatch(fn)();
 	    }
-	    ret._popContext();
+	    var promiseCreated = ret._popContext();
+	    debug.checkForgottenReturns(
+	        value, promiseCreated, "Promise.try", ret);
 	    ret._resolveFromSyncValue(value);
 	    return ret;
 	};
@@ -8980,10 +8986,11 @@
 	    }
 	};
 
-	Promise.prototype._rejectCallback = function(reason, synchronous) {
+	Promise.prototype._rejectCallback =
+	function(reason, synchronous, ignoreNonErrorWarnings) {
 	    var trace = util.ensureErrorObject(reason);
 	    var hasStack = trace === reason;
-	    if (!hasStack && debug.warnings()) {
+	    if (!hasStack && !ignoreNonErrorWarnings && debug.warnings()) {
 	        var message = "a promise was rejected with a non-error: " +
 	            util.classString(reason);
 	        this._warn(message, true);
@@ -9028,7 +9035,7 @@
 	    } else {
 	        x = tryCatch(handler).call(receiver, value);
 	    }
-	    var promisesCreatedDuringHandlerInvocation = promise._popContext();
+	    var promiseCreated = promise._popContext();
 	    bitField = promise._bitField;
 	    if (((bitField & 65536) !== 0)) return;
 
@@ -9038,13 +9045,7 @@
 	        var err = x === promise ? makeSelfResolutionError() : x.e;
 	        promise._rejectCallback(err, false);
 	    } else {
-	        if (x === undefined &&
-	            promisesCreatedDuringHandlerInvocation > 0 &&
-	            debug.longStackTraces() &&
-	            debug.warnings()) {
-	            promise._warn("a promise was created in a handler but " +
-	                "none were returned from it", true);
-	        }
+	        debug.checkForgottenReturns(x, promiseCreated, "",  promise);
 	        promise._resolveCallback(x);
 	    }
 	};
@@ -9660,7 +9661,7 @@
 	                [CodeForSwitchCase]                                          \n\
 	            }                                                                \n\
 	            if (ret === errorObj) {                                          \n\
-	                promise._rejectCallback(maybeWrapAsError(ret.e), true);      \n\
+	                promise._rejectCallback(maybeWrapAsError(ret.e), true, true);\n\
 	            }                                                                \n\
 	            if (!promise._isFateSealed()) promise._setAsyncGuaranteed();     \n\
 	            return promise;                                                  \n\
@@ -9711,7 +9712,7 @@
 	        try {
 	            cb.apply(_receiver, withAppended(arguments, fn));
 	        } catch(e) {
-	            promise._rejectCallback(maybeWrapAsError(e), true);
+	            promise._rejectCallback(maybeWrapAsError(e), true, true);
 	        }
 	        if (!promise._isFateSealed()) promise._setAsyncGuaranteed();
 	        return promise;
@@ -10218,10 +10219,10 @@
 	    if (ret instanceof Promise) {
 	        array._currentCancellable = ret;
 	    }
-	    var promisesCreated = promise._popContext();
+	    var promiseCreated = promise._popContext();
 	    debug.checkForgottenReturns(
 	        ret,
-	        promisesCreated,
+	        promiseCreated,
 	        array._eachValues !== undefined ? "Promise.each" : "Promise.reduce",
 	        promise
 	    );
@@ -10622,7 +10623,7 @@
 	    synchronous = false;
 
 	    if (promise && result === errorObj) {
-	        promise._rejectCallback(result.e, true);
+	        promise._rejectCallback(result.e, true, true);
 	        promise = null;
 	    }
 
@@ -10634,7 +10635,7 @@
 
 	    function reject(reason) {
 	        if (!promise) return;
-	        promise._rejectCallback(reason, synchronous);
+	        promise._rejectCallback(reason, synchronous, true);
 	        promise = null;
 	    }
 	    return ret;
@@ -10894,9 +10895,9 @@
 	                fn = tryCatch(fn);
 	                var ret = spreadArgs
 	                    ? fn.apply(undefined, inspections) : fn(inspections);
-	                var promisesCreated = promise._popContext();
+	                var promiseCreated = promise._popContext();
 	                debug.checkForgottenReturns(
-	                    ret, promisesCreated, "Promise.using", promise);
+	                    ret, promiseCreated, "Promise.using", promise);
 	                return ret;
 	            });
 
@@ -12053,7 +12054,7 @@
 		"_args": [
 			[
 				"websocket@latest",
-				"/Users/gfoiani/Dev/work/JS/spacebunny-node/node_modules/stompjs"
+				"/Users/gfoiani/Dev/work/spacebunny/sdk-node/node_modules/stompjs"
 			]
 		],
 		"_from": "websocket@latest",
@@ -12083,7 +12084,7 @@
 		"_shasum": "8c33e3449f879aaf518297c9744cebf812b9e3d8",
 		"_shrinkwrap": null,
 		"_spec": "websocket@latest",
-		"_where": "/Users/gfoiani/Dev/work/JS/spacebunny-node/node_modules/stompjs",
+		"_where": "/Users/gfoiani/Dev/work/spacebunny/sdk-node/node_modules/stompjs",
 		"author": {
 			"email": "brian@worlize.com",
 			"name": "Brian McKelvey",
@@ -13443,8 +13444,7 @@
 	__webpack_require__(46).config({ path: __dirname + '/../.env' });
 	var define = __webpack_require__(47)(exports);
 	var env = process.env.NODE_ENV;
-	// var url = (env == 'development') ? 'http://localhost:3000' : 'http://demo.spacebunny.io';
-	var url = 'http://localhost:3000';
+	var url = env == 'development' ? 'http://localhost:3000' : 'http://demo.spacebunny.io';
 
 	define({
 	  CONFIG: {
