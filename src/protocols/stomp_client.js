@@ -10,6 +10,8 @@ import Promise from 'bluebird';
 
 // Import stomp library
 import Stomp from 'stompjs';
+// Import SockJS library
+import SockJS from 'sockjs-client';
 
 // Import SpaceBunny main module from which StompClient inherits
 import SpaceBunny from '../spacebunny';
@@ -128,7 +130,6 @@ class StompClient extends SpaceBunny {
             // code is runnning in nodejs: STOMP uses TCP sockets
             client = Stomp.overTCP(connectionParams.host, connectionParams.protocols.stomp.port);
           } else {
-            const SockJS = require('sockjs-client');
             // code is runnning in a browser: web STOMP uses Web sockets
             const connectionString = `http://${connectionParams.host}:${connectionParams.protocols.web_stomp.port}/stomp`;
             const ws = new SockJS(connectionString);
