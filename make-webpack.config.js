@@ -18,12 +18,6 @@ module.exports = function(options) {
   };
 
   const plugins = [
-    // new SplitByPathPlugin([
-    //   {
-    //     name: 'vendor',
-    //     path: path.join(__dirname, 'node_modules/')
-    //   }
-    // ]),
     new webpack.optimize.CommonsChunkPlugin('vendors', 'vendors.js'),
     new webpack.ProvidePlugin({
       $: 'jquery',

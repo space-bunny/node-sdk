@@ -1,10 +1,5 @@
-'use strict';
 var appRoot = require('app-root-path');
 var AmqpClient = require(appRoot + '/lib/index').AmqpClient;
-
-var messageCallback = function(message) {
-  console.log(message.content);
-};
 
 // Manual Config
 // var connectionParams = {
@@ -13,15 +8,29 @@ var messageCallback = function(message) {
 //   host: 'hostname',
 //   port: 5672, // default for AMQP
 //   vhost: 'vhost',
-//   channels: [ { name: 'data' }, { name: 'alarms' } ]
+//   channels: [ 'data', 'alarms' ]
 // };
 
 // Auto Config
 var connectionParams = { apiKey: 'your-api-key' };
 
+// Auto Config with SSL
+// var connectionParams = {
+//   apiKey: 'your-api-key',
+//   ssl: true,
+//   ca: '/path/to/ca_certificate.pem',
+//   cert: '/path/to/client_certificate.pem',
+//   key: '/path/to/client_key.pem'
+// };
+
 var amqpClient = new AmqpClient(connectionParams);
-amqpClient.onReceive(messageCallback).then(function(res) {
+
+var channel = amqpClient.channels()[0];
+amqpClient.publish(channel, { some: 'json' }).then(function(res) {
   console.log(res);  // eslint-disable-line no-console
+  amqpClient.disconnect();
+  process.exit(0);
 }).catch(function(reason) {
   console.error(reason);  // eslint-disable-line no-console
+  process.exit(1);
 });

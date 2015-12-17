@@ -18,7 +18,17 @@ var messageCallback = function(topic, message) {
 // Auto Config
 var connectionParams = { apiKey: 'your-api-key' };
 
+// Auto Config with SSL
+// var connectionParams = {
+//   apiKey: 'your-api-key',
+//   ssl: true,
+//   ca: '/path/to/ca_certificate.pem',
+//   cert: '/path/to/client_certificate.pem',
+//   key: '/path/to/client_key.pem'
+// };
+
 var mqttClient = new MqttClient(connectionParams);
+
 mqttClient.onReceive(messageCallback).then(function(res) {
   console.log(res); // eslint-disable-line no-console
 }).catch(function(reason) {

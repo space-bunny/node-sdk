@@ -24,14 +24,19 @@
       <div class="small-1 columns">
         <label for="api-key">Api Key</label>
       </div>
-      <div class="small-5 columns">
+      <div class="small-4 columns">
         <input type="text" name="api-key" id="api-key" value="">
+      </div>
+      <div class="small-2 columns">
+        <label for="ssl">SSL</label>
+        <input type="radio" name="ssl" id="ssl" value="false" checked>No
+        <input type="radio" name="ssl" id="ssl" value="true">Yes
       </div>
       <div class="small-3 columns">
         <button type="button" name="connect-button" id="connect-button" class="small success">Connect</button>
         <button type="button" name="disconnect-button" id="disconnect-button" class="small secondary" disabled="disabled">Disconnect</button>
       </div>
-      <div class="small-3 columns end" id="flash-messages"></div>
+      <div class="small-2 columns end" id="flash-messages"></div>
     </div>
 
     <div class="content small-12">
@@ -62,8 +67,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/foundation/5.5.2/js/foundation.min.js"></script>
     <!-- The SpaceBunny library -->
-    <script src="vendors.js"></script>
-    <script src="spacebunny.js"></script>
+    <script src="../vendors.js"></script>
+    <script src="../spacebunny.js"></script>
     <script>
       $(document).ready(function() {
         var webStompClient = undefined;
@@ -95,8 +100,13 @@
           $('#flash-messages').append(content);
           $('.alert-box').fadeOut(3000);
         };
+
+        var htmlEntities = function(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+        
         var messageCallback = function(message) {
-          $('#messages').append('<div>' + message.body + '</div>');
+          $('#messages').append('<pre>' + htmlEntities(message.body) + '</pre>');
         };
         if(window.WebSocket) {
 
@@ -120,7 +130,8 @@
 
             // Auto Config
             var apiKey = $('#api-key').val() || undefined;
-            var connectionParams = { apiKey: apiKey };
+            var ssl = ($('#ssl:checked').val() == 'true') ? true : false;
+            var connectionParams = { apiKey: apiKey, ssl: ssl };
 
             webStompClient = new StompClient(connectionParams);
             webStompClient.onReceive(messageCallback).then(function(res) {

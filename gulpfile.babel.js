@@ -17,7 +17,7 @@ gulp.task('default', ['webpack-dev-server']);
 // Production build
 gulp.task('build', ['webpack:build']);
 
-gulp.task('webpack:build', function(callback) {
+gulp.task('webpack:build', ['transpile'], function(callback) {
   const knownOptions = {
     string: [ 'dist-path' ],
     default: { 'dist-path': path.join(__dirname, 'dist') }
@@ -35,7 +35,7 @@ gulp.task('webpack:build', function(callback) {
   del([path.join(options['dist-path'], '**', '*')]);
 
   // Copy all files from web to output path
-  gulp.src('public/*').pipe(gulp.dest(options['dist-path']));
+  gulp.src('public/**').pipe(gulp.dest(options['dist-path']));
 
   // run webpack
   webpack(prodBuildConfig, function(err, stats) {
@@ -117,5 +117,5 @@ gulp.task('transpile', function() {
 });
 
 gulp.task('watch', function() {
-  gulp.watch(paths.src, ['transpile']);
+  gulp.watch(paths.src, ['webpack:build']);
 });

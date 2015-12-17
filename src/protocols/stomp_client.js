@@ -26,9 +26,11 @@ class StompClient extends SpaceBunny {
     if (typeof process === 'object' && process + '' === '[object process]') {
       this._protocol = 'stomp';
     } else {
-      this._protocol = 'web_stomp';
+      this._protocol = 'webStomp';
     }
-    this._client = undefined;
+    this._webSocketProtocol = 'http://';
+    this._webSocketSecureProtocol = 'https://';
+    this._stompConnection = undefined;
     this._subscription = undefined;
     this._connectionHeaders = {
       'max_hbrlck_fails': 10,
@@ -36,7 +38,7 @@ class StompClient extends SpaceBunny {
       'heart-beat': '10000,10000'
     };
     this._existingQueuePrefix = 'amq/queue';
-    this.connection();
+    this.getConnectionParams();
   }
 
   /**
@@ -93,11 +95,12 @@ class StompClient extends SpaceBunny {
    */
   disconnect() {
     return new Promise((resolve, reject) => {
-      if (this._client === undefined) {
+      if (this._stompConnection === undefined) {
         reject('Invalid connection');
       } else {
         this._subscription.unsubscribe();
-        this._client.disconnect(function() {
+        this._stompConnection.disconnect(() => {
+          this._stompConnection = undefined;
           resolve(true);
         }).catch(function(reason) {
           reject(reason);
@@ -121,17 +124,24 @@ class StompClient extends SpaceBunny {
     const connectionParams = this._connectionParams;
 
     return new Promise((resolve, reject) => {
-      if (this._client !== undefined) {
-        resolve(this._client);
+      if (this._stompConnection !== undefined) {
+        resolve(this._stompConnection);
       } else {
         try {
           let client = undefined;
           if (typeof process === 'object' && process + '' === '[object process]') {
             // code is runnning in nodejs: STOMP uses TCP sockets
-            client = Stomp.overTCP(connectionParams.host, connectionParams.protocols.stomp.port);
+            if (this._ssl) {
+              client = Stomp.overTCP(connectionParams.host, connectionParams.protocols.stomp.sslPort, this._sslOpts);
+            } else {
+              client = Stomp.overTCP(connectionParams.host, connectionParams.protocols.stomp.port);
+            }
           } else {
             // code is runnning in a browser: web STOMP uses Web sockets
-            const connectionString = `http://${connectionParams.host}:${connectionParams.protocols.web_stomp.port}/stomp`;
+            const protocol = (this._ssl) ? this._webSocketSecureProtocol : this._webSocketProtocol;
+            const port = (this._ssl) ? connectionParams.protocols.webStomp.sslPort : connectionParams.protocols.webStomp.port;
+            // const connectionString = `${protocol}${connectionParams.host}:${port}/stomp`;
+            const connectionString = `${protocol}${connectionParams.host}:${port}/stomp`;
             const ws = new SockJS(connectionString);
             client = Stomp.over(ws);
             // SockJS does not support heart-beat: disable heart-beats
@@ -139,13 +149,13 @@ class StompClient extends SpaceBunny {
             client.heartbeat.incoming = 0;
           }
           const headers = merge(this._connectionHeaders, {
-            login: connectionParams.deviceId,
+            login: connectionParams.deviceId || connectionParams.client,
             passcode: connectionParams.secret,
             host: connectionParams.vhost
           });
           client.connect(headers, () => {
-            this._client = client;
-            resolve(this._client);
+            this._stompConnection = client;
+            resolve(this._stompConnection);
           }, function(err) {
             reject(err);
           });
