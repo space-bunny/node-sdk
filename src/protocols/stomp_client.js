@@ -10,17 +10,20 @@ import Promise from 'bluebird';
 
 // Import stomp library
 import Stomp from 'stompjs';
+
 // Import SockJS library
 import SockJS from 'sockjs-client';
 
 // Import SpaceBunny main module from which StompClient inherits
 import SpaceBunny from '../spacebunny';
 
-/**
- * @constructor
- * @param {Object} opts - constructor options may contain api-key or connection options
- */
 class StompClient extends SpaceBunny {
+
+  /**
+   * @constructor
+   * @param {Object} opts - options must contain api-key or connection options
+   * (deviceId and secret) for devices.
+   */
   constructor(opts) {
     super(opts);
     if (typeof process === 'object' && process + '' === '[object process]') {
@@ -44,7 +47,7 @@ class StompClient extends SpaceBunny {
   /**
    * Subscribe to input channel
    *
-   * @param {function} callback - function called every time a message is receviced
+   * @param {function} callback - function called every time a message is received
    * passing the current message as argument
    * @param {Object} options - subscription options
    * @return promise containing the result of the subscription
@@ -72,8 +75,8 @@ class StompClient extends SpaceBunny {
    *
    * @param {String} channel - channel name on which you want to publish a message
    * @param {Object} message - the message payload
-   * @param {Object} message - the message payload
-   * @return promise containing true if the
+   * @param {Object} opts - publication options
+   * @return a promise containing the result of the operation
    */
   publish(channel, message, opts) {
     opts = merge({}, opts);
@@ -112,10 +115,10 @@ class StompClient extends SpaceBunny {
   // ------------ PRIVATE METHODS -------------------
 
   /**
-   * @private
-   * Establish an stomp connection with the broker
-   * using configurations retrieved from the endpoint
+   * Establish an stomp connection with the broker.
+   * If a connection already exists, returns the current connection
    *
+   * @private
    * @param {Object} opts - connection options
    * @return a promise containing current connection
    */
@@ -167,9 +170,9 @@ class StompClient extends SpaceBunny {
   }
 
   /**
-   * @private
    * Generate the subscription string for a specific channel
    *
+   * @private
    * @param {String} type - resource type on which subscribe or publish [exchange/queue]
    * @param {String} channel - channel name on which you want to publish a message
    * @return a string that represents the topic name for that channel
@@ -179,9 +182,9 @@ class StompClient extends SpaceBunny {
   }
 
   /**
-   * @private
    * Generate the destination string for a specific channel
    *
+   * @private
    * @param {String} type - resource type on which subscribe or publish [exchange/queue]
    * @param {String} channel - channel name on which you want to publish a message
    * @return a string that represents the topic name for that channel

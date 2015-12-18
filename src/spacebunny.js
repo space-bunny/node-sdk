@@ -125,9 +125,9 @@ class SpaceBunny {
   // ------------ PRIVATE METHODS -------------------
 
   /**
-   * @private
    * Generate the exchange name for a device's channel
    *
+   * @private
    * @param {String} deviceId - Device id from which you want to stream
    * @param {String} channel - channel name from which you want to stream
    * @return a string that represents the complete exchange name
@@ -136,6 +136,14 @@ class SpaceBunny {
     return `${deviceId}.${channel}`;
   }
 
+  /**
+   * Encapsulates contens for publishing messages.
+   * If the content is a valid JSON the function stringifies the content
+   *
+   * @private
+   * @param {Object} content - content to publish, could be a string or a JSON object
+   * @return the content encapsulated in the proper way
+   */
   _encapsulateContent(content) {
     let encapsulatedContent = content;
     try {
@@ -146,6 +154,12 @@ class SpaceBunny {
     return encapsulatedContent;
   }
 
+  /**
+   * Check if the required parameters are present to open a secure connection
+   *
+   * @private
+   * @return true when a combination of valid parameters is present, false otherwise
+   */
   _checkSslOptions() {
     const sslOpts = this._sslOpts;
     if (sslOpts.ca) {

@@ -1,22 +1,23 @@
 /**
- * A module that exports an StompClient client
- * which inherits from the SpaceBunny base client
- * @module StompClient
+ * A module that exports an StompStreamClient client
+ * which inherits from the Stomp base client
+ * @module StompStreamClient
  */
 
 // Import some helpers modules
 import merge from 'merge';
 import Promise from 'bluebird';
 
-// Import SpaceBunny main module from which StompClient inherits
+// Import StompClient main module from which StompStreamClient inherits
 import StompClient from './stomp_client';
 import SpaceBunnyErrors from '../spacebunny_errors';
 
-/**
- * @constructor
- * @param {Object} opts - constructor options may contain api-key or connection options
- */
 class StompStreamClient extends StompClient {
+
+  /**
+   * @constructor
+   * @param {Object} opts - options must contain client and secret for access keys
+   */
   constructor(opts) {
     super(opts);
     this._subscriptions = {};
@@ -41,8 +42,10 @@ class StompStreamClient extends StompClient {
   }
 
   /**
-   * Destroy the connection between the stomp client and broker
+   * Unsubscribe client from a topic
    *
+   * @param {String} deviceId - Device uuid
+   * @param {String} channel - channel name
    * @return a promise containing the result of the operation
    */
   unsubscribe(deviceId, channel) {
@@ -86,11 +89,11 @@ class StompStreamClient extends StompClient {
   // ------------ PRIVATE METHODS -------------------
 
   /**
-   * @private
    * Start consuming messages from a device's channel
    * It generates an auto delete queue from which consume
    * and binds it to the channel exchange
    *
+   * @private
    * @param {Object} streamHook - Object containit hook info
    * { deviceId: {String}, channel: {String}, callback: {func}}
    * @param {Object} opts - connection options
@@ -123,9 +126,9 @@ class StompStreamClient extends StompClient {
   }
 
   /**
-   * @private
    * Generate the subscription string for a specific channel
    *
+   * @private
    * @param {String} type - resource type on which subscribe or publish [exchange/queue]
    * @param {String} channel - channel name on which you want to publish a message
    * @return a string that represents the topic name for that channel

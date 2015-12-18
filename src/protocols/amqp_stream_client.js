@@ -1,16 +1,14 @@
 /**
- * A module that exports an AmqpClient client
- * which inherits from the SpaceBunny base client
- * @module AmqpClient
+ * A module that exports an AmqpStreamClient client
+ * which inherits from the Amqp base client
+ * @module AmqpStreamClient
  */
 
 // Import some helpers modules
 import merge from 'merge';
 import Promise from 'bluebird';
-// Import amqplib
-import amqp from 'amqplib';
 
-// Import SpaceBunny main module from which AmqpClient inherits
+// Import AmqpClient module from which AmqpStreamClient inherits
 import AmqpClient from './amqp_client';
 import SpaceBunnyErrors from '../spacebunny_errors';
 
@@ -18,7 +16,7 @@ class AmqpStreamClient extends AmqpClient {
 
   /**
    * @constructor
-   * @param {Object} opts - constructor options may contain api-key or connection options
+   * @param {Object} opts - options must contain client and secret for access keys
    */
   constructor(opts) {
     super(opts);
@@ -47,11 +45,11 @@ class AmqpStreamClient extends AmqpClient {
   // ------------ PRIVATE METHODS -------------------
 
   /**
-   * @private
    * Start consuming messages from a device's channel
    * It generates an auto delete queue from which consume
    * and binds it to the channel exchange
    *
+   * @private
    * @param {Object} streamHook - Object containit hook info
    * { deviceId: {String}, channel: {String}, callback: {func}}
    * @param {Object} opts - connection options
@@ -69,15 +67,15 @@ class AmqpStreamClient extends AmqpClient {
     }
     return new Promise((resolve, reject) => {
       const currentTime = new Date().getTime();
-      this._createChannel().then((ch) => {
-        this._amqpChannels[currentTime] = ch;
-        return this._amqpChannels[currentTime].checkExchange(this._channelExchange(deviceId, channel));
+      this._createChannel(`${currentTime}`).then((ch) => {
+        this._amqpChannels[`${currentTime}`] = ch;
+        return this._amqpChannels[`${currentTime}`].checkExchange(this._channelExchange(deviceId, channel));
       }).then(() => {
-        return this._amqpChannels[currentTime].assertQueue(this._streamQueue(deviceId, channel, currentTime), this._streamQueueArguments);
+        return this._amqpChannels[`${currentTime}`].assertQueue(this._streamQueue(deviceId, channel, currentTime), this._streamQueueArguments);
       }).then(() => {
-        return this._amqpChannels[currentTime].bindQueue(this._streamQueue(deviceId, channel, currentTime), this._channelExchange(deviceId, channel), routingKey);
+        return this._amqpChannels[`${currentTime}`].bindQueue(this._streamQueue(deviceId, channel, currentTime), this._channelExchange(deviceId, channel), routingKey);
       }).then(() => {
-        return this._amqpChannels[currentTime].consume(this._streamQueue(deviceId, channel, currentTime), (message) => {
+        return this._amqpChannels[`${currentTime}`].consume(this._streamQueue(deviceId, channel, currentTime), (message) => {
           callback(this._parseContent(message));
         }, merge(this._subscribeArgs, opts) );
       }).then(function() {
@@ -89,9 +87,9 @@ class AmqpStreamClient extends AmqpClient {
   }
 
   /**
-   * @private
    * Generate the exchange name for a device's channel
    *
+   * @private
    * @param {String} deviceId - Device id from which you want to stream
    * @param {String} channel - channel name from which you want to stream
    * @param {String} currentTime - current UNIX timestamp

@@ -36,7 +36,7 @@
     "eslint-plugin-react": "^3.0.0",
     "gulp": "^3.8.11",
     "gulp-babel": "^6.1.1",
-    "gulp-jsdoc-to-markdown": "^1.1.1",
+    "gulp-jsdoc-to-markdown": "^1.2.0",
     "gulp-rename": "^1.2.2",
     "gulp-sourcemaps": "^1.6.0",
     "gulp-util": "^3.0.4",
@@ -52,7 +52,7 @@
   "dependencies": {
     "amqplib": "^0.4.0",
     "app-root-path": "^1.2.0",
-    "bluebird": "^3.0.5",
+    "bluebird": "^3.1.1",
     "dotenv": "^1.2.0",
     "error-factory": "^0.1.6",
     "humps": "^1.0.0",
@@ -62,6 +62,7 @@
     "sockjs-client": "^1.0.3",
     "stompjs": "git://github.com/gfoiani/stomp-websocket.git#2.4.0",
     "sync-request": "^2.1.0",
+    "underscore": "^1.8.3",
     "when": "^3.7.5"
   }
 }

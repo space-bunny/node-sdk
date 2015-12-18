@@ -1,26 +1,23 @@
 /**
- * A module that exports an MqttClient client
- * which inherits from the SpaceBunny base client
- * @module MqttClient
+ * A module that exports an MqttStreamClient client
+ * which inherits from the Mqtt base client
+ * @module MqttStreamClient
  */
 
 // Import some helpers modules
 import merge from 'merge';
 import Promise from 'bluebird';
 
-// Import mqtt library
-import mqtt from 'mqtt';
-
-// Import SpaceBunny main module from which MqttClient inherits
+// Import MqttClient main module from which MqttStreamClient inherits
 import MqttClient from './mqtt_client';
 import SpaceBunnyErrors from '../spacebunny_errors';
 
-/**
- * @constructor
- * @param {Object} opts - constructor options may contain api-key or connection options
- */
 class MqttStreamClient extends MqttClient {
 
+  /**
+   * @constructor
+   * @param {Object} opts - options must contain client and secret for access keys
+   */
   constructor(opts) {
     super(opts);
   }
@@ -69,9 +66,9 @@ class MqttStreamClient extends MqttClient {
   // ------------ PRIVATE METHODS -------------------
 
   /**
-   * @private
    * Generate the topic for a specific channel
    *
+   * @private
    * @param {String} channel - channel name on which you want to publish a message
    * @return a string that represents the topic name for that channel
    */

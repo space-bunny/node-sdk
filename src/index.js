@@ -9,9 +9,12 @@ import AmqpStreamClient from './protocols/amqp_stream_client';
 import MqttStreamClient from './protocols/mqtt_stream_client';
 import StompStreamClient from './protocols/stomp_stream_client';
 
+// Export clients in browser context
 if (typeof window !== 'undefined') {
   window.StompClient = StompClient;
   window.StompStreamClient = StompStreamClient;
 }
+
+// Export clients in NodeJS context
 export { Client, AmqpClient, MqttClient, StompClient,
   StreamClient, AmqpStreamClient, MqttStreamClient, StompStreamClient };

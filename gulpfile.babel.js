@@ -87,7 +87,7 @@ gulp.task('webpack-dev-server', function() {
 
 
 gulp.task('docs', function() {
-  return gulp.src(['index.js', 'src/**/*.js'])
+  return gulp.src('src/**/*.js')
     .pipe(gulpJsdoc2md())
     .on('error', function(err) {
       gutil.log(gutil.colors.red('jsdoc2md failed'), err.message);

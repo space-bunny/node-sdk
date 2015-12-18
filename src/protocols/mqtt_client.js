@@ -14,12 +14,13 @@ import mqtt from 'mqtt';
 // Import SpaceBunny main module from which MqttClient inherits
 import SpaceBunny from '../spacebunny';
 
-/**
- * @constructor
- * @param {Object} opts - constructor options may contain api-key or connection options
- */
 class MqttClient extends SpaceBunny {
 
+  /**
+   * @constructor
+   * @param {Object} opts - options must contain api-key or connection options
+   * (deviceId and secret) for devices.
+   */
   constructor(opts) {
     super(opts);
     this._protocol = 'mqtt';
@@ -36,7 +37,7 @@ class MqttClient extends SpaceBunny {
   /**
    * Subscribe to input channel
    *
-   * @param {function} callback - function called every time a message is receviced
+   * @param {function} callback - function called every time a message is received
    * passing the current message as argument
    * @param {Object} options - subscription options
    * @return promise containing the result of the subscription
@@ -67,9 +68,9 @@ class MqttClient extends SpaceBunny {
    * Publish a message on a specific channel
    *
    * @param {String} channel - channel name on which you want to publish a message
-   * @param {Object} message - the message payload
-   * @param {Object} message - the message payload
-   * @return promise containing true if the
+   * @param {Object/String} message - the message payload
+   * @param {Object} opts - publication options
+   * @return a promise containing the result of the operation
    */
   publish(channel, message, opts) {
     // Publish message
@@ -87,6 +88,13 @@ class MqttClient extends SpaceBunny {
     });
   }
 
+  /**
+   * Unsubscribe client from a list of topics
+   *
+   * @param {Object} topics - list of topics { topic: qos, ... }
+   * e.g. { topic_1: 1, topic_2: 0 }
+   * @return a promise containing the result of the operation
+   */
   unsubscribe(topics) {
     return new Promise((resolve, reject) => {
       this._mqttConnection.unsubscribe(Object.keys(topics)).then(function() {
@@ -122,10 +130,10 @@ class MqttClient extends SpaceBunny {
   // ------------ PRIVATE METHODS -------------------
 
   /**
-   * @private
-   * Establish an mqtt connection with the broker
-   * using configurations retrieved from the endpoint
+   * Establish an mqtt connection with the broker.
+   * If a connection already exists, returns the current connection
    *
+   * @private
    * @param {Object} opts - connection options
    * @return a promise containing current connection
    */
@@ -139,8 +147,7 @@ class MqttClient extends SpaceBunny {
       } else {
         try {
           let mqttConnectionParams = {
-            // host: connectionParams.host,
-            host: 'FojaMac',
+            host: connectionParams.host,
             port: (this._ssl) ? connectionParams.protocols.mqtt.sslPort : connectionParams.protocols.mqtt.port,
             username: `${connectionParams.vhost}:${connectionParams.deviceId || connectionParams.client}`,
             password: connectionParams.secret,
@@ -167,9 +174,9 @@ class MqttClient extends SpaceBunny {
   }
 
   /**
-   * @private
    * Generate the topic for a specific channel
    *
+   * @private
    * @param {String} channel - channel name on which you want to publish a message
    * @return a string that represents the topic name for that channel
    */
