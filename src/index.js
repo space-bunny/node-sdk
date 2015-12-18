@@ -1,13 +1,13 @@
 // Device Clients
-import Client from './protocols/amqp_client';
-import AmqpClient from './protocols/amqp_client';
-import MqttClient from './protocols/mqtt_client';
-import StompClient from './protocols/stomp_client';
+import Client from './protocols/amqpClient';
+import AmqpClient from './protocols/amqpClient';
+import MqttClient from './protocols/mqttClient';
+import StompClient from './protocols/stompClient';
 // Stream Clients
-import StreamClient from './protocols/amqp_stream_client';
-import AmqpStreamClient from './protocols/amqp_stream_client';
-import MqttStreamClient from './protocols/mqtt_stream_client';
-import StompStreamClient from './protocols/stomp_stream_client';
+import StreamClient from './protocols/amqpStreamClient';
+import AmqpStreamClient from './protocols/amqpStreamClient';
+import MqttStreamClient from './protocols/mqttStreamClient';
+import StompStreamClient from './protocols/stompStreamClient';
 
 // Export clients in browser context
 if (typeof window !== 'undefined') {

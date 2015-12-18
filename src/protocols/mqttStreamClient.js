@@ -9,8 +9,8 @@ import merge from 'merge';
 import Promise from 'bluebird';
 
 // Import MqttClient main module from which MqttStreamClient inherits
-import MqttClient from './mqtt_client';
-import SpaceBunnyErrors from '../spacebunny_errors';
+import MqttClient from './mqttClient';
+import SpaceBunnyErrors from '../spacebunnyErrors';
 
 class MqttStreamClient extends MqttClient {
 

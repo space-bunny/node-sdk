@@ -14,7 +14,7 @@ import amqp from 'amqplib';
 
 // Import SpaceBunny main module from which AmqpClient inherits
 import SpaceBunny from '../spacebunny';
-import SpaceBunnyErrors from '../spacebunny_errors';
+import SpaceBunnyErrors from '../spacebunnyErrors';
 
 class AmqpClient extends SpaceBunny {
 

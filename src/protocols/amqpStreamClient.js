@@ -9,8 +9,8 @@ import merge from 'merge';
 import Promise from 'bluebird';
 
 // Import AmqpClient module from which AmqpStreamClient inherits
-import AmqpClient from './amqp_client';
-import SpaceBunnyErrors from '../spacebunny_errors';
+import AmqpClient from './amqpClient';
+import SpaceBunnyErrors from '../spacebunnyErrors';
 
 class AmqpStreamClient extends AmqpClient {
 

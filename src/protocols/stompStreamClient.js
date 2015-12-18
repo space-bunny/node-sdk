@@ -9,8 +9,8 @@ import merge from 'merge';
 import Promise from 'bluebird';
 
 // Import StompClient main module from which StompStreamClient inherits
-import StompClient from './stomp_client';
-import SpaceBunnyErrors from '../spacebunny_errors';
+import StompClient from './stompClient';
+import SpaceBunnyErrors from '../spacebunnyErrors';
 
 class StompStreamClient extends StompClient {
 

@@ -14,7 +14,7 @@ var messageCallback = function(message) {
 // Once everything is set up get your device's API key from Space Bunny's web application: on the web interface,
 // go to devices section and create or pick an existing device. Click on the 'SHOW CONFIGURATION' link, copy the API key
 // and substitute it here:
-var connectionParams = { apiKey: 'a0502882-fbaa-4377-a6bc-423777963040:XNCSKNDyAnWVzgndaCmUhw' };
+var connectionParams = { apiKey: 'your-api-key' };
 
 // You can also provide full manual configuration
 // var connectionParams = {

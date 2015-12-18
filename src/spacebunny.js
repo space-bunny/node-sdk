@@ -12,7 +12,7 @@ import humps from 'humps';
 const CONFIG = require('../config/constants').CONFIG;
 
 // Import Space Bunny errors
-import SpaceBunnyErrors from './spacebunny_errors';
+import SpaceBunnyErrors from './spacebunnyErrors';
 
 /**
  * @constructor
