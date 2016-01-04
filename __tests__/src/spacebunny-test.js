@@ -1,14 +1,13 @@
+// __tests__/spacebunny-test.js
+jest.autoMockOn();
+const SpaceBunny = require('../../src/spacebunny.js');
+const SpaceBunnyErrors = require('../../src/spacebunnyErrors.js');
 
 describe( 'SpaceBunny', function() {
-  context('#connection', function() {
-    context('when no options are passed', function() {
-      it('should throw ApiKeyOrConfigurationsRequired exception', function() {
-        // client = new SpaceBunny(options);
-        // expect(function(){client.connection()}).to.throw(SpaceBunnyErrors.ApiKeyOrConfigurationsRequired);
-        // done();
-        expect(false).toBe(true);
-      });
-    });
+  it('should throw ApiKeyOrConfigurationsRequired exception', function(done) {
+    const client = new SpaceBunny();
+    expect(function(){client.getConnectionParams()}).toThrow(SpaceBunnyErrors.ApiKeyOrConfigurationsRequired);
+    done();
   });
 
   //   context('when Api Key is passed', function() {

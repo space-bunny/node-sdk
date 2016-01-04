@@ -19,7 +19,7 @@ import SpaceBunnyErrors from './spacebunnyErrors';
  * @param {Object} opts - constructor options may contain api-key or connection options
  */
 class SpaceBunny {
-  constructor(opts) {
+  constructor(opts = {}) {
     this._connectionParams = merge({}, opts);
     this._endPointConfigs = {};
     this._channels = this._connectionParams.channels;

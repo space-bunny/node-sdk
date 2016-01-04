@@ -175,6 +175,7 @@ class AmqpClient extends SpaceBunny {
    * @return a promise containing the current channel
    */
   _createChannel(channelName, opts = {}) {
+    channelName = `output${(opts.withConfirm === true) ? 'WithConfirm' : ''}`;
     return new Promise((resolve, reject) => {
       if (this._amqpChannels[channelName]) {
         resolve(this._amqpChannels[channelName]);
