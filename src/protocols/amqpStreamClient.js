@@ -63,7 +63,7 @@ class AmqpStreamClient extends AmqpClient {
       throw new SpaceBunnyErrors.MissingStreamConfigurations('Missing Stream or Device ID and Channel');
     }
     const routingKey = streamHook.routingKey || this._defaultStreamRoutingKey;
-    const emptyFunction = function() { return undefined; };
+    const emptyFunction = function () { return undefined; };
     const callback = streamHook.callback || emptyFunction;
 
     return new Promise((resolve, reject) => {
@@ -79,7 +79,7 @@ class AmqpStreamClient extends AmqpClient {
           promisesChain = this._amqpChannels[`${currentTime}`].checkQueue(streamQueue, this._streamQueueArguments).then(() =>{
             return this._amqpChannels[`${currentTime}`].consume(streamQueue, (message) => {
               callback(this._parseContent(message));
-            }, merge(this._subscribeArgs, opts) );
+            }, merge(this._subscribeArgs, opts));
           });
         } else {
           // else if current hook is channel (or a couple deviceId, channel)
@@ -94,13 +94,13 @@ class AmqpStreamClient extends AmqpClient {
           }).then(() => {
             return this._amqpChannels[`${currentTime}`].consume(streamChannelQueue, (message) => {
               callback(this._parseContent(message));
-            }, merge(this._subscribeArgs, opts) );
+            }, merge(this._subscribeArgs, opts));
           });
         }
         return promisesChain;
-      }).then(function() {
+      }).then(function () {
         resolve(true);
-      }).catch(function(reason) {
+      }).catch(function (reason) {
         reject(reason);
       });
     });
@@ -113,7 +113,8 @@ class AmqpStreamClient extends AmqpClient {
    * @param {String} deviceId - Device id from which you want to stream
    * @param {String} channel - channel name from which you want to stream
    * @param {String} currentTime - current UNIX timestamp
-   * @return a string that represents the stream queue name prefixed with current timestamp, client ID and channel exchange
+   * @return a string that represents the stream queue name prefixed with current timestamp,
+   *        client ID and channel exchange
    */
   _streamQueue(stream) {
     return `${stream}.${this._liveStreamSuffix}`;
@@ -126,7 +127,8 @@ class AmqpStreamClient extends AmqpClient {
    * @param {String} deviceId - Device id from which you want to stream
    * @param {String} channel - channel name from which you want to stream
    * @param {String} currentTime - current UNIX timestamp
-   * @return a string that represents the stream queue name prefixed with current timestamp, client ID and channel exchange
+   * @return a string that represents the stream queue name prefixed with current timestamp,
+   *        client ID and channel exchange
    */
   _streamChannelQueue(deviceId, channel, currentTime) {
     const prefix = currentTime || new Date().getTime();

@@ -65,7 +65,6 @@
     "amqplib": "^0.4.0",
     "app-root-path": "^1.2.0",
     "bluebird": "^3.1.1",
-    "dotenv": "^2.0.0",
     "error-factory": "^0.1.6",
     "humps": "^1.0.0",
     "lodash": "^4.0.0",
