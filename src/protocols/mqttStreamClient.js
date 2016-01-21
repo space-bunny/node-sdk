@@ -11,6 +11,7 @@ import Promise from 'bluebird';
 // Import MqttClient main module from which MqttStreamClient inherits
 import MqttClient from './mqttClient';
 import SpaceBunnyErrors from '../spacebunnyErrors';
+import { keys } from 'lodash';
 
 class MqttStreamClient extends MqttClient {
 
@@ -33,24 +34,30 @@ class MqttStreamClient extends MqttClient {
   streamFrom(streamHooks, opts) {
     const emptyFunction = function() { return undefined; };
     streamHooks.forEach((streamHook) => {
+      const stream = streamHook.stream;
       const deviceId = streamHook.deviceId;
       const channel = streamHook.channel;
       const qos = streamHook.qos;
-      if (deviceId === undefined || channel === undefined) {
-        throw new SpaceBunnyErrors.MissingStreamConfigurations('Missing Device ID or Channel');
+      if (stream === undefined && (channel === undefined || deviceId === undefined)) {
+        throw new SpaceBunnyErrors.MissingStreamConfigurations('Missing Stream or Device ID and Channel');
       }
-      this._topics[this._streamTopicFor(deviceId, channel)] = qos || this._connectionOpts.qos;
+      if (stream) {
+        this._topics[this._streamTopicFor(stream)] = qos || this._connectionOpts.qos;
+      } else {
+        this._topics[this._streamChannelTopicFor(deviceId, channel)] = qos || this._connectionOpts.qos;
+      }
     });
     return new Promise((resolve, reject) => {
-      this.connect().then((mqttClient) => {
-        mqttClient.subscribe(this._topics, merge(this._connectionOpts, opts), function(err) {
+      this._connect().then((mqttClient) => {
+        mqttClient.subscribe(this._topics, merge(this._connectionOpts, opts), (err) => {
           if (err) {
             reject(false);
           } else {
+            console.log(`streaming from ${keys(this._topics)}`); // eslint-disable-line no-console
             mqttClient.on('message', function(topic, message) {
               const splitted = topic.split('/');
               const callback = streamHooks.filter(function(streamHook) {
-                return streamHook.deviceId === splitted[0] && streamHook.channel === splitted[1];
+                return streamHook.stream === splitted[0] || (streamHook.deviceId === splitted[0] && streamHook.channel === splitted[1]);
               })[0].callback || emptyFunction;
               callback(topic, message);
             });
@@ -69,11 +76,23 @@ class MqttStreamClient extends MqttClient {
    * Generate the topic for a specific channel
    *
    * @private
-   * @param {String} channel - channel name on which you want to publish a message
+   * @param {String} deviceId - deviceId from which you want to stream
+   * @param {String} channel - channel name from which you want to stream
    * @return a string that represents the topic name for that channel
    */
-  _streamTopicFor(deviceId, channel) {
+  _streamChannelTopicFor(deviceId, channel) {
     return `${deviceId}/${channel}`;
+  }
+
+  /**
+   * Generate the topic for a specific stream
+   *
+   * @private
+   * @param {String} stream - stream identifier
+   * @return a string that represents the topic name for that stream
+   */
+  _streamTopicFor(stream) {
+    return `${stream}/${this._liveStreamSuffix}`;
   }
 }
 

@@ -102,16 +102,23 @@ class StompStreamClient extends StompClient {
   _attachStreamHook(streamHook, opts) {
     opts = merge({}, opts);
     // Receive messages from imput queue
+    const stream = streamHook.stream;
     const deviceId = streamHook.deviceId;
     const channel = streamHook.channel;
     const emptyFunction = function() { return undefined; };
     const callback = streamHook.callback || emptyFunction;
-    if (deviceId === undefined || channel === undefined) {
-      throw new SpaceBunnyErrors.MissingStreamConfigurations('Missing Device ID or Channel');
+    if (stream === undefined && (channel === undefined || deviceId === undefined)) {
+      throw new SpaceBunnyErrors.MissingStreamConfigurations('Missing Stream or Device ID and Channel');
     }
     return new Promise((resolve, reject) => {
       this._connect().then((client) => {
-        const topic = this._topicFor(deviceId, channel);
+        let topic = undefined;
+        if (stream) {
+          topic = this._streamTopicFor(stream);
+        } else {
+          topic = this._streamChannelTopicFor(deviceId, channel);
+        }
+        console.log(`streaming from ${topic}`); // eslint-disable-line no-console
         const subscription = client.subscribe(topic, function(message) {
           callback(message);
         }, function(reason) {
@@ -129,12 +136,27 @@ class StompStreamClient extends StompClient {
    * Generate the subscription string for a specific channel
    *
    * @private
+   * @param {String} deviceId - deviceId from which you want to stream from
+   * @param {String} channel - channel name from which you want to stream from
    * @param {String} type - resource type on which subscribe or publish [exchange/queue]
-   * @param {String} channel - channel name on which you want to publish a message
+   * @param {String} pattern - binding pattern
    * @return a string that represents the topic name for that channel
    */
-  _topicFor(deviceId, channel, type, pattern) {
+  _streamChannelTopicFor(deviceId, channel, type, pattern) {
     return `/${type || this._channelExchangePrefix}/${deviceId}.${channel}/${pattern || this._defaultPattern}`;
+  }
+
+  /**
+   * Generate the subscription string for a specific channel
+   *
+   * @private
+   * @param {String} stream - stream identifier from which you want to stream from
+   * @param {String} type - resource type on which subscribe or publish [exchange/queue]
+   * @param {String} pattern - binding pattern
+   * @return a string that represents the topic name for that channel
+   */
+  _streamTopicFor(stream, type, pattern) {
+    return `/${type || this._existingQueuePrefix}/${stream}.${this._liveStreamSuffix}/${pattern || this._defaultPattern}`;
   }
 
 }

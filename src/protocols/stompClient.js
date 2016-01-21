@@ -41,6 +41,7 @@ class StompClient extends SpaceBunny {
       'heart-beat': '10000,10000'
     };
     this._existingQueuePrefix = 'amq/queue';
+    this._stompSubscriptionPrefix = 'stomp-subscription-';
     this.getConnectionParams();
   }
 
@@ -156,6 +157,10 @@ class StompClient extends SpaceBunny {
             passcode: connectionParams.secret,
             host: connectionParams.vhost
           });
+          // if using stream client fix the name of the generated queue
+          if (connectionParams.client) {
+            headers['x-queue-name'] = `${this._stompSubscriptionPrefix}${connectionParams.deviceId}`;
+          }
           client.connect(headers, () => {
             this._stompConnection = client;
             resolve(this._stompConnection);

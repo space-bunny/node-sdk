@@ -17,10 +17,19 @@ var messageCallback = function(topic, message) {
 
 
 // Auto Config
-var connectionParams = { client: 'client', secret: 'secret' };
+// endpointUrl is not required,
+// use it only if you need to specify a different endpoint from demo.spacebunny.io
+// var connectionParams = {
+//   endpointUrl: 'http://my-endpoint-url',
+//   client: 'client',
+//   secret: 'secret'
+// };
 
 // Auto Config with SSL
+// endpointUrl is not required,
+// use it only if you need to specify a different endpoint from demo.spacebunny.io
 // var connectionParams = {
+//   endpointUrl: 'http://my-endpoint-url',
 //   client: 'client',
 //   secret: 'secret',
 //   ssl: true,
@@ -29,10 +38,10 @@ var connectionParams = { client: 'client', secret: 'secret' };
 //   key: '/path/to/client_key.pem'
 // };
 
-var streamHooks = [
-  { deviceId: 'device-id', channel: 'channel-1', callback: messageCallback },
-  { deviceId: 'device-id', channel: 'channel-2', callback: messageCallback }
-];
+// var streamHooks = [
+//   { stream: 'stream-id', callback: messageCallback },
+//   { stream: 'stream-id', callback: messageCallback }
+// ];
 
 var streamClient = new MqttStreamClient(connectionParams);
 streamClient.streamFrom(streamHooks).then(function(res) {
