@@ -2,25 +2,80 @@
   "name": "spacebunny",
   "version": "0.1.0",
   "description": "NodeJS client library for Space Bunny IoT platform",
-  "main": "spacebunny.js",
+  "main": "lib/index.js",
   "scripts": {
-    "test": "make test"
+    "test": "jest",
+    "doc": "jsdoc -c ./jsdoc_conf.json",
+    "start": "gulp",
+    "build": "gulp build"
+  },
+  "jest": {
+    "scriptPreprocessor": "<rootDir>/node_modules/babel-jest",
+    "testFileExtensions": [
+      "es6",
+      "js"
+    ],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "es6"
+    ]
   },
   "repository": {
     "type": "git",
-    "url": "git@bitbucket.org:gfoiani/spacebunny-node.git"
+    "url": "git@bitbucket.org:fancypixel/spacebunny-node.git"
   },
   "keywords": [
     "spacebunny",
     "iot"
   ],
-  "author": "Giovanni Foiani <giovanni@fancypixel.it> (http://fancypixel.it)",
+  "author": "Fancy Pixel (http://fancypixel.it)",
   "license": "MIT",
   "devDependencies": {
-    "chai": "^2.3.0",
-    "mocha": "^2.2.4"
+    "babel": "^6.0.12",
+    "babel-cli": "^6.4.5",
+    "babel-core": "^6.4.5",
+    "babel-eslint": "^4.0.5",
+    "babel-jest": "^6.0.1",
+    "babel-loader": "^6.0.1",
+    "babel-plugin-lodash": "^2.0.1",
+    "babel-preset-es2015": "^6.0.12",
+    "babel-preset-stage-0": "^6.3.13",
+    "del": "^2.0.2",
+    "eslint": "^1.5.1",
+    "eslint-config-airbnb": "3.1.0",
+    "eslint-loader": "^1.0.0",
+    "eslint-plugin-react": "^3.0.0",
+    "gulp": "^3.8.11",
+    "gulp-babel": "^6.1.1",
+    "gulp-jsdoc-to-markdown": "^1.2.0",
+    "gulp-rename": "^1.2.2",
+    "gulp-sourcemaps": "^1.6.0",
+    "gulp-util": "^3.0.4",
+    "jest-cli": "^0.8.2",
+    "json-loader": "^0.5.2",
+    "merge-stream": "^1.0.0",
+    "node-libs-browser": "^0.5.2",
+    "path": "^0.12.7",
+    "webpack": "^1.9.10",
+    "webpack-dev-server": "^1.14.0",
+    "webpack-split-by-path": "0.0.8"
   },
   "dependencies": {
-    "config": "^1.13.0"
+    "amqplib": "^0.4.0",
+    "app-root-path": "^1.2.0",
+    "bluebird": "^3.1.1",
+    "dotenv": "^2.0.0",
+    "error-factory": "^0.1.6",
+    "humps": "^1.0.0",
+    "lodash": "^4.0.0",
+    "merge": "^1.2.0",
+    "mqtt": "^1.6.0",
+    "node-constants": "0.0.2",
+    "sockjs-client": "^1.0.3",
+    "stompjs": "git://github.com/gfoiani/stomp-websocket.git#2.4.0",
+    "sync-request": "^3.0.0",
+    "underscore": "^1.8.3",
+    "when": "^3.7.5"
   }
 }
