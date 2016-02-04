@@ -12,6 +12,7 @@
   "rules": {
     "no-trailing-spaces": [1, { "skipBlankLines": true }],
     "quotes": [2, "single", "avoid-escape"],
+    "arrow-body-style": 0,
     "comma-dangle": [2, "never"],
     "no-unused-vars": [1, {"vars": "all", "args": "after-used"}],
     "brace-style": [0, "1tbs", {"allowSingleLine": true}],

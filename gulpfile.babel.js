@@ -117,5 +117,5 @@ gulp.task('transpile', function() {
 });
 
 gulp.task('watch', function() {
-  gulp.watch(paths.src, ['webpack:build']);
+  gulp.watch(paths.src, ['transpile']);
 });

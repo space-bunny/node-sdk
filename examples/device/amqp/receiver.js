@@ -3,8 +3,8 @@ var appRoot = require('app-root-path');
 var AmqpClient = require(appRoot + '/lib/index').AmqpClient;
 
 // callback called whan a message is received
-var messageCallback = function(message) {
-  console.log(message.content);
+var messageCallback = function(content, field, properties) {
+  console.log(content);
 };
 
 // Prerequisites: you have created a device through the Space Bunny's web interface. You also have a 'data' channel (name
@@ -14,7 +14,8 @@ var messageCallback = function(message) {
 // Once everything is set up get your device's API key from Space Bunny's web application: on the web interface,
 // go to devices section and create or pick an existing device. Click on the 'SHOW CONFIGURATION' link, copy the API key
 // and substitute it here:
-var connectionParams = { apiKey: 'your-api-key' };
+var connectionParams = { endpointUrl: 'http://localhost:3000',
+  apiKey: 'ded1a597-e51c-4525-bcd7-3675811f64e8:QZfm2DTLdeG8X1mwj9XRcg' };
 
 // You can also provide full manual configuration
 // var connectionParams = {
@@ -57,8 +58,10 @@ process.once('SIGINT', function() { disconnect(); });
 
 // RECEIVING MESSAGES
 
+var subscriptionOpts = { noAck: false, discardMine: false, discardFromApi: false };
+
 // When a message is sent on the inbox channel of the current device, the callback function will bel called
-amqpClient.onReceive(messageCallback).then(function(res) {
+amqpClient.onReceive(messageCallback, subscriptionOpts).then(function(res) {
   console.log('Start receiving..');  // eslint-disable-line no-console
 }).catch(function(reason) {
   console.error(reason);  // eslint-disable-line no-console

@@ -26,7 +26,7 @@ class StompClient extends SpaceBunny {
    */
   constructor(opts) {
     super(opts);
-    if (typeof process === 'object' && process + '' === '[object process]') {
+    if (typeof process === 'object' && `${process}` === '[object process]') {
       this._protocol = 'stomp';
     } else {
       this._protocol = 'webStomp';
@@ -36,7 +36,7 @@ class StompClient extends SpaceBunny {
     this._stompConnection = undefined;
     this._subscription = undefined;
     this._connectionHeaders = {
-      'max_hbrlck_fails': 10,
+      max_hbrlck_fails: 10,
       'accept-version': '1.0,1.1,1.2',
       'heart-beat': '10000,10000'
     };
@@ -59,13 +59,15 @@ class StompClient extends SpaceBunny {
     return new Promise((resolve, reject) => {
       this._connect().then((client) => {
         // amq/queue is the form for existing queues
-        this._subscription = client.subscribe(this._subcriptionFor(this._existingQueuePrefix, this._inputTopic), function(message) {
-          callback(message);
-        }, function(reason) {
-          reject(reason);
-        });
+        this._subscription = client.subscribe(
+          this._subcriptionFor(this._existingQueuePrefix, this._inputTopic), (message) => {
+            // TODO filterMine and filterWeb
+            callback(message);
+          }, (reason) => {
+            reject(reason);
+          });
         resolve(true);
-      }).catch(function(reason) {
+      }).catch((reason) => {
         reject(reason);
       });
     });
@@ -84,9 +86,10 @@ class StompClient extends SpaceBunny {
     // Publish message
     return new Promise((resolve, reject) => {
       this._connect().then((client) => {
-        client.send(this._destinationFor('exchange', channel), this._connectionHeaders, this._encapsulateContent(message));
+        const destination = this._destinationFor('exchange', channel);
+        client.send(destination, this._connectionHeaders, this._encapsulateContent(message));
         resolve(true);
-      }).catch(function(reason) {
+      }).catch((reason) => {
         reject(reason);
       });
     });
@@ -106,7 +109,7 @@ class StompClient extends SpaceBunny {
         this._stompConnection.disconnect(() => {
           this._stompConnection = undefined;
           resolve(true);
-        }).catch(function(reason) {
+        }).catch((reason) => {
           reject(reason);
         });
       }
@@ -133,7 +136,7 @@ class StompClient extends SpaceBunny {
       } else {
         try {
           let client = undefined;
-          if (typeof process === 'object' && process + '' === '[object process]') {
+          if (typeof process === 'object' && `${process}` === '[object process]') {
             // code is runnning in nodejs: STOMP uses TCP sockets
             if (this._ssl) {
               client = Stomp.overTCP(connectionParams.host, connectionParams.protocols.stomp.sslPort, this._sslOpts);
@@ -143,7 +146,8 @@ class StompClient extends SpaceBunny {
           } else {
             // code is runnning in a browser: web STOMP uses Web sockets
             const protocol = (this._ssl) ? this._webSocketSecureProtocol : this._webSocketProtocol;
-            const port = (this._ssl) ? connectionParams.protocols.webStomp.sslPort : connectionParams.protocols.webStomp.port;
+            const port = (this._ssl) ? connectionParams.protocols.webStomp.sslPort :
+              connectionParams.protocols.webStomp.port;
             // const connectionString = `${protocol}${connectionParams.host}:${port}/stomp`;
             const connectionString = `${protocol}${connectionParams.host}:${port}/stomp`;
             const ws = new SockJS(connectionString);
@@ -164,7 +168,7 @@ class StompClient extends SpaceBunny {
           client.connect(headers, () => {
             this._stompConnection = client;
             resolve(this._stompConnection);
-          }, function(err) {
+          }, (err) => {
             reject(err);
           });
         } catch (reason) {

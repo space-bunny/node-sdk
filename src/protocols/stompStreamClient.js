@@ -76,10 +76,10 @@ class StompStreamClient extends StompClient {
           this._subscriptions[subscription].unsubscribe();
         }
         this._subscriptions = {};
-        this._stompConnection.disconnect(function() {
+        this._stompConnection.disconnect(() => {
           this._stompConnection = undefined;
           resolve(true);
-        }).catch(function(reason) {
+        }).catch((reason) => {
           reject(reason);
         });
       }
@@ -105,7 +105,7 @@ class StompStreamClient extends StompClient {
     const stream = streamHook.stream;
     const deviceId = streamHook.deviceId;
     const channel = streamHook.channel;
-    const emptyFunction = function() { return undefined; };
+    const emptyFunction = () => { return undefined; };
     const callback = streamHook.callback || emptyFunction;
     if (stream === undefined && (channel === undefined || deviceId === undefined)) {
       throw new SpaceBunnyErrors.MissingStreamConfigurations('Missing Stream or Device ID and Channel');
@@ -119,14 +119,14 @@ class StompStreamClient extends StompClient {
           topic = this._streamChannelTopicFor(deviceId, channel);
         }
         console.log(`streaming from ${topic}`); // eslint-disable-line no-console
-        const subscription = client.subscribe(topic, function(message) {
+        const subscription = client.subscribe(topic, (message) => {
           callback(message);
-        }, function(reason) {
+        }, (reason) => {
           reject(reason);
         });
         this._subscriptions[topic] = subscription;
         resolve(true);
-      }).catch(function(reason) {
+      }).catch((reason) => {
         reject(reason);
       });
     });
@@ -156,7 +156,8 @@ class StompStreamClient extends StompClient {
    * @return a string that represents the topic name for that channel
    */
   _streamTopicFor(stream, type, pattern) {
-    return `/${type || this._existingQueuePrefix}/${stream}.${this._liveStreamSuffix}/${pattern || this._defaultPattern}`;
+    return `/${type || this._existingQueuePrefix}/${stream}.` +
+      `${this._liveStreamSuffix}/${pattern || this._defaultPattern}`;
   }
 
 }

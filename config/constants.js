@@ -12,5 +12,7 @@ exports.CONFIG = {
     url: 'http://demo.spacebunny.io',
     api_version: '/v1',
     path: '/access_key_configurations'
-  }
+  },
+  ackTypes: ['auto', 'manual'],
+  apiExchange: 'input'
 };

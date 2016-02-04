@@ -76,18 +76,19 @@ class AmqpStreamClient extends AmqpClient {
         if (stream) {
           const streamQueue = this._streamQueue(stream);
           console.log(`streaming from ${streamQueue}`); // eslint-disable-line no-console
-          promisesChain = this._amqpChannels[`${currentTime}`].checkQueue(streamQueue, this._streamQueueArguments).then(() =>{
-            return this._amqpChannels[`${currentTime}`].consume(streamQueue, (message) => {
-              callback(this._parseContent(message));
-            }, merge(this._subscribeArgs, opts));
-          });
+          promisesChain = this._amqpChannels[`${currentTime}`]
+            .checkQueue(streamQueue, this._streamQueueArguments).then(() => {
+              return this._amqpChannels[`${currentTime}`].consume(streamQueue, (message) => {
+                callback(this._parseContent(message));
+              }, merge(this._subscribeArgs, opts));
+            });
         } else {
           // else if current hook is channel (or a couple deviceId, channel)
           // creates a temp queue, binds to channel exchange and starts consuming
           const channelExchangeName = this._channelExchange(deviceId, channel);
           const streamChannelQueue = this._streamChannelQueue(deviceId, channel, currentTime);
           console.log(`streaming from ${streamChannelQueue}`); // eslint-disable-line no-console
-          promisesChain = this._amqpChannels[`${currentTime}`].checkExchange(channelExchangeName).then(() =>{
+          promisesChain = this._amqpChannels[`${currentTime}`].checkExchange(channelExchangeName).then(() => {
             return this._amqpChannels[`${currentTime}`].assertQueue(streamChannelQueue, this._streamQueueArguments);
           }).then(() => {
             return this._amqpChannels[`${currentTime}`].bindQueue(streamChannelQueue, channelExchangeName, routingKey);
@@ -98,9 +99,9 @@ class AmqpStreamClient extends AmqpClient {
           });
         }
         return promisesChain;
-      }).then(function () {
+      }).then(() => {
         resolve(true);
-      }).catch(function (reason) {
+      }).catch((reason) => {
         reject(reason);
       });
     });
@@ -132,7 +133,9 @@ class AmqpStreamClient extends AmqpClient {
    */
   _streamChannelQueue(deviceId, channel, currentTime) {
     const prefix = currentTime || new Date().getTime();
-    return `${prefix}-${this._connectionParams.client}-${this._channelExchange(deviceId, channel)}.${this._liveStreamSuffix}`;
+    return `${prefix}-${this._connectionParams.client}-` +
+      `${this._channelExchange(deviceId, channel)}.` +
+      `${this._liveStreamSuffix}`;
   }
 
 }

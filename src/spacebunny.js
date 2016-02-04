@@ -21,7 +21,7 @@ import SpaceBunnyErrors from './spacebunnyErrors';
  */
 class SpaceBunny {
   constructor(opts = {}) {
-    this._connectionParams = merge({}, opts);
+    this._connectionParams = merge({}, humps.camelizeKeys(opts));
     this._endpointConfigs = {};
     this._endpointUrl = this._connectionParams.endpointUrl;
     this._apiKey = this._connectionParams.apiKey;
@@ -114,7 +114,7 @@ class SpaceBunny {
    */
   channels() {
     if (this._channels === undefined) {
-      this._channels = this._endpointConfigs.channels.map(function(obj) {
+      this._channels = this._endpointConfigs.channels.map((obj) => {
         return obj.name;
       });
     }
