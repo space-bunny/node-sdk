@@ -12,6 +12,7 @@
   "rules": {
     "no-trailing-spaces": [1, { "skipBlankLines": true }],
     "quotes": [2, "single", "avoid-escape"],
+    "arrow-body-style": 0,
     "comma-dangle": [2, "never"],
     "no-unused-vars": [1, {"vars": "all", "args": "after-used"}],
     "brace-style": [0, "1tbs", {"allowSingleLine": true}],
@@ -21,5 +22,6 @@
     "no-else-return": 0,
     "no-param-reassign": 0,
     "no-reserved-keys": 0,
+    "max-len": [1, 120, 4] # max length per row 120
   }
 }

@@ -32,7 +32,7 @@ class MqttStreamClient extends MqttClient {
    * @return promise containing the result of multiple subscriptions
    */
   streamFrom(streamHooks, opts) {
-    const emptyFunction = function() { return undefined; };
+    const emptyFunction = () => { return undefined; };
     streamHooks.forEach((streamHook) => {
       const stream = streamHook.stream;
       const deviceId = streamHook.deviceId;
@@ -54,17 +54,18 @@ class MqttStreamClient extends MqttClient {
             reject(false);
           } else {
             console.log(`streaming from ${keys(this._topics)}`); // eslint-disable-line no-console
-            mqttClient.on('message', function(topic, message) {
+            mqttClient.on('message', (topic, message) => {
               const splitted = topic.split('/');
-              const callback = streamHooks.filter(function(streamHook) {
-                return streamHook.stream === splitted[0] || (streamHook.deviceId === splitted[0] && streamHook.channel === splitted[1]);
+              const callback = streamHooks.filter((streamHook) => {
+                return streamHook.stream === splitted[0] ||
+                  (streamHook.deviceId === splitted[0] && streamHook.channel === splitted[1]);
               })[0].callback || emptyFunction;
               callback(topic, message);
             });
             resolve(true);
           }
         });
-      }).catch(function(reason) {
+      }).catch((reason) => {
         reject(reason);
       });
     });

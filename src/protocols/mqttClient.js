@@ -48,17 +48,18 @@ class MqttClient extends SpaceBunny {
     return new Promise((resolve, reject) => {
       this._connect().then((client) => {
         this._topics[this._topicFor(this._inputTopic)] = opts.qos || this._connectionOpts.qos;
-        client.subscribe(this._topics, merge(this._connectionOpts, opts), function(err) {
+        client.subscribe(this._topics, merge(this._connectionOpts, opts), (err) => {
           if (err) {
             reject(false);
           } else {
-            client.on('message', function(topic, message) {
+            client.on('message', (topic, message) => {
+              // TODO filterMine and filterWeb
               callback(topic, message);
             });
             resolve(true);
           }
         });
-      }).catch(function(reason) {
+      }).catch((reason) => {
         reject(reason);
       });
     });
@@ -78,11 +79,11 @@ class MqttClient extends SpaceBunny {
       this._connect().then((client) => {
         client.on('connect', () => {
           const bufferedMessage = new Buffer(this._encapsulateContent(message));
-          client.publish(this._topicFor(channel), bufferedMessage, merge(this._connectionOpts, opts), function() {
+          client.publish(this._topicFor(channel), bufferedMessage, merge(this._connectionOpts, opts), () => {
             resolve(true);
           });
         });
-      }).catch(function(reason) {
+      }).catch((reason) => {
         reject(reason);
       });
     });
@@ -97,9 +98,9 @@ class MqttClient extends SpaceBunny {
    */
   unsubscribe(topics) {
     return new Promise((resolve, reject) => {
-      this._mqttConnection.unsubscribe(Object.keys(topics)).then(function() {
+      this._mqttConnection.unsubscribe(Object.keys(topics)).then(() => {
         resolve(true);
-      }).catch(function(reason) {
+      }).catch((reason) => {
         reject(reason);
       });
     });
@@ -120,7 +121,7 @@ class MqttClient extends SpaceBunny {
             this._mqttConnection = undefined;
             resolve(true);
           });
-        }).catch(function(reason) {
+        }).catch((reason) => {
           reject(reason);
         });
       }
@@ -158,10 +159,10 @@ class MqttClient extends SpaceBunny {
             mqttConnectionParams = merge(mqttConnectionParams, this._sslOpts);
           }
           const client = mqtt.connect(mqttConnectionParams);
-          client.on('error', function(reason) {
+          client.on('error', (reason) => {
             reject(reason);
           });
-          client.on('close', function(reason) {
+          client.on('close', (reason) => {
             reject(reason);
           });
           this._mqttConnection = client;

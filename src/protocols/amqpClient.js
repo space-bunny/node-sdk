@@ -14,6 +14,7 @@ import amqp from 'amqplib';
 
 // Import SpaceBunny main module from which AmqpClient inherits
 import SpaceBunny from '../spacebunny';
+import Message from '../message';
 import SpaceBunnyErrors from '../spacebunnyErrors';
 
 class AmqpClient extends SpaceBunny {
@@ -56,13 +57,23 @@ class AmqpClient extends SpaceBunny {
       this._createChannel('input', opts).then((ch) => {
         return when.all([
           ch.checkQueue(`${this.deviceId()}.${this._inputTopic}`, this._inputQueueArgs),
-          ch.consume(`${this.deviceId()}.${this._inputTopic}`, (message) => {
-            callback(this._parseContent(message));
-          }, opts )
+          ch.consume(`${this.deviceId()}.${this._inputTopic}`, (res) => {
+            const message = new Message(res, this._deviceId, opts);
+
+            if (message.blackListed()) {
+              ch.nack(res, false, false);
+              return;
+            }
+
+            callback(this._parseContent(res.content), res.fields, res.properties);
+
+            // Check if ACK is needed
+            if (!opts.noAck) ch.ack(res);
+          }, opts)
         ]);
-      }).then(function(res) {
+      }).then((res) => {
         resolve(res);
-      }).catch(function(reason) {
+      }).catch((reason) => {
         reject(reason);
       });
     });
@@ -89,9 +100,9 @@ class AmqpClient extends SpaceBunny {
           promises.push(ch.waitForConfirms());
         }
         return when.all(promises);
-      }).then(function(res) {
+      }).then((res) => {
         resolve(res);
-      }).catch(function(reason) {
+      }).catch((reason) => {
         reject(reason);
       });
     });
@@ -110,7 +121,7 @@ class AmqpClient extends SpaceBunny {
         this._amqpConnection.close().then(() => {
           this._amqpConnection = undefined;
           resolve(true);
-        }).catch(function(reason) {
+        }).catch((reason) => {
           reject(reason);
         });
       }
@@ -139,27 +150,31 @@ class AmqpClient extends SpaceBunny {
         let connectionString = '';
         if (this._ssl) {
           if (this._checkSslOptions()) {
-            connectionString = `${this._sslProtocolPrefix}${connectionParams.deviceId || connectionParams.client}:${connectionParams.secret}@${connectionParams.host}:${connectionParams.protocols.amqp.sslPort}/${connectionParams.vhost.replace('/', '%2f')}`;
+            connectionString = `${this._sslProtocolPrefix}${connectionParams.deviceId || connectionParams.client}:` +
+              `${connectionParams.secret}@${connectionParams.host}:` +
+              `${connectionParams.protocols.amqp.sslPort}/${connectionParams.vhost.replace('/', '%2f')}`;
             connectionOpts = merge(connectionOpts, this._sslOpts);
           } else {
             throw new SpaceBunnyErrors.ApiKeyOrConfigurationsRequired('Missing required SSL connection parameters');
           }
         } else {
-          connectionString = `${this._protocolPrefix}${connectionParams.deviceId || connectionParams.client}:${connectionParams.secret}@${connectionParams.host}:${connectionParams.protocols.amqp.port}/${connectionParams.vhost.replace('/', '%2f')}`;
+          connectionString = `${this._protocolPrefix}${connectionParams.deviceId || connectionParams.client}:` +
+            `${connectionParams.secret}@${connectionParams.host}:` +
+            `${connectionParams.protocols.amqp.port}/${connectionParams.vhost.replace('/', '%2f')}`;
         }
         amqp.connect(connectionString, connectionOpts).then((conn) => {
-          conn.on('error', function(err) {
+          conn.on('error', (err) => {
             reject(err);
           });
-          conn.on('blocked', function(reason) {
+          conn.on('blocked', (reason) => {
             console.warn(reason); // eslint-disable-line no-console
           });
-          conn.on('unblocked', function(reason) {
+          conn.on('unblocked', (reason) => {
             console.warn(reason); // eslint-disable-line no-console
           });
           this._amqpConnection = conn;
           resolve(this._amqpConnection);
-        }).catch(function(reason) {
+        }).catch((reason) => {
           reject(reason);
         });
       }
@@ -180,7 +195,7 @@ class AmqpClient extends SpaceBunny {
       if (this._amqpChannels[channelName]) {
         resolve(this._amqpChannels[channelName]);
       } else {
-        this._connect().then(function(conn) {
+        this._connect().then((conn) => {
           if (opts.withConfirm === true) {
             return conn.createConfirmChannel();
           } else {
@@ -189,7 +204,7 @@ class AmqpClient extends SpaceBunny {
         }).then((ch) => {
           this._amqpChannels[channelName] = ch;
           resolve(ch);
-        }).catch(function(reason) {
+        }).catch((reason) => {
           reject(reason);
         });
       }
@@ -209,10 +224,10 @@ class AmqpClient extends SpaceBunny {
       if (ch === undefined) {
         reject('Invalid Channel Object');
       } else {
-        ch.close().then(function() {
+        ch.close().then(() => {
           this._amqpChannels[channelName] = undefined;
           resolve(true);
-        }).catch(function(reason) {
+        }).catch((reason) => {
           reject(reason);
         });
       }
@@ -238,17 +253,18 @@ class AmqpClient extends SpaceBunny {
    * @return an object containing the input message with parsed content
    */
   _parseContent(message) {
-    const parsedMessage = message;
-    if (Buffer.isBuffer(parsedMessage.content)) {
-      const content = parsedMessage.content.toString('utf-8');
+    let parsedMessage = message;
+    if (Buffer.isBuffer(parsedMessage)) {
+      const content = parsedMessage.toString('utf-8');
       try {
-        parsedMessage.content = JSON.parse(content);
+        parsedMessage = JSON.parse(content);
       } catch (ex) {
-        parsedMessage.content = content;
+        parsedMessage = content;
       }
     }
     return parsedMessage;
   }
+
 }
 
 export default AmqpClient;
