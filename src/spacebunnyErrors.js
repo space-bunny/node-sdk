@@ -5,3 +5,4 @@ exports.ApiKeyOrConfigurationsRequired = errorFactory('ApiKeyOrConfigurationsReq
 exports.EndPointNotReachable = errorFactory('EndPointNotReachable');
 exports.EndPointError = errorFactory('EndPointError');
 exports.AckTypeError = errorFactory('AckTypeError');
+exports.WrongRoutingKeyFormatError = errorFactory('WrongRoutingKeyFormatError');
