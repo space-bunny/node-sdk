@@ -182,7 +182,7 @@ class MqttClient extends SpaceBunny {
    * @return a string that represents the topic name for that channel
    */
   _topicFor(channel) {
-    return this.deviceId().concat('/', channel);
+    return `${this.deviceId()}/${channel}`;
   }
 }
 

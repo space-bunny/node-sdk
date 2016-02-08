@@ -8,8 +8,8 @@ var messageCallback = function(topic, message) {
 
 // Manual Config
 // var connectionParams = {
-//   client: 'client',
-//   secret: 'msecret',
+//   client: 'your-client-id',
+//   secret: 'your-secret',
 //   host: 'host',
 //   port: 1883, // default for MQTT
 //   vhost: 'vhost'
@@ -17,21 +17,17 @@ var messageCallback = function(topic, message) {
 
 
 // Auto Config
-// endpointUrl is not required,
-// use it only if you need to specify a different endpoint from demo.spacebunny.io
+// You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
 // var connectionParams = {
-//   endpointUrl: 'http://my-endpoint-url',
-//   client: 'client',
-//   secret: 'secret'
+//   client: 'your-client-id',
+//   secret: 'your-secret',
 // };
 
 // Auto Config with SSL
-// endpointUrl is not required,
-// use it only if you need to specify a different endpoint from demo.spacebunny.io
+// You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
 // var connectionParams = {
-//   endpointUrl: 'http://my-endpoint-url',
-//   client: 'client',
-//   secret: 'secret',
+//   client: 'your-client-id',
+//   secret: 'your-secret',
 //   ssl: true,
 //   ca: '/path/to/ca_certificate.pem',
 //   cert: '/path/to/client_certificate.pem',
@@ -39,8 +35,8 @@ var messageCallback = function(topic, message) {
 // };
 
 // var streamHooks = [
-//   { stream: 'stream-id', callback: messageCallback },
-//   { stream: 'stream-id', callback: messageCallback }
+//   { stream: 'stream-name', callback: messageCallback },
+//   { stream: 'stream-name', callback: messageCallback }
 // ];
 
 var streamClient = new MqttStreamClient(connectionParams);

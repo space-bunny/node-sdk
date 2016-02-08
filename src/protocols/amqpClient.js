@@ -8,14 +8,16 @@
 import merge from 'merge';
 import Promise from 'bluebird';
 import when from 'when';
+import _ from 'lodash';
 
 // Import amqplib
 import amqp from 'amqplib';
 
 // Import SpaceBunny main module from which AmqpClient inherits
 import SpaceBunny from '../spacebunny';
-import Message from '../message';
 import SpaceBunnyErrors from '../spacebunnyErrors';
+import Message from '../message';
+const CONFIG = require('../../config/constants').CONFIG;
 
 class AmqpClient extends SpaceBunny {
 
@@ -33,7 +35,7 @@ class AmqpClient extends SpaceBunny {
     this._amqpChannels = {};
     this._inputQueueArgs = { };
     this._deviceExchangeArgs = { };
-    this._subscribeArgs = { noAck: true };
+    this._subscribeArgs = { noAck: true, requeue: false, allUpTo: false };
     this._publishArgs = { withConfirm: false };
     this._socketOptions = {
       frameMax: 32768, // 32 KB
@@ -52,23 +54,24 @@ class AmqpClient extends SpaceBunny {
    */
   onReceive(callback, opts) {
     opts = merge(this._subscribeArgs, opts);
+    opts.noAck = (opts.ack === null);
     // Receive messages from imput queue
     return new Promise((resolve, reject) => {
       this._createChannel('input', opts).then((ch) => {
         return when.all([
           ch.checkQueue(`${this.deviceId()}.${this._inputTopic}`, this._inputQueueArgs),
           ch.consume(`${this.deviceId()}.${this._inputTopic}`, (res) => {
+            // Create message object
             const message = new Message(res, this._deviceId, opts);
-
+            // Chec if should be accepted or not
             if (message.blackListed()) {
-              ch.nack(res, false, false);
+              ch.nack(res, opts.allUpTo, opts.requeue);
               return;
             }
-
+            // Call message callback
             callback(this._parseContent(res.content), res.fields, res.properties);
-
             // Check if ACK is needed
-            if (!opts.noAck) ch.ack(res);
+            if (this._autoAck(opts.ack)) { ch.ack(res, opts.allUpTo); }
           }, opts)
         ]);
       }).then((res) => {
@@ -190,7 +193,7 @@ class AmqpClient extends SpaceBunny {
    * @return a promise containing the current channel
    */
   _createChannel(channelName, opts = {}) {
-    channelName = `output${(opts.withConfirm === true) ? 'WithConfirm' : ''}`;
+    channelName = `${channelName}${(opts.withConfirm === true) ? 'WithConfirm' : ''}`;
     return new Promise((resolve, reject) => {
       if (this._amqpChannels[channelName]) {
         resolve(this._amqpChannels[channelName]);
@@ -218,7 +221,8 @@ class AmqpClient extends SpaceBunny {
    * @param {String} channelName - indicates if the channel is input or output
    * @return a promise containing the result of the operation
    */
-  _closeChannel(channelName) {
+  _closeChannel(channelName, opts = {}) {
+    channelName = `${channelName}${(opts.withConfirm === true) ? 'WithConfirm' : ''}`;
     return new Promise((resolve, reject) => {
       const ch = this._amqpChannels[channelName];
       if (ch === undefined) {
@@ -263,6 +267,28 @@ class AmqpClient extends SpaceBunny {
       }
     }
     return parsedMessage;
+  }
+
+  /**
+   * Check if the SDK have to automatically ack messages
+   *
+   * @private
+   * @param {String} ack - the ack type, it should be 'manual' or 'auto'
+   * @return boolean - true if messages have to be autoacked, false otherwise
+   */
+  _autoAck(ack) {
+    if (ack) {
+      if (!_.includes(CONFIG.ackTypes, ack)) {
+        throw new SpaceBunnyErrors.AckTypeError();
+      }
+      switch (ack) {
+        case 'auto':
+          return true;
+        default:
+          return false;
+      }
+    }
+    return false;
   }
 
 }

@@ -8,7 +8,7 @@ import fs from 'fs';
 import merge from 'merge';
 import request from 'sync-request';
 import humps from 'humps';
-import { startsWith } from 'lodash';
+import { startsWith, filter } from 'lodash';
 
 const CONFIG = require('../config/constants').CONFIG;
 
@@ -35,6 +35,7 @@ class SpaceBunny {
     this._protocol = 'amqp';
     this._inputTopic = this._connectionParams.inputTopic || 'inbox';
     this._liveStreamSuffix = 'live_stream';
+    this._liveStreams = [];
     this._ssl = this._connectionParams.ssl || false;
     this._sslOpts = {};
     if (this._connectionParams.cert) { this._sslOpts.cert = fs.readFileSync(this._connectionParams.cert); }
@@ -98,8 +99,9 @@ class SpaceBunny {
           const uri = `${hostname}${endpoint.api_version}${endpoint.path}`;
           const args = { headers: { 'Access-Key-Client': this._client, 'Access-Key-Secret': this._secret } };
           const response = request('GET', uri, args);
-          this._endpointConfigs = JSON.parse(response.getBody());
-          this._connectionParams = humps.camelizeKeys(this._endpointConfigs.connection);
+          this._endpointConfigs = humps.camelizeKeys(JSON.parse(response.getBody()));
+          this._connectionParams = this._endpointConfigs.connection;
+          this._liveStreams = this._endpointConfigs.liveStreams || [];
         } catch (ex) {
           throw new SpaceBunnyErrors.EndPointError(ex);
         }
@@ -127,6 +129,17 @@ class SpaceBunny {
   deviceId() {
     this._deviceId = this._deviceId || this._connectionParams.deviceId;
     return this._deviceId;
+  }
+
+  /**
+   * Return a Stream ID from a stream name given in input
+   *
+   * @param {String} streamName - stream name
+   * @return the stream ID which corresponds to the input stream name
+   */
+  liveStreamByName(streamName) {
+    const liveStream = filter(this._liveStreams, (stream) => { return stream.name === streamName; });
+    return liveStream[0].id || streamName;
   }
 
   // ------------ PRIVATE METHODS -------------------

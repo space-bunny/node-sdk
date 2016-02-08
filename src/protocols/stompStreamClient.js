@@ -73,7 +73,9 @@ class StompStreamClient extends StompClient {
         reject('Invalid connection');
       } else {
         for (const subscription in this._subscriptions) {
-          this._subscriptions[subscription].unsubscribe();
+          if (subscription) {
+            this._subscriptions[subscription].unsubscribe();
+          }
         }
         this._subscriptions = {};
         this._stompConnection.disconnect(() => {
@@ -150,13 +152,13 @@ class StompStreamClient extends StompClient {
    * Generate the subscription string for a specific channel
    *
    * @private
-   * @param {String} stream - stream identifier from which you want to stream from
+   * @param {String} streamName - stream name from which you want to stream
    * @param {String} type - resource type on which subscribe or publish [exchange/queue]
    * @param {String} pattern - binding pattern
    * @return a string that represents the topic name for that channel
    */
-  _streamTopicFor(stream, type, pattern) {
-    return `/${type || this._existingQueuePrefix}/${stream}.` +
+  _streamTopicFor(streamName, type, pattern) {
+    return `/${type || this._existingQueuePrefix}/${this.liveStreamByName(streamName)}.` +
       `${this._liveStreamSuffix}/${pattern || this._defaultPattern}`;
   }
 

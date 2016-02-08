@@ -89,11 +89,11 @@ class MqttStreamClient extends MqttClient {
    * Generate the topic for a specific stream
    *
    * @private
-   * @param {String} stream - stream identifier
+   * @param {String} streamName - stream name from which you want to stream
    * @return a string that represents the topic name for that stream
    */
   _streamTopicFor(stream) {
-    return `${stream}/${this._liveStreamSuffix}`;
+    return `${this.liveStreamByName(stream)}/${this._liveStreamSuffix}`;
   }
 }
 

@@ -14,8 +14,8 @@ var messageCallback = function(content, field, properties) {
 // Once everything is set up get your device's API key from Space Bunny's web application: on the web interface,
 // go to devices section and create or pick an existing device. Click on the 'SHOW CONFIGURATION' link, copy the API key
 // and substitute it here:
-var connectionParams = { endpointUrl: 'http://localhost:3000',
-  apiKey: 'ded1a597-e51c-4525-bcd7-3675811f64e8:QZfm2DTLdeG8X1mwj9XRcg' };
+// You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
+var connectionParams = { apiKey: 'your-api-key' };
 
 // You can also provide full manual configuration
 // var connectionParams = {
@@ -57,8 +57,22 @@ var disconnect = function() {
 process.once('SIGINT', function() { disconnect(); });
 
 // RECEIVING MESSAGES
+// 'onReceive' options:
 
-var subscriptionOpts = { noAck: false, discardMine: false, discardFromApi: false };
+// noAck (default true) the broker won't expect an acknowledgement of messages delivered
+
+// 'discardFromApi' (default false) causes the SDK to filter out messages published through APIs (or WEB UI) or
+// generally sent directly through Space Bunny's platform.
+
+// 'discardMine' (default false) causes the SDK to filter out auto-messages i.e. messages sent from this device
+// and, for some reason, returned to the sender. This can happen in some particular situation such as when using m2m
+// groups.
+
+// 'allUpTo' (default true), all outstanding messages prior to and including the given message shall be considered acknowledged.
+// If false, or omitted, only the message supplied is acknowledged.
+
+// 'requeue' (default false) is truthy, the server will try to put the message or messages back on the queue or queues from which they came.
+var subscriptionOpts = { noAck: false, allUpTo: false, requeue: false, discardMine: false, discardFromApi: false };
 
 // When a message is sent on the inbox channel of the current device, the callback function will bel called
 amqpClient.onReceive(messageCallback, subscriptionOpts).then(function(res) {

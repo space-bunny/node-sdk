@@ -79,7 +79,8 @@ class AmqpStreamClient extends AmqpClient {
           promisesChain = this._amqpChannels[`${currentTime}`]
             .checkQueue(streamQueue, this._streamQueueArguments).then(() => {
               return this._amqpChannels[`${currentTime}`].consume(streamQueue, (message) => {
-                callback(this._parseContent(message));
+                // Call message callback
+                callback(this._parseContent(message.content), message.fields, message.properties);
               }, merge(this._subscribeArgs, opts));
             });
         } else {
@@ -111,14 +112,11 @@ class AmqpStreamClient extends AmqpClient {
    * Generate the exchange name for a device's channel
    *
    * @private
-   * @param {String} deviceId - Device id from which you want to stream
-   * @param {String} channel - channel name from which you want to stream
-   * @param {String} currentTime - current UNIX timestamp
-   * @return a string that represents the stream queue name prefixed with current timestamp,
-   *        client ID and channel exchange
+   * @param {String} streamName - stream name from which you want to stream
+   * @return a string that represents the stream queue
    */
-  _streamQueue(stream) {
-    return `${stream}.${this._liveStreamSuffix}`;
+  _streamQueue(streamName) {
+    return `${this.liveStreamByName(streamName)}.${this._liveStreamSuffix}`;
   }
 
   /**
