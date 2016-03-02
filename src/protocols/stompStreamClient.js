@@ -159,7 +159,7 @@ class StompStreamClient extends StompClient {
    */
   _streamTopicFor(streamName, type, pattern) {
     return `/${type || this._existingQueuePrefix}/${this.liveStreamByName(streamName)}.` +
-      `${this._liveStreamSuffix}/${pattern || this._defaultPattern}`;
+      `${this._liveStreamSuffix}`;
   }
 
 }

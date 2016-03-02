@@ -163,7 +163,7 @@ class StompClient extends SpaceBunny {
           });
           // if using stream client fix the name of the generated queue
           if (connectionParams.client) {
-            headers['x-queue-name'] = `${this._stompSubscriptionPrefix}${connectionParams.deviceId}`;
+            headers['x-queue-name'] = `${this._stompSubscriptionPrefix}${connectionParams.client}`;
           }
           client.connect(headers, () => {
             this._stompConnection = client;
