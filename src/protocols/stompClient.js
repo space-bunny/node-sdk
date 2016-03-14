@@ -155,6 +155,7 @@ class StompClient extends SpaceBunny {
             // SockJS does not support heart-beat: disable heart-beats
             client.heartbeat.outgoing = 0;
             client.heartbeat.incoming = 0;
+            client.debug = null;
           }
           const headers = merge(this._connectionHeaders, {
             login: connectionParams.deviceId || connectionParams.client,
