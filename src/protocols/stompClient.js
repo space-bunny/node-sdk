@@ -11,9 +11,6 @@ import Promise from 'bluebird';
 // Import stomp library
 import Stomp from 'stompjs';
 
-// Import SockJS library
-import SockJS from 'sockjs-client';
-
 // Import SpaceBunny main module from which StompClient inherits
 import SpaceBunny from '../spacebunny';
 
@@ -31,8 +28,9 @@ class StompClient extends SpaceBunny {
     } else {
       this._protocol = 'webStomp';
     }
-    this._webSocketProtocol = 'http://';
-    this._webSocketSecureProtocol = 'https://';
+    this._webSocketProtocol = 'ws://';
+    this._webSocketSecureProtocol = 'wss://';
+    this._webSocketEnpoint = 'ws';
     this._stompConnection = undefined;
     this._subscription = undefined;
     this._connectionHeaders = {
@@ -146,12 +144,12 @@ class StompClient extends SpaceBunny {
               const protocol = (this._ssl) ? this._webSocketSecureProtocol : this._webSocketProtocol;
               const port = (this._ssl) ? connectionParams.protocols.webStomp.sslPort :
                 connectionParams.protocols.webStomp.port;
-              const connectionString = `${protocol}${connectionParams.host}:${port}/stomp`;
-              const ws = new SockJS(connectionString);
+              const connectionString = `${protocol}${connectionParams.host}:${port}/${this._webSocketEnpoint}`;
+              const ws = new WebSocket(connectionString);
               client = Stomp.over(ws);
               // SockJS does not support heart-beat: disable heart-beats
-              client.heartbeat.outgoing = 0;
-              client.heartbeat.incoming = 0;
+              client.heartbeat.outgoing = 10000;
+              client.heartbeat.incoming = 10000;
               client.debug = null;
             }
             const headers = merge(this._connectionHeaders, {

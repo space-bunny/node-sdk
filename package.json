@@ -72,7 +72,6 @@
     "merge": "^1.2.0",
     "mqtt": "^1.7.4",
     "node-constants": "0.0.2",
-    "sockjs-client": "^1.0.3",
     "stompjs": "git://github.com/gfoiani/stomp-websocket.git#2.4.0",
     "underscore": "^1.8.3",
     "when": "^3.7.5"
