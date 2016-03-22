@@ -29,7 +29,6 @@ class MqttClient extends SpaceBunny {
     this._connectionOpts = { qos: 1 };
     this._connectTimeout = 5000;
     this._topics = {};
-    this.getConnectionParams();
     this._sslOpts.protocol = 'mqtts';
     this._sslOpts.rejectUnauthorized = true;
   }
@@ -143,34 +142,36 @@ class MqttClient extends SpaceBunny {
     const connectionParams = this._connectionParams;
 
     return new Promise((resolve, reject) => {
-      if (this._mqttConnection !== undefined) {
-        resolve(this._mqttConnection);
-      } else {
-        try {
-          let mqttConnectionParams = {
-            host: connectionParams.host,
-            port: (this._ssl) ? connectionParams.protocols.mqtt.sslPort : connectionParams.protocols.mqtt.port,
-            username: `${connectionParams.vhost}:${connectionParams.deviceId || connectionParams.client}`,
-            password: connectionParams.secret,
-            clientId: connectionParams.deviceId || connectionParams.client,
-            connectTimeout: opts.connectTimeout || this._connectTimeout
-          };
-          if (this._ssl) {
-            mqttConnectionParams = merge(mqttConnectionParams, this._sslOpts);
-          }
-          const client = mqtt.connect(mqttConnectionParams);
-          client.on('error', (reason) => {
-            reject(reason);
-          });
-          client.on('close', (reason) => {
-            reject(reason);
-          });
-          this._mqttConnection = client;
+      this.getConnectionParams().then(() => {
+        if (this._mqttConnection !== undefined) {
           resolve(this._mqttConnection);
-        } catch (reason) {
-          reject(reason);
+        } else {
+          try {
+            let mqttConnectionParams = {
+              host: connectionParams.host,
+              port: (this._ssl) ? connectionParams.protocols.mqtt.sslPort : connectionParams.protocols.mqtt.port,
+              username: `${connectionParams.vhost}:${connectionParams.deviceId || connectionParams.client}`,
+              password: connectionParams.secret,
+              clientId: connectionParams.deviceId || connectionParams.client,
+              connectTimeout: opts.connectTimeout || this._connectTimeout
+            };
+            if (this._ssl) {
+              mqttConnectionParams = merge(mqttConnectionParams, this._sslOpts);
+            }
+            const client = mqtt.connect(mqttConnectionParams);
+            client.on('error', (reason) => {
+              reject(reason);
+            });
+            client.on('close', (reason) => {
+              reject(reason);
+            });
+            this._mqttConnection = client;
+            resolve(this._mqttConnection);
+          } catch (reason) {
+            reject(reason);
+          }
         }
-      }
+      });
     });
   }
 

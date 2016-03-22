@@ -42,7 +42,6 @@ class StompClient extends SpaceBunny {
     };
     this._existingQueuePrefix = 'amq/queue';
     this._stompSubscriptionPrefix = 'stomp-subscription-';
-    this.getConnectionParams();
   }
 
   /**
@@ -128,54 +127,55 @@ class StompClient extends SpaceBunny {
    */
   _connect(opts) {
     opts = merge({}, opts);
-    const connectionParams = this._connectionParams;
-
     return new Promise((resolve, reject) => {
-      if (this._stompConnection !== undefined) {
-        resolve(this._stompConnection);
-      } else {
-        try {
-          let client = undefined;
-          if (typeof process === 'object' && `${process}` === '[object process]') {
-            // code is runnning in nodejs: STOMP uses TCP sockets
-            if (this._ssl) {
-              client = Stomp.overTCP(connectionParams.host, connectionParams.protocols.stomp.sslPort, this._sslOpts);
+      this.getConnectionParams().then((connectionParams) => {
+        if (this._stompConnection !== undefined) {
+          resolve(this._stompConnection);
+        } else {
+          try {
+            let client = undefined;
+            if (typeof process === 'object' && `${process}` === '[object process]') {
+              // code is runnning in nodejs: STOMP uses TCP sockets
+              if (this._ssl) {
+                client = Stomp.overTCP(connectionParams.host, connectionParams.protocols.stomp.sslPort, this._sslOpts);
+              } else {
+                client = Stomp.overTCP(connectionParams.host, connectionParams.protocols.stomp.port);
+              }
             } else {
-              client = Stomp.overTCP(connectionParams.host, connectionParams.protocols.stomp.port);
+              // code is runnning in a browser: web STOMP uses Web sockets
+              const protocol = (this._ssl) ? this._webSocketSecureProtocol : this._webSocketProtocol;
+              const port = (this._ssl) ? connectionParams.protocols.webStomp.sslPort :
+                connectionParams.protocols.webStomp.port;
+              const connectionString = `${protocol}${connectionParams.host}:${port}/stomp`;
+              const ws = new SockJS(connectionString);
+              client = Stomp.over(ws);
+              // SockJS does not support heart-beat: disable heart-beats
+              client.heartbeat.outgoing = 0;
+              client.heartbeat.incoming = 0;
+              client.debug = null;
             }
-          } else {
-            // code is runnning in a browser: web STOMP uses Web sockets
-            const protocol = (this._ssl) ? this._webSocketSecureProtocol : this._webSocketProtocol;
-            const port = (this._ssl) ? connectionParams.protocols.webStomp.sslPort :
-              connectionParams.protocols.webStomp.port;
-            // const connectionString = `${protocol}${connectionParams.host}:${port}/stomp`;
-            const connectionString = `${protocol}${connectionParams.host}:${port}/stomp`;
-            const ws = new SockJS(connectionString);
-            client = Stomp.over(ws);
-            // SockJS does not support heart-beat: disable heart-beats
-            client.heartbeat.outgoing = 0;
-            client.heartbeat.incoming = 0;
-            client.debug = null;
+            const headers = merge(this._connectionHeaders, {
+              login: connectionParams.deviceId || connectionParams.client,
+              passcode: connectionParams.secret,
+              host: connectionParams.vhost
+            });
+            // if using stream client fix the name of the generated queue
+            if (connectionParams.client) {
+              headers['x-queue-name'] = `${this._stompSubscriptionPrefix}${connectionParams.client}`;
+            }
+            client.connect(headers, () => {
+              this._stompConnection = client;
+              resolve(this._stompConnection);
+            }, (err) => {
+              reject(err);
+            });
+          } catch (reason) {
+            reject(reason);
           }
-          const headers = merge(this._connectionHeaders, {
-            login: connectionParams.deviceId || connectionParams.client,
-            passcode: connectionParams.secret,
-            host: connectionParams.vhost
-          });
-          // if using stream client fix the name of the generated queue
-          if (connectionParams.client) {
-            headers['x-queue-name'] = `${this._stompSubscriptionPrefix}${connectionParams.client}`;
-          }
-          client.connect(headers, () => {
-            this._stompConnection = client;
-            resolve(this._stompConnection);
-          }, (err) => {
-            reject(err);
-          });
-        } catch (reason) {
-          reject(reason);
         }
-      }
+      }).catch((reason) => {
+        reject(reason);
+      });
     });
   }
 

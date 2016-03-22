@@ -15,7 +15,6 @@ import amqp from 'amqplib';
 
 // Import SpaceBunny main module from which AmqpClient inherits
 import SpaceBunny from '../spacebunny';
-import SpaceBunnyErrors from '../spacebunnyErrors';
 import Message from '../message';
 const CONFIG = require('../../config/constants').CONFIG;
 
@@ -41,7 +40,6 @@ class AmqpClient extends SpaceBunny {
       frameMax: 32768, // 32 KB
       heartbeat: 60 // 60 seconds
     };
-    this.getConnectionParams();
   }
 
   /**
@@ -145,42 +143,45 @@ class AmqpClient extends SpaceBunny {
     let connectionOpts = merge({}, this._socketOptions);
 
     return new Promise((resolve, reject) => {
-      if (this._amqpConnection !== undefined) {
-        resolve(this._amqpConnection);
-      } else {
-        const connectionParams = this._connectionParams;
-        // TODO if ssl change connections string and connection parameters
-        let connectionString = '';
-        if (this._ssl) {
-          if (this._checkSslOptions()) {
-            connectionString = `${this._sslProtocolPrefix}${connectionParams.deviceId || connectionParams.client}:` +
-              `${connectionParams.secret}@${connectionParams.host}:` +
-              `${connectionParams.protocols.amqp.sslPort}/${connectionParams.vhost.replace('/', '%2f')}`;
-            connectionOpts = merge(connectionOpts, this._sslOpts);
-          } else {
-            throw new SpaceBunnyErrors.ApiKeyOrConfigurationsRequired('Missing required SSL connection parameters');
-          }
-        } else {
-          connectionString = `${this._protocolPrefix}${connectionParams.deviceId || connectionParams.client}:` +
-            `${connectionParams.secret}@${connectionParams.host}:` +
-            `${connectionParams.protocols.amqp.port}/${connectionParams.vhost.replace('/', '%2f')}`;
-        }
-        amqp.connect(connectionString, connectionOpts).then((conn) => {
-          conn.on('error', (err) => {
-            reject(err);
-          });
-          conn.on('blocked', (reason) => {
-            console.warn(reason); // eslint-disable-line no-console
-          });
-          conn.on('unblocked', (reason) => {
-            console.warn(reason); // eslint-disable-line no-console
-          });
-          this._amqpConnection = conn;
+      this.getConnectionParams().then((connectionParams) => {
+        if (this._amqpConnection !== undefined) {
           resolve(this._amqpConnection);
-        }).catch((reason) => {
-          reject(reason);
-        });
-      }
+        } else {
+          // TODO if ssl change connections string and connection parameters
+          let connectionString = '';
+          if (this._ssl) {
+            if (this._checkSslOptions()) {
+              connectionString = `${this._sslProtocolPrefix}${connectionParams.deviceId || connectionParams.client}:` +
+                `${connectionParams.secret}@${connectionParams.host}:` +
+                `${connectionParams.protocols.amqp.sslPort}/${connectionParams.vhost.replace('/', '%2f')}`;
+              connectionOpts = merge(connectionOpts, this._sslOpts);
+            } else {
+              reject('Missing required SSL connection parameters');
+            }
+          } else {
+            connectionString = `${this._protocolPrefix}${connectionParams.deviceId || connectionParams.client}:` +
+              `${connectionParams.secret}@${connectionParams.host}:` +
+              `${connectionParams.protocols.amqp.port}/${connectionParams.vhost.replace('/', '%2f')}`;
+          }
+          amqp.connect(connectionString, connectionOpts).then((conn) => {
+            conn.on('error', (err) => {
+              reject(err);
+            });
+            conn.on('blocked', (reason) => {
+              console.warn(reason); // eslint-disable-line no-console
+            });
+            conn.on('unblocked', (reason) => {
+              console.warn(reason); // eslint-disable-line no-console
+            });
+            this._amqpConnection = conn;
+            resolve(this._amqpConnection);
+          }).catch((reason) => {
+            reject(reason);
+          });
+        }
+      }).catch((reason) => {
+        reject(reason);
+      });
     });
   }
 
@@ -279,7 +280,7 @@ class AmqpClient extends SpaceBunny {
   _autoAck(ack) {
     if (ack) {
       if (!_.includes(CONFIG.ackTypes, ack)) {
-        throw new SpaceBunnyErrors.AckTypeError();
+        console.error('Wrong acknowledge type'); // eslint-disable-line no-console
       }
       switch (ack) {
         case 'auto':

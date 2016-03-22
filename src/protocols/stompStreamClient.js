@@ -10,7 +10,6 @@ import Promise from 'bluebird';
 
 // Import StompClient main module from which StompStreamClient inherits
 import StompClient from './stompClient';
-import SpaceBunnyErrors from '../spacebunnyErrors';
 
 class StompStreamClient extends StompClient {
 
@@ -103,24 +102,28 @@ class StompStreamClient extends StompClient {
    */
   _attachStreamHook(streamHook, opts) {
     opts = merge({}, opts);
-    // Receive messages from imput queue
-    const stream = streamHook.stream;
-    const deviceId = streamHook.deviceId;
-    const channel = streamHook.channel;
-    const emptyFunction = () => { return undefined; };
-    const callback = streamHook.callback || emptyFunction;
-    if (stream === undefined && (channel === undefined || deviceId === undefined)) {
-      throw new SpaceBunnyErrors.MissingStreamConfigurations('Missing Stream or Device ID and Channel');
-    }
     return new Promise((resolve, reject) => {
+      // Receive messages from imput queue
+      const stream = streamHook.stream;
+      const deviceId = streamHook.deviceId;
+      const channel = streamHook.channel;
+      const cache = streamHook.cache || true;
+      const emptyFunction = () => { return undefined; };
+      const callback = streamHook.callback || emptyFunction;
+      if (stream === undefined && (channel === undefined || deviceId === undefined)) {
+        reject('Missing Stream or Device ID and Channel');
+      }
       this._connect().then((client) => {
         let topic = undefined;
         if (stream) {
-          topic = this._streamTopicFor(stream);
+          if (cache) {
+            topic = this._cachedStreamTopicFor(stream);
+          } else {
+            topic = this._streamTopicFor(stream);
+          }
         } else {
           topic = this._streamChannelTopicFor(deviceId, channel);
         }
-        console.log(`streaming from ${topic}`); // eslint-disable-line no-console
         const subscription = client.subscribe(topic, (message) => {
           callback(message);
         }, (reason) => {
@@ -149,7 +152,20 @@ class StompStreamClient extends StompClient {
   }
 
   /**
-   * Generate the subscription string for a specific channel
+   * Generate the subscription string for cached live streams
+   *
+   * @private
+   * @param {String} streamName - stream name from which you want to stream
+   * @param {String} type - resource type on which subscribe or publish [exchange/queue]
+   * @return a string that represents the topic name for that channel
+   */
+  _cachedStreamTopicFor(streamName, type) {
+    return `/${type || this._existingQueuePrefix}/${this.liveStreamByName(streamName)}.` +
+      `${this._liveStreamSuffix}`;
+  }
+
+  /**
+   * Generate the subscription for live streams without caching
    *
    * @private
    * @param {String} streamName - stream name from which you want to stream
@@ -158,8 +174,8 @@ class StompStreamClient extends StompClient {
    * @return a string that represents the topic name for that channel
    */
   _streamTopicFor(streamName, type, pattern) {
-    return `/${type || this._existingQueuePrefix}/${this.liveStreamByName(streamName)}.` +
-      `${this._liveStreamSuffix}`;
+    return `/${type || this._channelExchangePrefix}/${this.liveStreamByName(streamName)}.` +
+      `${this._liveStreamSuffix}/${pattern || this._defaultPattern}`;
   }
 
 }

@@ -2,7 +2,7 @@ const webpack = require('webpack');
 const path = require('path');
 // const SplitByPathPlugin = require('webpack-split-by-path');
 
-module.exports = function(options) {
+module.exports = function (options) {
   const devPort = options.devPort ? options.devPort : 8080;
   const devHost = options.devHost ? options.devHost : 'localhost';
 

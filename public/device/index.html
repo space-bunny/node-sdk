@@ -21,11 +21,11 @@
     </nav>
 
     <div class="content small-12 columns">
-      <div class="small-1 columns">
-        <label for="api-key">Api Key</label>
+      <div class="small-3 columns">
+        <input type="text" name="api-key" id="api-key" value="" placeholder="Api Key">
       </div>
-      <div class="small-4 columns">
-        <input type="text" name="api-key" id="api-key" value="">
+      <div class="small-3 columns">
+        <input type="text" name="endpoint" id="endpoint" value="" placeholder="endpoint url">
       </div>
       <div class="small-2 columns">
         <label for="ssl">SSL</label>
@@ -36,7 +36,7 @@
         <button type="button" name="connect-button" id="connect-button" class="small success">Connect</button>
         <button type="button" name="disconnect-button" id="disconnect-button" class="small secondary" disabled="disabled">Disconnect</button>
       </div>
-      <div class="small-2 columns end" id="flash-messages"></div>
+      <div class="small-1 columns end" id="flash-messages"></div>
     </div>
 
     <div class="content small-12">
@@ -104,7 +104,7 @@
         var htmlEntities = function(str) {
             return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
-        
+
         var messageCallback = function(message) {
           $('#messages').append('<pre>' + htmlEntities(message.body) + '</pre>');
         };
@@ -129,9 +129,13 @@
             e.preventDefault();
 
             // Auto Config
+            var endpointUrl = $('#endpoint').val() || undefined;
             var apiKey = $('#api-key').val() || undefined;
             var ssl = ($('#ssl:checked').val() == 'true') ? true : false;
             var connectionParams = { apiKey: apiKey, ssl: ssl };
+            if (endpointUrl !== undefined) {
+              connectionParams['endpointUrl'] = endpointUrl;
+            }
 
             webStompClient = new StompClient(connectionParams);
             webStompClient.onReceive(messageCallback).then(function(res) {

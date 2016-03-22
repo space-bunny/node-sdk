@@ -6,3 +6,4 @@ examples/
 docs/
 config/
 gulpfile*
+*webpack*

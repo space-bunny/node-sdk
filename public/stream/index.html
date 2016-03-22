@@ -23,31 +23,24 @@
     <div class="small-12 columns">
       <h3>Connection Parameters</h3>
       <hr>
-      <div class="small-2 columns">
+      <div class="small-3 columns">
         <label for="client">Client ID*</label>
         <input type="text" name="client" id="client" value="">
       </div>
-      <div class="small-2 columns">
+      <div class="small-3 columns">
         <label for="client">Secret*</label>
         <input type="text" name="secret" id="secret" value="">
       </div>
-      <div class="small-2 columns">
-        <label for="host">Host</label>
-        <input type="text" name="host" id="host" value="">
+      <div class="small-3 columns">
+        <label for="host">Endpoint URL</label>
+        <input type="text" name="endpoint" id="endpoint" value="">
       </div>
       <div class="small-2 columns">
-        <label for="port">Port</label>
-        <input type="text" name="port" id="port" value="" placeholder="15674">
-      </div>
-      <div class="small-2 columns">
-        <label for="port">Vhost</label>
-        <input type="text" name="vhost" id="vhost" value="">
-      </div>
-      <div class="small-2 columns end">
         <label for="ssl">SSL</label>
         <input type="radio" name="ssl" id="ssl" value="false" checked>No
         <input type="radio" name="ssl" id="ssl" value="true">Yes
       </div>
+      <div class="small-1 columns end"></div>
     </div>
     <div class="small-12 columns">
       <div class="small-3 columns">
@@ -77,11 +70,13 @@
       </div>
       <hr>
       <div class="hidden-topic topic small-12 columns">
-        <div class="small-6 columns">
-          <input type="text" name="device-id" id="device-id" value="" placeholder="device-id">
+        <div class="small-8 columns">
+          <input type="text" name="stream-name" id="stream-name" value="" placeholder="stream-name">
         </div>
-        <div class="small-6 columns end">
-          <input type="text" name="channel" id="channel" value="" placeholder="channel">
+        <div class="small-4 columns end">
+          <label for="ssl">Cache</label>
+          <input type="radio" name="cache" id="cache" value="true" checked>Yes
+          <input type="radio" name="cache" id="cache" value="false">No
         </div>
       </div>
     </div>
@@ -164,9 +159,7 @@
             var connectionParams = {};
             var client = $('#client').val() || undefined;
             var secret = $('#secret').val() || undefined;
-            var host = $('#host').val() || undefined;
-            var port = $('#port').val() || undefined;
-            var vhost = $('#vhost').val() || undefined;
+            var endpoint = $('#endpoint').val() || undefined;
             var ssl = ($('#ssl:checked').val() == 'true') ? true : false;
 
             if(client) {
@@ -185,19 +178,17 @@
               return;
             }
 
-            if(host) { connectionParams['host'] = host; }
-            if(port) { connectionParams['port'] = port; }
-            if(vhost) { connectionParams['vhost'] = vhost; }
+            if(endpoint) { connectionParams['endpointUrl'] = endpoint; }
             if(ssl) { connectionParams['ssl'] = ssl; }
 
             var streamHooks = [];
             $('.topic').each(function(index) {
-              var deviceId = $(this).find('input[id="device-id"]').val();
-              var channel = $(this).find('input[id="channel"]').val();
-              if(deviceId && channel) {
+              var stream = $(this).find('input[id="stream-name"]').val();
+              var cache = ($('#cache:checked').val() == 'true') ? true : false;
+              if(stream && cache) {
                 streamHooks.push({
-                  deviceId: deviceId,
-                  channel: channel,
+                  stream: stream,
+                  cache: cache,
                   callback: messageCallback
                 });
               }

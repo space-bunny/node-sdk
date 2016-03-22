@@ -3,7 +3,6 @@
  * @module Message
  */
 
-import SpaceBunnyErrors from './spacebunnyErrors';
 const CONFIG = require('../config/constants').CONFIG;
 
 class Message {
@@ -21,7 +20,7 @@ class Message {
     try {
       [this.senderId, this.channelName] = this.fields.routingKey.split('.');
     } catch (ex) {
-      throw new SpaceBunnyErrors.WrongRoutingKeyFormatError(ex);
+      console.error('Wrong routing key format'); // eslint-disable-line no-console
     }
     this._receiverId = receiverId;
     this._discardMine = opts.discardMine || false;

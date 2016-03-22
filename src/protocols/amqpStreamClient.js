@@ -10,7 +10,6 @@ import Promise from 'bluebird';
 
 // Import AmqpClient module from which AmqpStreamClient inherits
 import AmqpClient from './amqpClient';
-import SpaceBunnyErrors from '../spacebunnyErrors';
 
 class AmqpStreamClient extends AmqpClient {
 
@@ -56,17 +55,17 @@ class AmqpStreamClient extends AmqpClient {
    */
   _attachStreamHook(streamHook, opts) {
     // Receive messages from imput queue
-    const deviceId = streamHook.deviceId;
-    const channel = streamHook.channel;
-    const stream = streamHook.stream;
-    if (stream === undefined && (channel === undefined || deviceId === undefined)) {
-      throw new SpaceBunnyErrors.MissingStreamConfigurations('Missing Stream or Device ID and Channel');
-    }
-    const routingKey = streamHook.routingKey || this._defaultStreamRoutingKey;
-    const emptyFunction = function () { return undefined; };
-    const callback = streamHook.callback || emptyFunction;
-
     return new Promise((resolve, reject) => {
+      const deviceId = streamHook.deviceId;
+      const channel = streamHook.channel;
+      const stream = streamHook.stream;
+      if (stream === undefined && (channel === undefined || deviceId === undefined)) {
+        reject('Missing Stream or Device ID and Channel');
+      }
+      const routingKey = streamHook.routingKey || this._defaultStreamRoutingKey;
+      const emptyFunction = function () { return undefined; };
+      const callback = streamHook.callback || emptyFunction;
+
       const currentTime = new Date().getTime();
       this._createChannel(`${currentTime}`).then((ch) => {
         this._amqpChannels[`${currentTime}`] = ch;
@@ -75,7 +74,6 @@ class AmqpStreamClient extends AmqpClient {
         // checks the existence of the stream queue and starts consuming
         if (stream) {
           const streamQueue = this._streamQueue(stream);
-          console.log(`streaming from ${streamQueue}`); // eslint-disable-line no-console
           promisesChain = this._amqpChannels[`${currentTime}`]
             .checkQueue(streamQueue, this._streamQueueArguments).then(() => {
               return this._amqpChannels[`${currentTime}`].consume(streamQueue, (message) => {
@@ -88,7 +86,6 @@ class AmqpStreamClient extends AmqpClient {
           // creates a temp queue, binds to channel exchange and starts consuming
           const channelExchangeName = this._channelExchange(deviceId, channel);
           const streamChannelQueue = this._streamChannelQueue(deviceId, channel, currentTime);
-          console.log(`streaming from ${streamChannelQueue}`); // eslint-disable-line no-console
           promisesChain = this._amqpChannels[`${currentTime}`].checkExchange(channelExchangeName).then(() => {
             return this._amqpChannels[`${currentTime}`].assertQueue(streamChannelQueue, this._streamQueueArguments);
           }).then(() => {

@@ -16,7 +16,10 @@ var messageCallback = function(message) {
 // };
 
 // Auto Config
-var connectionParams = { apiKey: 'your-api-key' };
+var connectionParams = {
+  endpointUrl: 'localhost:3000',
+  apiKey: 'e05bfd1f-305d-4590-b096-e751ba8dcd71:7G2DoVe2hWHNBka-mLrujA'
+};
 
 // Auto Config with SSL
 // var connectionParams = {

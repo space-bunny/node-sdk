@@ -6,14 +6,12 @@
 // Import some helpers modules
 import fs from 'fs';
 import merge from 'merge';
-import request from 'sync-request';
+import axios from 'axios';
 import humps from 'humps';
+import Promise from 'bluebird';
 import { startsWith, filter } from 'lodash';
 
 const CONFIG = require('../config/constants').CONFIG;
-
-// Import Space Bunny errors
-import SpaceBunnyErrors from './spacebunnyErrors';
 
 /**
  * @constructor
@@ -46,6 +44,7 @@ class SpaceBunny {
     this._sslOpts.secureProtocol = this._connectionParams.secureProtocol || 'TLSv1_method';
   }
 
+  // TODO this function should return a Promise!! Need to be async
   /**
    * Check if api-key or connection parameters have already been passed
    * If at least api-key is passed ask the endpoint for the configurations
@@ -54,61 +53,70 @@ class SpaceBunny {
    * @return an Object containing the connection parameters
    */
   getConnectionParams() {
-    // Contact endpoint to retrieve configs
-    // Switch endpoint if you are using sdk as device or as access key stream
-    let endpoint = '';
-    if ((this._deviceId && this._secret) || this._apiKey) { // Device credentials
-      endpoint = CONFIG.deviceEndpoint;
-      // uses endpoint passed from user, default endpoint otherwise
-      const hostname = this._generateHostname(endpoint);
-      const uri = `${hostname}${endpoint.api_version}${endpoint.path}`;
-      if (this._apiKey) {
-        // Get configs from endpoint
-        try {
-          const args = { headers: { 'Api-Key': this._apiKey } };
-          const response = request('GET', uri, args);
-          this._endpointConfigs = JSON.parse(response.getBody());
-          this._connectionParams = humps.camelizeKeys(this._endpointConfigs.connection);
-        } catch (ex) {
-          throw new SpaceBunnyErrors.EndPointError(ex);
+    return new Promise((resolve, reject) => {
+      // Contact endpoint to retrieve configs
+      // Switch endpoint if you are using sdk as device or as access key stream
+      let endpoint = '';
+      if ((this._deviceId && this._secret) || this._apiKey) { // Device credentials
+        endpoint = CONFIG.deviceEndpoint;
+        // uses endpoint passed from user, default endpoint otherwise
+        const hostname = this._generateHostname(endpoint);
+        const uri = `${hostname}${endpoint.api_version}${endpoint.path}`;
+        if (this._apiKey) {
+          // Get configs from endpoint
+          const options = { url: uri, method: 'get', headers: { 'Api-Key': this._apiKey }, responseType: 'json' };
+          axios(options).then((response) => {
+            this._endpointConfigs = humps.camelizeKeys(response.data);
+            this._connectionParams = this._endpointConfigs.connection;
+            resolve(this._connectionParams);
+          }).catch((err) => {
+            reject(err);
+          });
+        } else if (this._deviceId && this._secret && this._host && this._port && this._vhost) {
+          // Manually provided configs
+          this._connectionParams.protocols = {};
+          if (this._ssl) {
+            this._connectionParams.protocols[this._protocol] = { sslPort: this._port };
+          } else {
+            this._connectionParams.protocols[this._protocol] = { port: this._port };
+          }
+          resolve(this._connectionParams);
         }
-      } else if (this._deviceId && this._secret && this._host && this._port && this._vhost) {
-        // Manually provided configs
-        this._connectionParams.protocols = {};
-        if (this._ssl) {
-          this._connectionParams.protocols[this._protocol] = { sslPort: this._port };
+      } else if (this._client && this._secret) { // Access key credentials
+        if (this._host && this._port && this._vhost) {
+          // Manually provided configs
+          this._connectionParams.protocols = {};
+          if (this._ssl) {
+            this._connectionParams.protocols[this._protocol] = { sslPort: this._port };
+          } else {
+            this._connectionParams.protocols[this._protocol] = { port: this._port };
+          }
+          resolve(this._connectionParams);
         } else {
-          this._connectionParams.protocols[this._protocol] = { port: this._port };
-        }
-      }
-    } else if (this._client && this._secret) { // Access key credentials
-      if (this._host && this._port && this._vhost) {
-        // Manually provided configs
-        this._connectionParams.protocols = {};
-        if (this._ssl) {
-          this._connectionParams.protocols[this._protocol] = { sslPort: this._port };
-        } else {
-          this._connectionParams.protocols[this._protocol] = { port: this._port };
-        }
-      } else {
-        // Get configs from endpoint
-        try {
+          // Get configs from endpoint
           endpoint = CONFIG.accessKeyEndpoint;
           // uses endpoint passed from user, default endpoint otherwise
           const hostname = this._generateHostname(endpoint);
           const uri = `${hostname}${endpoint.api_version}${endpoint.path}`;
-          const args = { headers: { 'Access-Key-Client': this._client, 'Access-Key-Secret': this._secret } };
-          const response = request('GET', uri, args);
-          this._endpointConfigs = humps.camelizeKeys(JSON.parse(response.getBody()));
-          this._connectionParams = this._endpointConfigs.connection;
-          this._liveStreams = this._endpointConfigs.liveStreams || [];
-        } catch (ex) {
-          throw new SpaceBunnyErrors.EndPointError(ex);
+          const options = {
+            url: uri,
+            method: 'get',
+            headers: { 'Access-Key-Client': this._client, 'Access-Key-Secret': this._secret },
+            responseType: 'json'
+          };
+          axios(options).then((response) => {
+            this._endpointConfigs = humps.camelizeKeys(response.data);
+            this._connectionParams = this._endpointConfigs.connection;
+            this._liveStreams = this._endpointConfigs.liveStreams || [];
+            resolve(this._connectionParams);
+          }).catch((err) => {
+            reject(err);
+          });
         }
+      } else { // No configs or missing some info
+        reject('Missing Api Key or wrong connection parameters');
       }
-    } else { // No configs or missing some info
-      throw new SpaceBunnyErrors.ApiKeyOrConfigurationsRequired('Missing Api Key or wrong connection parameters');
-    }
+    });
   }
 
   /**
