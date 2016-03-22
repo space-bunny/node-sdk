@@ -10,10 +10,7 @@ var AmqpClient = require(appRoot + '/lib/index').AmqpClient;
 // go to devices section and create or pick an existing device. Click on the 'SHOW CONFIGURATION' link, copy the API key
 // and substitute it here:
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
-var connectionParams = {
-  endpointUrl: 'localhost:3000',
-  apiKey: 'e05bfd1f-305d-4590-b096-e751ba8dcd71:7G2DoVe2hWHNBka-mLrujA'
-};
+var connectionParams = { apiKey: 'your-api-key' };
 
 // You can also provide full manual configuration
 // var connectionParams = {

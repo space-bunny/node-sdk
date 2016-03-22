@@ -2,8 +2,8 @@
 var appRoot = require('app-root-path');
 var AmqpStreamClient = require(appRoot + '/lib/index').AmqpStreamClient;
 
-var messageCallback = function(message) {
-  console.log(message.content);
+var messageCallback = function(content, field, properties) {
+  console.log(content);
 };
 
 // Manual Config

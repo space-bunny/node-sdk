@@ -146,23 +146,43 @@ class SpaceBunny {
    * @return the stream ID which corresponds to the input stream name
    */
   liveStreamByName(streamName) {
-    const liveStream = filter(this._liveStreams, (stream) => { return stream.name === streamName; });
-    return liveStream[0].id || streamName;
+    const liveStreams = filter(this._liveStreams, (stream) => { return stream.name === streamName; });
+    if (liveStreams.length > 0) {
+      return liveStreams[0].id || streamName;
+    } else {
+      return streamName;
+    }
   }
 
-  // ------------ PRIVATE METHODS -------------------
+  /**
+   * Generate a temporary queue name
+   *
+   * @private
+   * @param {String} prefix - client id or stream name
+   * @param {String} suffix - channel name or defaul live stream suffix
+   * @param {Numeric} currentTime - current timestamp
+   * @return a string that represents the topic name for that channel
+   */
+  tempQueue(prefix, suffix, currentTime) {
+    const timestamp = currentTime || new Date().getTime();
+    return `${timestamp}-${this._connectionParams.client}-` +
+      `${this.exchangeName(prefix, suffix)}.` +
+      `${this._liveStreamSuffix}`;
+  }
 
   /**
    * Generate the exchange name for a device's channel
    *
    * @private
-   * @param {String} deviceId - Device id from which you want to stream
-   * @param {String} channel - channel name from which you want to stream
+   * @param {String} prefix - It could be a device id or a stream name
+   * @param {String} suffix - It could be a channel name or a the default stream suffix (live_stream)
    * @return a string that represents the complete exchange name
    */
-  _channelExchange(deviceId, channel) {
-    return (deviceId && channel) ? `${deviceId}.${channel}` : `${channel}`;
+  exchangeName(prefix, suffix) {
+    return (prefix && suffix) ? `${this.liveStreamByName(prefix)}.${suffix}` : `${suffix}`;
   }
+
+  // ------------ PRIVATE METHODS -------------------
 
   /**
    * Encapsulates contens for publishing messages.

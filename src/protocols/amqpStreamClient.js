@@ -59,6 +59,7 @@ class AmqpStreamClient extends AmqpClient {
       const deviceId = streamHook.deviceId;
       const channel = streamHook.channel;
       const stream = streamHook.stream;
+      const cache = (typeof(streamHook.cache) !== 'boolean') ? true : streamHook.cache;
       if (stream === undefined && (channel === undefined || deviceId === undefined)) {
         reject('Missing Stream or Device ID and Channel');
       }
@@ -73,26 +74,42 @@ class AmqpStreamClient extends AmqpClient {
         // if current hook is a stream
         // checks the existence of the stream queue and starts consuming
         if (stream) {
-          const streamQueue = this._streamQueue(stream);
-          promisesChain = this._amqpChannels[`${currentTime}`]
-            .checkQueue(streamQueue, this._streamQueueArguments).then(() => {
-              return this._amqpChannels[`${currentTime}`].consume(streamQueue, (message) => {
-                // Call message callback
+          if (cache) {
+            // Cached streams are connected to the existing live stream queue
+            const cachedStreamQueue = this._cachedStreamQueue(stream);
+            promisesChain = this._amqpChannels[`${currentTime}`]
+              .checkQueue(cachedStreamQueue, this._streamQueueArguments).then(() => {
+                return this._amqpChannels[`${currentTime}`].consume(cachedStreamQueue, (message) => {
+                  // Call message callback
+                  callback(this._parseContent(message.content), message.fields, message.properties);
+                }, merge(this._subscribeArgs, opts));
+              });
+          } else {
+            // Uncached streams are connected to the stream exchange and create a temp queue
+            const streamExchange = this.exchangeName(stream, this._liveStreamSuffix);
+            const streamChannelQueue = this.tempQueue(stream, this._liveStreamSuffix, currentTime);
+            promisesChain = this._amqpChannels[`${currentTime}`].checkExchange(streamExchange).then(() => {
+              return this._amqpChannels[`${currentTime}`].assertQueue(streamChannelQueue, this._streamQueueArguments);
+            }).then(() => {
+              return this._amqpChannels[`${currentTime}`].bindQueue(streamChannelQueue, streamExchange, routingKey);
+            }).then(() => {
+              return this._amqpChannels[`${currentTime}`].consume(streamChannelQueue, (message) => {
                 callback(this._parseContent(message.content), message.fields, message.properties);
               }, merge(this._subscribeArgs, opts));
             });
+          }
         } else {
           // else if current hook is channel (or a couple deviceId, channel)
           // creates a temp queue, binds to channel exchange and starts consuming
-          const channelExchangeName = this._channelExchange(deviceId, channel);
-          const streamChannelQueue = this._streamChannelQueue(deviceId, channel, currentTime);
+          const channelExchangeName = this.exchangeName(deviceId, channel);
+          const streamChannelQueue = this.tempQueue(deviceId, channel, currentTime);
           promisesChain = this._amqpChannels[`${currentTime}`].checkExchange(channelExchangeName).then(() => {
             return this._amqpChannels[`${currentTime}`].assertQueue(streamChannelQueue, this._streamQueueArguments);
           }).then(() => {
             return this._amqpChannels[`${currentTime}`].bindQueue(streamChannelQueue, channelExchangeName, routingKey);
           }).then(() => {
             return this._amqpChannels[`${currentTime}`].consume(streamChannelQueue, (message) => {
-              callback(this._parseContent(message));
+              callback(this._parseContent(message.content), message.fields, message.properties);
             }, merge(this._subscribeArgs, opts));
           });
         }
@@ -112,25 +129,8 @@ class AmqpStreamClient extends AmqpClient {
    * @param {String} streamName - stream name from which you want to stream
    * @return a string that represents the stream queue
    */
-  _streamQueue(streamName) {
+  _cachedStreamQueue(streamName) {
     return `${this.liveStreamByName(streamName)}.${this._liveStreamSuffix}`;
-  }
-
-  /**
-   * Generate the exchange name for a device's channel
-   *
-   * @private
-   * @param {String} deviceId - Device id from which you want to stream
-   * @param {String} channel - channel name from which you want to stream
-   * @param {String} currentTime - current UNIX timestamp
-   * @return a string that represents the stream queue name prefixed with current timestamp,
-   *        client ID and channel exchange
-   */
-  _streamChannelQueue(deviceId, channel, currentTime) {
-    const prefix = currentTime || new Date().getTime();
-    return `${prefix}-${this._connectionParams.client}-` +
-      `${this._channelExchange(deviceId, channel)}.` +
-      `${this._liveStreamSuffix}`;
   }
 
 }

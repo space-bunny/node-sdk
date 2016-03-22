@@ -139,10 +139,9 @@ class MqttClient extends SpaceBunny {
    */
   _connect(opts) {
     opts = merge({}, opts);
-    const connectionParams = this._connectionParams;
 
     return new Promise((resolve, reject) => {
-      this.getConnectionParams().then(() => {
+      this.getConnectionParams().then((connectionParams) => {
         if (this._mqttConnection !== undefined) {
           resolve(this._mqttConnection);
         } else {
@@ -171,6 +170,8 @@ class MqttClient extends SpaceBunny {
             reject(reason);
           }
         }
+      }).catch((reason) => {
+        reject(reason);
       });
     });
   }

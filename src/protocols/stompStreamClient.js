@@ -20,7 +20,7 @@ class StompStreamClient extends StompClient {
   constructor(opts) {
     super(opts);
     this._subscriptions = {};
-    this._channelExchangePrefix = 'exchange';
+    this._exchangePrefix = 'exchange';
     this._defaultPattern = '#';
   }
 
@@ -107,7 +107,7 @@ class StompStreamClient extends StompClient {
       const stream = streamHook.stream;
       const deviceId = streamHook.deviceId;
       const channel = streamHook.channel;
-      const cache = streamHook.cache || true;
+      const cache = (typeof(streamHook.cache) !== 'boolean') ? true : streamHook.cache;
       const emptyFunction = () => { return undefined; };
       const callback = streamHook.callback || emptyFunction;
       if (stream === undefined && (channel === undefined || deviceId === undefined)) {
@@ -115,20 +115,24 @@ class StompStreamClient extends StompClient {
       }
       this._connect().then((client) => {
         let topic = undefined;
+        let tempQueue = undefined;
         if (stream) {
           if (cache) {
             topic = this._cachedStreamTopicFor(stream);
           } else {
             topic = this._streamTopicFor(stream);
+            tempQueue = this.tempQueue(stream, this._liveStreamSuffix);
           }
         } else {
           topic = this._streamChannelTopicFor(deviceId, channel);
+          tempQueue = this.tempQueue(deviceId, channel);
         }
-        const subscription = client.subscribe(topic, (message) => {
+        const subscriptionHeaders = {};
+        if (tempQueue) { subscriptionHeaders['x-queue-name'] = tempQueue; }
+        const messageCallback = (message) => {
           callback(message);
-        }, (reason) => {
-          reject(reason);
-        });
+        };
+        const subscription = client.subscribe(topic, messageCallback, subscriptionHeaders);
         this._subscriptions[topic] = subscription;
         resolve(true);
       }).catch((reason) => {
@@ -148,7 +152,7 @@ class StompStreamClient extends StompClient {
    * @return a string that represents the topic name for that channel
    */
   _streamChannelTopicFor(deviceId, channel, type, pattern) {
-    return `/${type || this._channelExchangePrefix}/${deviceId}.${channel}/${pattern || this._defaultPattern}`;
+    return `/${type || this._exchangePrefix}/${deviceId}.${channel}/${pattern || this._defaultPattern}`;
   }
 
   /**
@@ -174,7 +178,7 @@ class StompStreamClient extends StompClient {
    * @return a string that represents the topic name for that channel
    */
   _streamTopicFor(streamName, type, pattern) {
-    return `/${type || this._channelExchangePrefix}/${this.liveStreamByName(streamName)}.` +
+    return `/${type || this._exchangePrefix}/${this.liveStreamByName(streamName)}.` +
       `${this._liveStreamSuffix}/${pattern || this._defaultPattern}`;
   }
 

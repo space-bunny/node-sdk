@@ -157,10 +157,6 @@ class StompClient extends SpaceBunny {
               passcode: connectionParams.secret,
               host: connectionParams.vhost
             });
-            // if using stream client fix the name of the generated queue
-            if (connectionParams.client) {
-              headers['x-queue-name'] = `${this._stompSubscriptionPrefix}${connectionParams.client}`;
-            }
             client.connect(headers, () => {
               this._stompConnection = client;
               resolve(this._stompConnection);
