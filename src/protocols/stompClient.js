@@ -147,7 +147,6 @@ class StompClient extends SpaceBunny {
               const connectionString = `${protocol}${connectionParams.host}:${port}/${this._webSocketEnpoint}`;
               const ws = new WebSocket(connectionString);
               client = Stomp.over(ws);
-              // SockJS does not support heart-beat: disable heart-beats
               client.heartbeat.outgoing = 10000;
               client.heartbeat.incoming = 10000;
               client.debug = null;

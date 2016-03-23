@@ -23,7 +23,6 @@ class AmqpStreamClient extends AmqpClient {
     this._streamQueueArguments = { exclusive: true, autoDelete: true, durable: false };
   }
 
-
   /**
    * Subscribe to multiple stream hooks
    *

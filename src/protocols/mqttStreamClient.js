@@ -35,8 +35,11 @@ class MqttStreamClient extends MqttClient {
             reject('Missing Stream or Device ID and Channel');
           }
           if (stream) {
+            // Cached streams generate qos1 connections with persistent queues
+            // Uncached streams generate qos0 connections with auto delete queues
             this._topics[this._streamTopicFor(stream)] = (cache) ? 1 : 0;
           } else {
+            // streams connected directly to a specific channel generate qos0 connections with auto delete queues
             this._topics[this._streamChannelTopicFor(deviceId, channel)] = qos || this._connectionOpts.qos;
           }
         });

@@ -118,12 +118,16 @@ class StompStreamClient extends StompClient {
         let tempQueue = undefined;
         if (stream) {
           if (cache) {
+            // Cached streams are connected to the existing live stream queue
             topic = this._cachedStreamTopicFor(stream);
           } else {
+            // Uncached streams are connected to the stream exchange and create a temp queue
             topic = this._streamTopicFor(stream);
             tempQueue = this.tempQueue(stream, this._liveStreamSuffix);
           }
         } else {
+          // else if current hook is channel (or a couple deviceId, channel)
+          // creates a temp queue, binds to channel exchange and starts consuming
           topic = this._streamChannelTopicFor(deviceId, channel);
           tempQueue = this.tempQueue(deviceId, channel);
         }
