@@ -11,6 +11,8 @@ import Promise from 'bluebird';
 // Import AmqpClient module from which AmqpStreamClient inherits
 import AmqpClient from './amqpClient';
 
+const CONFIG = require('../../config/constants').CONFIG;
+
 class AmqpStreamClient extends AmqpClient {
 
   /**
@@ -19,8 +21,9 @@ class AmqpStreamClient extends AmqpClient {
    */
   constructor(opts) {
     super(opts);
-    this._defaultStreamRoutingKey = '#';
-    this._streamQueueArguments = { exclusive: true, autoDelete: true, durable: false };
+    const amqpStreamOptions = CONFIG.amqp.stream;
+    this._defaultStreamRoutingKey = amqpStreamOptions.defaultStreamRoutingKey;
+    this._streamQueueArguments = amqpStreamOptions.streamQueueArguments;
   }
 
   /**
@@ -73,6 +76,10 @@ class AmqpStreamClient extends AmqpClient {
         // if current hook is a stream
         // checks the existence of the stream queue and starts consuming
         if (stream) {
+          if (!this.liveStreamExists(stream)) {
+            console.error(`Stream ${stream} does not exist`); // eslint-disable-line no-console
+            resolve(false);
+          }
           if (cache) {
             // Cached streams are connected to the existing live stream queue
             const cachedStreamQueue = this._cachedStreamQueue(stream);

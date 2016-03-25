@@ -35,6 +35,10 @@ class MqttStreamClient extends MqttClient {
             reject('Missing Stream or Device ID and Channel');
           }
           if (stream) {
+            if (!this.liveStreamExists(stream)) {
+              console.error(`Stream ${stream} does not exist`); // eslint-disable-line no-console
+              resolve(false);
+            }
             // Cached streams generate qos1 connections with persistent queues
             // Uncached streams generate qos0 connections with auto delete queues
             this._topics[this._streamTopicFor(stream)] = (cache) ? 1 : 0;

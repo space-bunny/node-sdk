@@ -66,12 +66,10 @@
     "app-root-path": "^1.2.0",
     "axios": "^0.9.1",
     "bluebird": "^3.3.4",
-    "error-factory": "^0.1.6",
     "humps": "^1.0.0",
     "lodash": "^4.6.1",
     "merge": "^1.2.0",
     "mqtt": "^1.7.4",
-    "node-constants": "0.0.2",
     "stompjs": "git://github.com/gfoiani/stomp-websocket.git#2.4.0",
     "underscore": "^1.8.3",
     "when": "^3.7.5"

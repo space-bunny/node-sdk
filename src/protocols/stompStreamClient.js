@@ -11,6 +11,8 @@ import Promise from 'bluebird';
 // Import StompClient main module from which StompStreamClient inherits
 import StompClient from './stompClient';
 
+const CONFIG = require('../../config/constants').CONFIG;
+
 class StompStreamClient extends StompClient {
 
   /**
@@ -20,8 +22,9 @@ class StompStreamClient extends StompClient {
   constructor(opts) {
     super(opts);
     this._subscriptions = {};
-    this._exchangePrefix = 'exchange';
-    this._defaultPattern = '#';
+    const stompStreamOpts = CONFIG.stomp.stream;
+    this._exchangePrefix = stompStreamOpts.exchangePrefix;
+    this._defaultPattern = stompStreamOpts.defaultPattern;
   }
 
   /**
@@ -117,6 +120,10 @@ class StompStreamClient extends StompClient {
         let topic = undefined;
         let tempQueue = undefined;
         if (stream) {
+          if (!this.liveStreamExists(stream)) {
+            console.error(`Stream ${stream} does not exist`); // eslint-disable-line no-console
+            resolve(false);
+          }
           if (cache) {
             // Cached streams are connected to the existing live stream queue
             topic = this._cachedStreamTopicFor(stream);

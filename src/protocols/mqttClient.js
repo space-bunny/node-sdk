@@ -14,6 +14,8 @@ import mqtt from 'mqtt';
 // Import SpaceBunny main module from which MqttClient inherits
 import SpaceBunny from '../spacebunny';
 
+const CONFIG = require('../../config/constants').CONFIG;
+
 class MqttClient extends SpaceBunny {
 
   /**
@@ -23,14 +25,15 @@ class MqttClient extends SpaceBunny {
    */
   constructor(opts) {
     super(opts);
-    this._protocol = 'mqtt';
+    this._topics = {};
     this._mqttConnection = undefined;
     this._subscription = undefined;
-    this._connectionOpts = { qos: 1 };
-    this._connectTimeout = 5000;
-    this._topics = {};
-    this._sslOpts.protocol = 'mqtts';
-    this._sslOpts.rejectUnauthorized = true;
+    const mqttOptions = CONFIG.mqtt;
+    this._protocol = mqttOptions.protocol;
+    this._sslOpts.protocol = mqttOptions.ssl.protocol;
+    this._sslOpts.rejectUnauthorized = mqttOptions.ssl.rejectUnauthorized;
+    this._connectionOpts = mqttOptions.connection.opts;
+    this._connectionTimeout = mqttOptions.connection.timeout;
   }
 
   /**
@@ -46,7 +49,7 @@ class MqttClient extends SpaceBunny {
     // subscribe for input messages
     return new Promise((resolve, reject) => {
       this._connect().then((client) => {
-        this._topics[this._topicFor(this._inputTopic)] = opts.qos || this._connectionOpts.qos;
+        this._topics[this._topicFor(this._inboxTopic)] = opts.qos || this._connectionOpts.qos;
         client.subscribe(this._topics, merge(this._connectionOpts, opts), (err) => {
           if (err) {
             reject(false);
@@ -141,7 +144,8 @@ class MqttClient extends SpaceBunny {
     opts = merge({}, opts);
 
     return new Promise((resolve, reject) => {
-      this.getConnectionParams().then((connectionParams) => {
+      this.getEndpointConfigs().then((endpointConfigs) => {
+        const connectionParams = endpointConfigs.connection;
         if (this._mqttConnection !== undefined) {
           resolve(this._mqttConnection);
         } else {
@@ -152,7 +156,7 @@ class MqttClient extends SpaceBunny {
               username: `${connectionParams.vhost}:${connectionParams.deviceId || connectionParams.client}`,
               password: connectionParams.secret,
               clientId: connectionParams.deviceId || connectionParams.client,
-              connectTimeout: opts.connectTimeout || this._connectTimeout
+              connectionTimeout: opts.connectionTimeout || this._connectionTimeout
             };
             if (this._ssl) {
               mqttConnectionParams = merge(mqttConnectionParams, this._sslOpts);

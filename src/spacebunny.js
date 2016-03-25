@@ -11,6 +11,9 @@ import humps from 'humps';
 import Promise from 'bluebird';
 import { startsWith, filter } from 'lodash';
 
+// TODO validate enpointConfig object format with Joi
+// import Joi from 'joi';
+
 const CONFIG = require('../config/constants').CONFIG;
 
 /**
@@ -20,7 +23,7 @@ const CONFIG = require('../config/constants').CONFIG;
 class SpaceBunny {
   constructor(opts = {}) {
     this._connectionParams = merge({}, humps.camelizeKeys(opts));
-    this._endpointConfigs = {};
+    this._endpointConfigs = undefined;
     this._endpointUrl = this._connectionParams.endpointUrl;
     this._apiKey = this._connectionParams.apiKey;
     this._channels = this._connectionParams.channels;
@@ -30,9 +33,10 @@ class SpaceBunny {
     this._host = this._connectionParams.host;
     this._port = this._connectionParams.port;
     this._vhost = this._connectionParams.vhost;
-    this._protocol = 'amqp';
-    this._inputTopic = this._connectionParams.inputTopic || 'inbox';
-    this._liveStreamSuffix = 'live_stream';
+    this._protocol = CONFIG.protocol;
+    this._inboxTopic = this._connectionParams.inputTopic || CONFIG.inboxTopic;
+    this._liveStreamSuffix = CONFIG.liveStreamSuffix;
+    this._tempQueueSuffix = CONFIG.tempQueueSuffix;
     this._liveStreams = [];
     this._ssl = this._connectionParams.ssl || false;
     this._sslOpts = {};
@@ -41,7 +45,7 @@ class SpaceBunny {
     if (this._connectionParams.passphrase) { this._sslOpts.passphrase = this._connectionParams.passphrase; }
     if (this._connectionParams.ca) { this._sslOpts.ca = [fs.readFileSync(this._connectionParams.ca)];}
     if (this._connectionParams.pfx) { this._sslOpts.pfx = fs.readFileSync(this._connectionParams.pfx); }
-    this._sslOpts.secureProtocol = this._connectionParams.secureProtocol || 'TLSv1_method';
+    this._sslOpts.secureProtocol = this._connectionParams.secureProtocol || CONFIG.ssl.secureProtocol;
   }
 
   // TODO this function should return a Promise!! Need to be async
@@ -52,8 +56,12 @@ class SpaceBunny {
    *
    * @return an Object containing the connection parameters
    */
-  getConnectionParams() {
+  getEndpointConfigs() {
     return new Promise((resolve, reject) => {
+      // Resolve with configs if already retrieved
+      if (this._endpointConfigs !== undefined) {
+        resolve(this._endpointConfigs);
+      }
       // Contact endpoint to retrieve configs
       // Switch endpoint if you are using sdk as device or as access key stream
       let endpoint = '';
@@ -62,13 +70,12 @@ class SpaceBunny {
         // uses endpoint passed from user, default endpoint otherwise
         const hostname = this._generateHostname(endpoint);
         const uri = `${hostname}${endpoint.api_version}${endpoint.path}`;
-        if (this._apiKey) {
-          // Get configs from endpoint
+        if (this._apiKey) { // Get configs from endpoint
           const options = { url: uri, method: 'get', headers: { 'Api-Key': this._apiKey }, responseType: 'json' };
           axios(options).then((response) => {
             this._endpointConfigs = humps.camelizeKeys(response.data);
             this._connectionParams = this._endpointConfigs.connection;
-            resolve(this._connectionParams);
+            resolve(this._endpointConfigs);
           }).catch((err) => {
             reject(err);
           });
@@ -80,7 +87,11 @@ class SpaceBunny {
           } else {
             this._connectionParams.protocols[this._protocol] = { port: this._port };
           }
-          resolve(this._connectionParams);
+          this._endpointConfigs = {
+            connection: this._connectionParams,
+            channels: []
+          };
+          resolve(this._endpointConfigs);
         }
       } else if (this._client && this._secret) { // Access key credentials
         if (this._host && this._port && this._vhost) {
@@ -91,7 +102,11 @@ class SpaceBunny {
           } else {
             this._connectionParams.protocols[this._protocol] = { port: this._port };
           }
-          resolve(this._connectionParams);
+          this._endpointConfigs = {
+            connection: this._connectionParams,
+            liveStreams: []
+          };
+          resolve(this._endpointConfigs);
         } else {
           // Get configs from endpoint
           endpoint = CONFIG.accessKeyEndpoint;
@@ -108,7 +123,7 @@ class SpaceBunny {
             this._endpointConfigs = humps.camelizeKeys(response.data);
             this._connectionParams = this._endpointConfigs.connection;
             this._liveStreams = this._endpointConfigs.liveStreams || [];
-            resolve(this._connectionParams);
+            resolve(this._endpointConfigs);
           }).catch((err) => {
             reject(err);
           });
@@ -123,12 +138,12 @@ class SpaceBunny {
    * @return all channels configured for the current device
    */
   channels() {
-    if (this._channels === undefined) {
-      this._channels = this._endpointConfigs.channels.map((obj) => {
+    this.getEndpointConfigs().then((endpointConfigs) => {
+      this._channels = endpointConfigs.channels.map((obj) => {
         return obj.name;
       });
-    }
-    return this._channels || [];
+      return this._channels || [];
+    });
   }
 
   /**
@@ -155,6 +170,17 @@ class SpaceBunny {
   }
 
   /**
+   * Check if a stream exists
+   *
+   * @param {String} streamName - stream name
+   * @return true if stream exists, false otherwise
+   */
+  liveStreamExists(streamName) {
+    const liveStreams = filter(this._liveStreams, (stream) => { return stream.name === streamName; });
+    return (liveStreams.length > 0);
+  }
+
+  /**
    * Generate a temporary queue name
    *
    * @private
@@ -167,7 +193,7 @@ class SpaceBunny {
     const timestamp = currentTime || new Date().getTime();
     return `${timestamp}-${this._connectionParams.client}-` +
       `${this.exchangeName(prefix, suffix)}.` +
-      `${this._liveStreamSuffix}`;
+      `${this._tempQueueSuffix}`;
   }
 
   /**
@@ -223,9 +249,15 @@ class SpaceBunny {
     }
   }
 
+  /**
+   * Generate the complete hostname string for an endpoint
+   *
+   * @private
+   * @return the string representing the endpoint url
+   */
   _generateHostname(endpoint) {
     let hostname = `${(this._endpointUrl || endpoint.url)}`;
-    const endpointProtocol = (this._ssl) ? CONFIG.secureProtocol : CONFIG.protocol;
+    const endpointProtocol = (this._ssl) ? CONFIG.endpoint.secureProtocol : CONFIG.endpoint.protocol;
     if (!startsWith(hostname, endpointProtocol)) {
       hostname = `${endpointProtocol}://${hostname}`;
     }
