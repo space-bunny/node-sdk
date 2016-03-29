@@ -10,18 +10,8 @@ import Promise from 'bluebird';
 
 // Import MqttClient main module from which MqttStreamClient inherits
 import MqttClient from './mqttClient';
-import SpaceBunnyErrors from '../spacebunnyErrors';
-import { keys } from 'lodash';
 
 class MqttStreamClient extends MqttClient {
-
-  /**
-   * @constructor
-   * @param {Object} opts - options must contain client and secret for access keys
-   */
-  constructor(opts) {
-    super(opts);
-  }
 
   /**
    * Subscribe to multiple stream hooks
@@ -32,34 +22,45 @@ class MqttStreamClient extends MqttClient {
    * @return promise containing the result of multiple subscriptions
    */
   streamFrom(streamHooks, opts) {
-    const emptyFunction = () => { return undefined; };
-    streamHooks.forEach((streamHook) => {
-      const stream = streamHook.stream;
-      const deviceId = streamHook.deviceId;
-      const channel = streamHook.channel;
-      const qos = streamHook.qos;
-      if (stream === undefined && (channel === undefined || deviceId === undefined)) {
-        throw new SpaceBunnyErrors.MissingStreamConfigurations('Missing Stream or Device ID and Channel');
-      }
-      if (stream) {
-        this._topics[this._streamTopicFor(stream)] = qos || this._connectionOpts.qos;
-      } else {
-        this._topics[this._streamChannelTopicFor(deviceId, channel)] = qos || this._connectionOpts.qos;
-      }
-    });
     return new Promise((resolve, reject) => {
       this._connect().then((mqttClient) => {
+        const emptyFunction = () => { return undefined; };
+        streamHooks.forEach((streamHook) => {
+          const stream = streamHook.stream;
+          const deviceId = streamHook.deviceId;
+          const channel = streamHook.channel;
+          const qos = streamHook.qos;
+          const cache = (typeof(streamHook.cache) !== 'boolean') ? true : streamHook.cache;
+          if (stream === undefined && (channel === undefined || deviceId === undefined)) {
+            reject('Missing Stream or Device ID and Channel');
+          }
+          if (stream) {
+            if (!this.liveStreamExists(stream)) {
+              console.error(`Stream ${stream} does not exist`); // eslint-disable-line no-console
+              resolve(false);
+            }
+            // Cached streams generate qos1 connections with persistent queues
+            // Uncached streams generate qos0 connections with auto delete queues
+            this._topics[this._streamTopicFor(stream)] = (cache) ? 1 : 0;
+          } else {
+            // streams connected directly to a specific channel generate qos0 connections with auto delete queues
+            this._topics[this._streamChannelTopicFor(deviceId, channel)] = qos || this._connectionOpts.qos;
+          }
+        });
         mqttClient.subscribe(this._topics, merge(this._connectionOpts, opts), (err) => {
           if (err) {
             reject(false);
           } else {
-            console.log(`streaming from ${keys(this._topics)}`); // eslint-disable-line no-console
             mqttClient.on('message', (topic, message) => {
               const splitted = topic.split('/');
-              const callback = streamHooks.filter((streamHook) => {
-                return streamHook.stream === splitted[0] ||
+              const streams = streamHooks.filter((streamHook) => {
+                return this.liveStreamByName(streamHook.stream) === splitted[0] ||
                   (streamHook.deviceId === splitted[0] && streamHook.channel === splitted[1]);
-              })[0].callback || emptyFunction;
+              });
+              let callback = emptyFunction;
+              if (streams.length > 0) {
+                callback = streams[0].callback || emptyFunction;
+              }
               callback(topic, message);
             });
             resolve(true);

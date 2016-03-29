@@ -33,6 +33,11 @@ var messageCallback = function(message) {
 //   key: '/path/to/client_key.pem'
 // };
 
+// Stream hooks contains the stream name from which you want to collect data
+// and the callback which is invoked when receiving a message on that stream
+// the boolean cache option can be passed to specify the stream connection mode.
+// cache true (or missing) means that you want to read messages from the stream cache
+// cache false means that you want to read messages in a temporary queue that will be delete on disconnect
 // var streamHooks = [
 //   { stream: 'stream-name', callback: messageCallback },
 //   { stream: 'stream-name', callback: messageCallback }
