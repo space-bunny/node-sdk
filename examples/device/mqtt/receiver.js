@@ -1,5 +1,4 @@
-var appRoot = require('app-root-path');
-var MqttClient = require(appRoot + '/lib/index').MqttClient;
+var MqttClient = require('spacebunny').MqttClient;
 
 var messageCallback = function(topic, message) {
   console.log(topic + ':' + message);  // eslint-disable-line no-console

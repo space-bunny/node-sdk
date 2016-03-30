@@ -1,6 +1,5 @@
 var _ = require('underscore');
-var appRoot = require('app-root-path');
-var AmqpClient = require(appRoot + '/lib/index').AmqpClient;
+var AmqpClient = require('spacebunny').AmqpClient;
 
 // Prerequisites: you have created a device through the Space Bunny's web interface. You also have a 'data' channel (name
 // is not mandatory, but we'll use this for our example). You have also enabled 'data' channel for the device. See our

@@ -1,5 +1,4 @@
-var appRoot = require('app-root-path');
-var StompClient = require(appRoot + '/lib/index').StompClient;
+var StompClient = require('spacebunny').StompClient;
 
 var messageCallback = function(message) {
   console.log(message.body);  // eslint-disable-line no-console

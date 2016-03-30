@@ -1,6 +1,5 @@
 'use strict';
-var appRoot = require('app-root-path');
-var StompStreamClient = require(appRoot + '/lib/index').StompStreamClient;
+var StompStreamClient = require('spacebunny').StompStreamClient;
 
 var messageCallback = function(message) {
   console.log(message.body);
