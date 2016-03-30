@@ -1,6 +1,5 @@
 'use strict';
-var appRoot = require('app-root-path');
-var AmqpClient = require(appRoot + '/lib/index').AmqpClient;
+var AmqpClient = require('spacebunny').AmqpClient;
 
 // callback called whan a message is received
 var messageCallback = function(content, field, properties) {

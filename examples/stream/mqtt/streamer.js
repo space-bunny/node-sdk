@@ -1,6 +1,5 @@
 'use strict';
-var appRoot = require('app-root-path');
-var MqttStreamClient = require(appRoot + '/lib/index').MqttStreamClient;
+var MqttStreamClient = require('spacebunny').MqttStreamClient;
 
 var messageCallback = function(topic, message) {
   console.log(topic + ':' + message);  // eslint-disable-line no-console

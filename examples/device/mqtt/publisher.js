@@ -1,5 +1,4 @@
-var appRoot = require('app-root-path');
-var MqttClient = require(appRoot + '/lib/index').MqttClient;
+var MqttClient = require('spacebunny').MqttClient;
 
 // Prerequisites: you have created a device through the Space Bunny's web interface. You also have a 'data' channel (name
 // is not mandatory, but we'll use this for our example). You have also enabled 'data' channel for the device. See our

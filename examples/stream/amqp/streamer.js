@@ -1,7 +1,7 @@
 'use strict';
-var appRoot = require('app-root-path');
-var AmqpStreamClient = require(appRoot + '/lib/index').AmqpStreamClient;
+var AmqpStreamClient = require('spacebunny').AmqpStreamClient;
 
+// callback called whan a message is received
 var messageCallback = function(content, field, properties) {
   console.log(content);
 };
@@ -17,10 +17,10 @@ var messageCallback = function(content, field, properties) {
 
 // Auto Config
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
-// var connectionParams = {
-//   client: 'your-client-id',
-//   secret: 'your-secret'
-// };
+var connectionParams = {
+  client: 'your-client-id',
+  secret: 'your-secret'
+};
 
 // Auto Config with SSL
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
