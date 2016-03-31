@@ -11,7 +11,7 @@ Please feel free to contribute!
 
 `npm install spacebunny --save`
 
-## Usage
+## Basic usage
 
 ### Device
 
@@ -60,12 +60,16 @@ amqpClient.onReceive(messageCallback).then(function(res) {
 });
 ```
 
-For more advanced usage please refer to example files
+For more advanced usage please refer to example files in `examples` folder
 
 ### Stream
 
 A stream client can read from multiple live streams hooks
-In this example the streamer receives all messages from stream `my-stream`
+
+#### AMQP streamer
+
+In this example the streamer receives all messages from stream `my-stream` and `my-stream-2`
+
 ```javascript
 'use strict';
 var AmqpStreamClient = require('spacebunny').AmqpStreamClient;
@@ -82,6 +86,7 @@ var streamClient = new AmqpStreamClient(connectionParams);
 // Use your stream name
 var streamHooks = [
   { stream: 'my-stream', callback: messageCallback },
+  { stream: 'my-stream-2', callback: messageCallback }
 ];
 streamClient.streamFrom(streamHooks).then(function(res) {
   console.log(res);
@@ -89,8 +94,75 @@ streamClient.streamFrom(streamHooks).then(function(res) {
   console.error(reason);
 });
 ```
+For more advanced usage please refer to example files in `examples` folder
 
-For more advanced usage please refer to example files
+## Usage within a web page
+
+Space Bunny Node SDK is bundled using Webpack to allow the integration of the library within a web page
+
+### Device
+
+#### STOMP receiver and publisher
+
+In this example a device waits for incoming messages on its `inbox` channel and publishes a single message on the first configured channel
+
+```html
+<script src="https://raw.githubusercontent.com/space-bunny/node-sdk/master/dist/spacebunny.js"></script>
+<script>
+  [...]
+  // Use your Api Key
+  var connectionParams = { apiKey: 'your-api-key' };
+  var webStompClient = new StompClient(connectionParams);
+  webStompClient.onReceive(messageCallback).then(function(res) {
+    console.log('Successfully connected!');
+  }).catch(function(reason) {
+    console.error(reason);
+  });
+  var content = { some: 'json' };
+  var channels = webStompClient.channels();
+  webStompClient.publish(channels[0], content).then(function(res) {
+    console.log('Message published!');
+  }).catch(function(reason) {
+    console.error(reason);
+  });
+  [...]
+</script>
+```
+
+For more advanced usage please refer to example files in `dist` folder
+
+### Stream
+
+A stream client can read from multiple live streams hooks
+
+#### STOMP streamer
+
+In this example the streamer receives all messages from stream `my-stream` and `my-stream-2`
+
+```html
+<script src="https://raw.githubusercontent.com/space-bunny/node-sdk/master/dist/spacebunny.js"></script>
+<script>
+  [...]
+  var connectionParams = {
+    client: 'your-client-id',
+    secret: 'your-secret'
+  };
+  var streamClient = new StompStreamClient(connectionParams);
+  // Use your stream name
+  var streamHooks = [
+    { stream: 'my-stream', callback: messageCallback },
+    { stream: 'my-stream-2', callback: messageCallback }
+  ];
+  streamClient.streamFrom(streamHooks).then(function(res) {
+    console.log(res);
+  }).catch(function(reason) {
+    console.error(reason);
+  });
+  [...]
+</script>
+```
+
+For more advanced usage please refer to example files in `dist` folder
 
 ## Watch changes to src files (with automatic transpilation on save)
 

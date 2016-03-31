@@ -264,6 +264,26 @@ class SpaceBunny {
     return hostname;
   }
 
+  /**
+   * Automatically parse message content
+   *
+   * @private
+   * @param {Object/String} message - the received message
+   * @return an object containing the input message with parsed content
+   */
+  _parseContent(message) {
+    let parsedMessage = message;
+    if (Buffer.isBuffer(parsedMessage)) {
+      const content = parsedMessage.toString('utf-8');
+      try {
+        parsedMessage = JSON.parse(content);
+      } catch (ex) {
+        parsedMessage = content;
+      }
+    }
+    return parsedMessage;
+  }
+
 }
 
 export default SpaceBunny;

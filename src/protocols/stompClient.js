@@ -7,13 +7,14 @@
 // Import some helpers modules
 import merge from 'merge';
 import Promise from 'bluebird';
+import _ from 'lodash';
 
 // Import stomp library
 import Stomp from 'stompjs';
 
 // Import SpaceBunny main module from which StompClient inherits
 import SpaceBunny from '../spacebunny';
-
+import StompMessage from '../messages/stompMessage';
 const CONFIG = require('../../config/constants').CONFIG;
 
 class StompClient extends SpaceBunny {
@@ -52,14 +53,22 @@ class StompClient extends SpaceBunny {
     // subscribe for input messages
     return new Promise((resolve, reject) => {
       this._connect().then((client) => {
-        // amq/queue is the form for existing queues
-        this._subscription = client.subscribe(
-          this._subcriptionFor(this._existingQueuePrefix, this._inboxTopic), (message) => {
-            // TODO filterMine and filterWeb
-            callback(message);
-          }, (reason) => {
-            reject(reason);
-          });
+        const topic = this._subcriptionFor(this._existingQueuePrefix, this._inboxTopic);
+        const subscriptionCallback = (message) => {
+          // Create message object
+          const stompMessage = new StompMessage(message, this._deviceId, opts);
+          const ackNeeded = this._autoAck(opts.ack);
+          // Check if should be accepted or not
+          if (stompMessage.blackListed()) {
+            if (ackNeeded) { message.nack(); }
+            return;
+          }
+          // Call message callback
+          callback(this._parseContent(stompMessage.body), stompMessage.headers);
+          // Check if ACK is needed
+          if (ackNeeded) { message.ack(); }
+        };
+        this._subscription = client.subscribe(topic, subscriptionCallback);
         resolve(true);
       }).catch((reason) => {
         reject(reason);
@@ -194,6 +203,30 @@ class StompClient extends SpaceBunny {
    */
   _destinationFor(type, channel) {
     return `/${type}/${this.deviceId()}/${this.deviceId()}.${channel}`;
+  }
+
+  /**
+   * Check if the SDK have to automatically ack messages
+   * By default STOMP messages are acked by the server
+   * they need to be acked if client subscribes with { ack: 'client' } option
+   *
+   * @private
+   * @param {String} ack - the ack type, it should be 'client' or null
+   * @return boolean - true if messages have to be autoacked, false otherwise
+   */
+  _autoAck(ack) {
+    if (ack) {
+      if (!_.includes(CONFIG[this._protocol].ackTypes, ack)) {
+        console.error('Wrong acknowledge type'); // eslint-disable-line no-console
+      }
+      switch (ack) {
+        case 'client':
+          return false;
+        default:
+          return true;
+      }
+    }
+    return false;
   }
 
 }

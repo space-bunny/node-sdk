@@ -4,27 +4,24 @@ var MqttClient = require('spacebunny').MqttClient;
 // is not mandatory, but we'll use this for our example). You have also enabled 'data' channel for the device. See our
 // Getting Started [link] for a quick introduction to Space Bunny's base concepts.
 
-// If for some reason or use case it's not possible or desirable to use auto-configuration, Space Bunny's Ruby SDK
-// permits to manually configure the connection with various methods.
+// Once everything is set up get your device's API key from Space Bunny's web application: on the web interface,
+// go to devices section and create or pick an existing device. Click on the 'SHOW CONFIGURATION' link, copy the API key
+// and substitute it here:
+// You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
+var connectionParams = { apiKey: 'your-api-key' };
 
-// First of all go to Space Bunny's web interface, go to the devices section and create or pick an existing device.
-// Click on the 'SHOW CONFIGURATION' link and, from the 'Full configuration' section, copy the required params
-
-// Manual Config
+// You can also provide full manual configuration
 // var connectionParams = {
 //   deviceId: 'device-id',
 //   secret: 'device-secret',
 //   host: 'hostname',
-//   port: 1883, // default for MQTT
-//   vhost: 'vhost-id',
+//   port: 5672, // default for AMQP
+//   vhost: 'vhost',
 //   channels: [ 'data', 'alarms' ]
 // };
 
-// You can simply use device's api key to connect with default configurations
-// Auto Config
-var connectionParams = { apiKey: 'your-api-key' };
-
-// Auto Config with SSL
+// If you want to connecto using a secure channel, you must enable ssl
+// and provide the client certificate path
 // var connectionParams = {
 //   apiKey: 'your-api-key',
 //   ssl: true,
@@ -35,9 +32,14 @@ var connectionParams = { apiKey: 'your-api-key' };
 
 var mqttClient = new MqttClient(connectionParams);
 
+// Publishing Options
+// retain: (default missing) if true means that messages are sent as retained messages
+var publishingOpts = { retain: true };
+
+var content = { some: 'json' };
 // Get the first channel configured for the target device
-var channel = mqttClient.channels()[0];
-mqttClient.publish(channel, { some: 'json' }, { retain: true }).then(function(res) {
+var channels = mqttClient.channels();
+mqttClient.publish(channels[0], content, publishingOpts).then(function(res) {
   console.log(res);  // eslint-disable-line no-console
   mqttClient.disconnect();
   process.exit(0);

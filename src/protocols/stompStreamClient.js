@@ -141,7 +141,7 @@ class StompStreamClient extends StompClient {
         const subscriptionHeaders = {};
         if (tempQueue) { subscriptionHeaders['x-queue-name'] = tempQueue; }
         const messageCallback = (message) => {
-          callback(message);
+          callback(this._parseContent(message.body), message.headers);
         };
         const subscription = client.subscribe(topic, messageCallback, subscriptionHeaders);
         this._subscriptions[topic] = subscription;
