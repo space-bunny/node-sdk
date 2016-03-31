@@ -7,10 +7,11 @@ A module that exports the base SpaceBunny client
 * [SpaceBunny](#module_SpaceBunny)
     * [~SpaceBunny](#module_SpaceBunny..SpaceBunny)
         * [new SpaceBunny(opts)](#new_module_SpaceBunny..SpaceBunny_new)
-        * [.getConnectionParams()](#module_SpaceBunny..SpaceBunny+getConnectionParams) ⇒
+        * [.getEndpointConfigs()](#module_SpaceBunny..SpaceBunny+getEndpointConfigs) ⇒
         * [.channels()](#module_SpaceBunny..SpaceBunny+channels) ⇒
         * [.deviceId()](#module_SpaceBunny..SpaceBunny+deviceId) ⇒
         * [.liveStreamByName(streamName)](#module_SpaceBunny..SpaceBunny+liveStreamByName) ⇒
+        * [.liveStreamExists(streamName)](#module_SpaceBunny..SpaceBunny+liveStreamExists) ⇒
 
 <a name="module_SpaceBunny..SpaceBunny"></a>
 
@@ -19,10 +20,11 @@ A module that exports the base SpaceBunny client
 
 * [~SpaceBunny](#module_SpaceBunny..SpaceBunny)
     * [new SpaceBunny(opts)](#new_module_SpaceBunny..SpaceBunny_new)
-    * [.getConnectionParams()](#module_SpaceBunny..SpaceBunny+getConnectionParams) ⇒
+    * [.getEndpointConfigs()](#module_SpaceBunny..SpaceBunny+getEndpointConfigs) ⇒
     * [.channels()](#module_SpaceBunny..SpaceBunny+channels) ⇒
     * [.deviceId()](#module_SpaceBunny..SpaceBunny+deviceId) ⇒
     * [.liveStreamByName(streamName)](#module_SpaceBunny..SpaceBunny+liveStreamByName) ⇒
+    * [.liveStreamExists(streamName)](#module_SpaceBunny..SpaceBunny+liveStreamExists) ⇒
 
 <a name="new_module_SpaceBunny..SpaceBunny_new"></a>
 
@@ -32,9 +34,9 @@ A module that exports the base SpaceBunny client
 | --- | --- | --- |
 | opts | <code>Object</code> | constructor options may contain api-key or connection options |
 
-<a name="module_SpaceBunny..SpaceBunny+getConnectionParams"></a>
+<a name="module_SpaceBunny..SpaceBunny+getEndpointConfigs"></a>
 
-#### spaceBunny.getConnectionParams() ⇒
+#### spaceBunny.getEndpointConfigs() ⇒
 Check if api-key or connection parameters have already been passed
 If at least api-key is passed ask the endpoint for the configurations
 else if also connection parameters are not passed raise an exception
@@ -58,6 +60,18 @@ Return a Stream ID from a stream name given in input
 
 **Kind**: instance method of <code>[SpaceBunny](#module_SpaceBunny..SpaceBunny)</code>  
 **Returns**: the stream ID which corresponds to the input stream name  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| streamName | <code>String</code> | stream name |
+
+<a name="module_SpaceBunny..SpaceBunny+liveStreamExists"></a>
+
+#### spaceBunny.liveStreamExists(streamName) ⇒
+Check if a stream exists
+
+**Kind**: instance method of <code>[SpaceBunny](#module_SpaceBunny..SpaceBunny)</code>  
+**Returns**: true if stream exists, false otherwise  
 
 | Param | Type | Description |
 | --- | --- | --- |

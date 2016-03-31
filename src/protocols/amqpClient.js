@@ -15,7 +15,7 @@ import amqp from 'amqplib';
 
 // Import SpaceBunny main module from which AmqpClient inherits
 import SpaceBunny from '../spacebunny';
-import Message from '../message';
+import AmqpMessage from '../messages/amqpMessage';
 const CONFIG = require('../../config/constants').CONFIG;
 
 class AmqpClient extends SpaceBunny {
@@ -55,18 +55,19 @@ class AmqpClient extends SpaceBunny {
       this._createChannel('input', opts).then((ch) => {
         return when.all([
           ch.checkQueue(`${this.deviceId()}.${this._inboxTopic}`, this._inputQueueArgs),
-          ch.consume(`${this.deviceId()}.${this._inboxTopic}`, (res) => {
+          ch.consume(`${this.deviceId()}.${this._inboxTopic}`, (message) => {
             // Create message object
-            const message = new Message(res, this._deviceId, opts);
-            // Chec if should be accepted or not
-            if (message.blackListed()) {
-              ch.nack(res, opts.allUpTo, opts.requeue);
+            const amqpMessage = new AmqpMessage(message, this._deviceId, opts);
+            const ackNeeded = this._autoAck(opts.ack);
+            // Check if should be accepted or not
+            if (amqpMessage.blackListed()) {
+              if (ackNeeded) { ch.nack(message, opts.allUpTo, opts.requeue); }
               return;
             }
             // Call message callback
-            callback(this._parseContent(res.content), res.fields, res.properties);
+            callback(this._parseContent(amqpMessage.content), amqpMessage.fields, amqpMessage.properties);
             // Check if ACK is needed
-            if (this._autoAck(opts.ack)) { ch.ack(res, opts.allUpTo); }
+            if (ackNeeded) { ch.ack(message, opts.allUpTo); }
           }, opts)
         ]);
       }).then((res) => {
@@ -249,26 +250,6 @@ class AmqpClient extends SpaceBunny {
   }
 
   /**
-   * Automatically parse message content
-   *
-   * @private
-   * @param {Object/String} message - the received message
-   * @return an object containing the input message with parsed content
-   */
-  _parseContent(message) {
-    let parsedMessage = message;
-    if (Buffer.isBuffer(parsedMessage)) {
-      const content = parsedMessage.toString('utf-8');
-      try {
-        parsedMessage = JSON.parse(content);
-      } catch (ex) {
-        parsedMessage = content;
-      }
-    }
-    return parsedMessage;
-  }
-
-  /**
    * Check if the SDK have to automatically ack messages
    *
    * @private
@@ -277,7 +258,7 @@ class AmqpClient extends SpaceBunny {
    */
   _autoAck(ack) {
     if (ack) {
-      if (!_.includes(CONFIG.ackTypes, ack)) {
+      if (!_.includes(CONFIG[this._protocol].ackTypes, ack)) {
         console.error('Wrong acknowledge type'); // eslint-disable-line no-console
       }
       switch (ack) {
@@ -287,7 +268,7 @@ class AmqpClient extends SpaceBunny {
           return false;
       }
     }
-    return false;
+    return true;
   }
 
 }

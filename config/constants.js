@@ -18,13 +18,13 @@ exports.CONFIG = {
   ssl: {
     secureProtocol: 'TLSv1_method'
   },
-  ackTypes: ['auto', 'manual'],
-  inputExchange: 'input',
+  fromApiHeader: 'x-from-sb-api',
   protocol: 'amqp',
   inboxTopic: 'inbox',
   liveStreamSuffix: 'live_stream',
   tempQueueSuffix: 'temp',
   amqp: {
+    ackTypes: ['auto', 'manual'],
     protocol: 'amqp',
     ssl: {
       protocol: 'amqps'
@@ -51,6 +51,7 @@ exports.CONFIG = {
     }
   },
   stomp: {
+    ackTypes: ['client'],
     connection: {
       headers: {
         max_hbrlck_fails: 10,
@@ -65,6 +66,7 @@ exports.CONFIG = {
     }
   },
   webStomp: {
+    ackTypes: ['client'],
     webSocket: {
       protocol: 'ws',
       ssl: {

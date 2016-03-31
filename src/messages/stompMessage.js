@@ -3,9 +3,9 @@
  * @module Message
  */
 
-const CONFIG = require('../config/constants').CONFIG;
+const CONFIG = require('../../config/constants').CONFIG;
 
-class Message {
+class StompMessage {
 
   /**
    * @constructor
@@ -14,11 +14,11 @@ class Message {
    * @param {Object} opts - subscription options
    */
   constructor(message, receiverId, opts = {}) {
-    this.content = message.content;
-    this.fields = message.fields;
-    this.properties = message.properties;
+    this.body = message.body;
+    this.headers = message.headers;
     try {
-      [this.senderId, this.channelName] = this.fields.routingKey.split('.');
+      const destination = this.headers.destination.split('/');
+      [this.senderId, this.channelName] = destination[destination.length - 1].split('.');
     } catch (ex) {
       console.error('Wrong routing key format'); // eslint-disable-line no-console
     }
@@ -40,13 +40,13 @@ class Message {
 
   /**
    * Check if a message comes from API
-   * Check if the source exchange is equals to inputExchange
+   * Check if it contains 'x-from-sb-api' header
    *
    * @return Boolean - true if it comes from API, false otherwise
    */
   fromApi() {
-    return (this.fields.exchange === CONFIG.inputExchange);
+    return (this.headers && this.headers[CONFIG.fromApiHeader]);
   }
 }
 
-export default Message;
+export default StompMessage;
