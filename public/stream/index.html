@@ -84,7 +84,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/foundation/5.5.2/js/foundation.min.js"></script>
     <!-- The SpaceBunny library -->
-    <script src="../vendors.js"></script>
     <script src="../spacebunny.js"></script>
     <script>
       $(document).ready(function() {
@@ -120,8 +119,8 @@
             return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
-        var messageCallback = function(message) {
-          $('#messages').append('<pre>' + htmlEntities(message.body) + '</pre>');
+        var messageCallback = function(content, headers) {
+          $('#messages').append('<pre>' + htmlEntities(content) + '</pre>');
         };
 
         var addTopic = function() {

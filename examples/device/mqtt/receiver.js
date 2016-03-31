@@ -4,20 +4,28 @@ var messageCallback = function(topic, message) {
   console.log(topic + ':' + message);  // eslint-disable-line no-console
 };
 
-// Manual Config
+// Prerequisites: you have created a device through the Space Bunny's web interface. You also have a 'data' channel (name
+// is not mandatory, but we'll use this for our example). You have also enabled 'data' channel for the device. See our
+// Getting Started [link] for a quick introduction to Space Bunny's base concepts.
+
+// Once everything is set up get your device's API key from Space Bunny's web application: on the web interface,
+// go to devices section and create or pick an existing device. Click on the 'SHOW CONFIGURATION' link, copy the API key
+// and substitute it here:
+// You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
+var connectionParams = { apiKey: 'your-api-key' };
+
+// You can also provide full manual configuration
 // var connectionParams = {
 //   deviceId: 'device-id',
 //   secret: 'device-secret',
 //   host: 'hostname',
-//   port: 1883, // default for MQTT
+//   port: 5672, // default for AMQP
 //   vhost: 'vhost',
-//   channels: [ { name: 'data' }, { name: 'alarms' } ]
+//   channels: [ 'data', 'alarms' ]
 // };
 
-// Auto Config
-var connectionParams = { apiKey: 'your-api-key' };
-
-// Auto Config with SSL
+// If you want to connecto using a secure channel, you must enable ssl
+// and provide the client certificate path
 // var connectionParams = {
 //   apiKey: 'your-api-key',
 //   ssl: true,

@@ -1,7 +1,7 @@
 var StompClient = require('spacebunny').StompClient;
 
-var messageCallback = function(message) {
-  console.log(message.body);  // eslint-disable-line no-console
+var messageCallback = function(content, headers) {
+  console.log(content);  // eslint-disable-line no-console
 };
 
 // Prerequisites: you have created a device through the Space Bunny's web interface. You also have a 'data' channel (name
@@ -62,10 +62,13 @@ process.once('SIGINT', function() { disconnect(); });
 // 'discardMine' (default false) causes the SDK to filter out auto-messages i.e. messages sent from this device
 // and, for some reason, returned to the sender. This can happen in some particular situation such as when using m2m
 // groups.
+
+// 'ack' (default undefined) if ack option has value 'client' means that STOMP messages
+// must be explicitly acked/nacked by client. Otherwise messages are automatically acked/nacked
 var subscriptionOpts = { discardMine: false, discardFromApi: false };
 
 // When a message is sent on the inbox channel of the current device, the callback function will bel called
-stompClient.onReceive(messageCallback).then(function(res) {
+stompClient.onReceive(messageCallback, subscriptionOpts).then(function(res) {
   console.log(res);  // eslint-disable-line no-console
 }).catch(function(reason) {
   console.error(reason);  // eslint-disable-line no-console
