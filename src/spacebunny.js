@@ -71,7 +71,15 @@ class SpaceBunny {
         const hostname = this._generateHostname(endpoint);
         const uri = `${hostname}${endpoint.api_version}${endpoint.path}`;
         if (this._apiKey) { // Get configs from endpoint
-          const options = { url: uri, method: 'get', headers: { 'Api-Key': this._apiKey }, responseType: 'json' };
+          const options = {
+            url: uri,
+            method: 'get',
+            responseType: 'json',
+            headers: {
+              'Api-Key': this._apiKey,
+              'Content-Type': 'application/json'
+            }
+          };
           axios(options).then((response) => {
             this._endpointConfigs = humps.camelizeKeys(response.data);
             this._connectionParams = this._endpointConfigs.connection;
@@ -116,8 +124,12 @@ class SpaceBunny {
           const options = {
             url: uri,
             method: 'get',
-            headers: { 'Access-Key-Client': this._client, 'Access-Key-Secret': this._secret },
-            responseType: 'json'
+            responseType: 'json',
+            headers: {
+              'Access-Key-Client': this._client,
+              'Access-Key-Secret': this._secret,
+              'Content-Type': 'application/json'
+            }
           };
           axios(options).then((response) => {
             this._endpointConfigs = humps.camelizeKeys(response.data);
