@@ -2,6 +2,8 @@
   <img width="480" src="assets/logo.png"/>
 </p>
 
+[![NPM](https://img.shields.io/npm/v/spacebunny.svg?style=flat-square)](https://www.npmjs.com/package/spacebunny)
+
 [Space Bunny](http://spacebunny.io) is the IoT platform that makes it easy for you and your devices to send and exchange messages with a server or even with each other. You can store the data, receive timely event notifications, monitor live streams and remotely control your devices. Easy to use, and ready to scale at any time.
 
 This is the source code repository for Node SDK.
