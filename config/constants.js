@@ -13,7 +13,7 @@ exports.CONFIG = {
   accessKeyEndpoint: {
     url: 'http://api.demo.spacebunny.io',
     api_version: '/v1',
-    path: '/access_key_configurations'
+    path: '/live_stream_key_configurations'
   },
   ssl: {
     secureProtocol: 'TLSv1_method'

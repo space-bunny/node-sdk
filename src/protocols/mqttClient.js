@@ -20,7 +20,7 @@ class MqttClient extends SpaceBunny {
 
   /**
    * @constructor
-   * @param {Object} opts - options must contain api-key or connection options
+   * @param {Object} opts - options must contain Device-Key or connection options
    * (deviceId and secret) for devices.
    */
   constructor(opts) {
@@ -56,7 +56,7 @@ class MqttClient extends SpaceBunny {
           } else {
             client.on('message', (topic, message) => {
               // TODO filterMine and filterWeb
-              callback(topic, message);
+              callback(topic, this._parseContent(message));
             });
             resolve(true);
           }

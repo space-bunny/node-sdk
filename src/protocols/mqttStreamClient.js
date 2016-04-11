@@ -61,7 +61,7 @@ class MqttStreamClient extends MqttClient {
               if (streams.length > 0) {
                 callback = streams[0].callback || emptyFunction;
               }
-              callback(topic, message);
+              callback(topic, this._parseContent(message));
             });
             resolve(true);
           }

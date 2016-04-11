@@ -22,7 +22,7 @@ class AmqpClient extends SpaceBunny {
 
   /**
    * @constructor
-   * @param {Object} opts - options must contain api-key or connection options
+   * @param {Object} opts - options must contain Device-Key or connection options
    * (deviceId and secret) for devices.
    */
   constructor(opts) {

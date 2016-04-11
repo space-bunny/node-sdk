@@ -18,14 +18,14 @@ const CONFIG = require('../config/constants').CONFIG;
 
 /**
  * @constructor
- * @param {Object} opts - constructor options may contain api-key or connection options
+ * @param {Object} opts - constructor options may contain Device-Key or connection options
  */
 class SpaceBunny {
   constructor(opts = {}) {
     this._connectionParams = merge({}, humps.camelizeKeys(opts));
     this._endpointConfigs = undefined;
     this._endpointUrl = this._connectionParams.endpointUrl;
-    this._apiKey = this._connectionParams.apiKey;
+    this._deviceKey = this._connectionParams.deviceKey;
     this._channels = this._connectionParams.channels;
     this._deviceId = this._connectionParams.deviceId;
     this._client = this._connectionParams.client;
@@ -50,8 +50,8 @@ class SpaceBunny {
 
   // TODO this function should return a Promise!! Need to be async
   /**
-   * Check if api-key or connection parameters have already been passed
-   * If at least api-key is passed ask the endpoint for the configurations
+   * Check if Device-Key or connection parameters have already been passed
+   * If at least Device-Key is passed ask the endpoint for the configurations
    * else if also connection parameters are not passed raise an exception
    *
    * @return an Object containing the connection parameters
@@ -65,18 +65,18 @@ class SpaceBunny {
       // Contact endpoint to retrieve configs
       // Switch endpoint if you are using sdk as device or as access key stream
       let endpoint = '';
-      if ((this._deviceId && this._secret) || this._apiKey) { // Device credentials
+      if ((this._deviceId && this._secret) || this._deviceKey) { // Device credentials
         endpoint = CONFIG.deviceEndpoint;
         // uses endpoint passed from user, default endpoint otherwise
         const hostname = this._generateHostname(endpoint);
         const uri = `${hostname}${endpoint.api_version}${endpoint.path}`;
-        if (this._apiKey) { // Get configs from endpoint
+        if (this._deviceKey) { // Get configs from endpoint
           const options = {
             url: uri,
             method: 'get',
             responseType: 'json',
             headers: {
-              'Api-Key': this._apiKey,
+              'Device-Key': this._deviceKey,
               'Content-Type': 'application/json'
             }
           };
@@ -126,8 +126,8 @@ class SpaceBunny {
             method: 'get',
             responseType: 'json',
             headers: {
-              'Access-Key-Client': this._client,
-              'Access-Key-Secret': this._secret,
+              'Live-Stream-Key-Client': this._client,
+              'Live-Stream-Key-Secret': this._secret,
               'Content-Type': 'application/json'
             }
           };
@@ -141,7 +141,7 @@ class SpaceBunny {
           });
         }
       } else { // No configs or missing some info
-        reject('Missing Api Key or wrong connection parameters');
+        reject('Missing Device Key or wrong connection parameters');
       }
     });
   }
