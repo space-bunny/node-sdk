@@ -34,12 +34,15 @@ class AmqpStreamClient extends AmqpClient {
    * @param {Object} options - subscription options
    * @return promise containing the result of multiple subscriptions
    */
-  streamFrom(streamHooks, opts) {
+  streamFrom(streamHooks = [], opts) {
     const promises = streamHooks.map((streamHook) => {
       return this._attachStreamHook(streamHook, opts);
-    });
-
-    return Promise.any(promises);
+    }) || [];
+    if (promises.length > 0) {
+      return Promise.any(promises);
+    } else {
+      return Promise.reject('Missing stream hooks');
+    }
   }
 
   // ------------ PRIVATE METHODS -------------------

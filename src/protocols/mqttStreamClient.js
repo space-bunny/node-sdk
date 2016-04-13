@@ -21,7 +21,7 @@ class MqttStreamClient extends MqttClient {
    * @param {Object} options - subscription options
    * @return promise containing the result of multiple subscriptions
    */
-  streamFrom(streamHooks, opts) {
+  streamFrom(streamHooks = [], opts) {
     return new Promise((resolve, reject) => {
       this._connect().then((mqttClient) => {
         const emptyFunction = () => { return undefined; };
@@ -61,7 +61,7 @@ class MqttStreamClient extends MqttClient {
               if (streams.length > 0) {
                 callback = streams[0].callback || emptyFunction;
               }
-              callback(topic, message);
+              callback(topic, this._parseContent(message));
             });
             resolve(true);
           }

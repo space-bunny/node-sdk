@@ -4,11 +4,11 @@ var MqttClient = require('spacebunny').MqttClient;
 // is not mandatory, but we'll use this for our example). You have also enabled 'data' channel for the device. See our
 // Getting Started [link] for a quick introduction to Space Bunny's base concepts.
 
-// Once everything is set up get your device's API key from Space Bunny's web application: on the web interface,
-// go to devices section and create or pick an existing device. Click on the 'SHOW CONFIGURATION' link, copy the API key
-// and substitute it here:
+// Once everything is set up get your Device-Key from Space Bunny's web application: on the web interface,
+// go to devices section and create or pick an existing device. Click on the 'SHOW CONFIGURATION' link,
+// copy the Device-Key and substitute it here:
+var connectionParams = { deviceKey: 'your-device-key' };
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
-var connectionParams = { apiKey: 'your-api-key' };
 
 // You can also provide full manual configuration
 // var connectionParams = {
@@ -23,7 +23,7 @@ var connectionParams = { apiKey: 'your-api-key' };
 // If you want to connecto using a secure channel, you must enable ssl
 // and provide the client certificate path
 // var connectionParams = {
-//   apiKey: 'your-api-key',
+//   deviceKey: 'your-device-key',
 //   ssl: true,
 //   ca: '/path/to/ca_certificate.pem',
 //   cert: '/path/to/client_certificate.pem',
