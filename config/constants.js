@@ -16,7 +16,7 @@ exports.CONFIG = {
     path: '/live_stream_key_configurations'
   },
   ssl: {
-    secureProtocol: 'TLSv1_method'
+    secureProtocol: 'TLSv1_2_method'
   },
   fromApiHeader: 'x-from-sb-api',
   protocol: 'amqp',

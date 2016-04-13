@@ -43,8 +43,21 @@ class SpaceBunny {
     if (this._connectionParams.cert) { this._sslOpts.cert = fs.readFileSync(this._connectionParams.cert); }
     if (this._connectionParams.key) { this._sslOpts.key = fs.readFileSync(this._connectionParams.key); }
     if (this._connectionParams.passphrase) { this._sslOpts.passphrase = this._connectionParams.passphrase; }
-    if (this._connectionParams.ca) { this._sslOpts.ca = [fs.readFileSync(this._connectionParams.ca)];}
+    if (this._connectionParams.ca) {
+      if (Array.isArray(this._connectionParams.ca)) {
+        this._sslOpts.ca = this._connectionParams.ca.map((element) => {
+          return fs.readFileSync(element);
+        });
+      } else {
+        this._sslOpts.ca = [fs.readFileSync(this._connectionParams.ca)];
+      }
+    }
     if (this._connectionParams.pfx) { this._sslOpts.pfx = fs.readFileSync(this._connectionParams.pfx); }
+    if (this._connectionParams.disableCertCheck) {
+      this._sslOpts.rejectUnauthorized = false;
+    } else {
+      this._sslOpts.rejectUnauthorized = true;
+    }
     this._sslOpts.secureProtocol = this._connectionParams.secureProtocol || CONFIG.ssl.secureProtocol;
   }
 
@@ -241,27 +254,6 @@ class SpaceBunny {
   }
 
   /**
-   * Check if the required parameters are present to open a secure connection
-   *
-   * @private
-   * @return true when a combination of valid parameters is present, false otherwise
-   */
-  _checkSslOptions() {
-    const sslOpts = this._sslOpts;
-    if (sslOpts.ca) {
-      if (sslOpts.cert && sslOpts.key) {
-        return true;
-      } else if (sslOpts.pfx) {
-        return true;
-      } else {
-        return false;
-      }
-    } else {
-      return false;
-    }
-  }
-
-  /**
    * Generate the complete hostname string for an endpoint
    *
    * @private
@@ -269,7 +261,8 @@ class SpaceBunny {
    */
   _generateHostname(endpoint) {
     let hostname = `${(this._endpointUrl || endpoint.url)}`;
-    const endpointProtocol = (this._ssl) ? CONFIG.endpoint.secureProtocol : CONFIG.endpoint.protocol;
+    // const endpointProtocol = (this._ssl) ? CONFIG.endpoint.secureProtocol : CONFIG.endpoint.protocol;
+    const endpointProtocol = CONFIG.endpoint.protocol;
     if (!startsWith(hostname, endpointProtocol)) {
       hostname = `${endpointProtocol}://${hostname}`;
     }

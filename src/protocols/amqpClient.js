@@ -149,14 +149,10 @@ class AmqpClient extends SpaceBunny {
           // TODO if ssl change connections string and connection parameters
           let connectionString = '';
           if (this._ssl) {
-            if (this._checkSslOptions()) {
-              connectionString = `${this._sslProtocol}://${connectionParams.deviceId || connectionParams.client}:` +
-                `${connectionParams.secret}@${connectionParams.host}:` +
-                `${connectionParams.protocols.amqp.sslPort}/${connectionParams.vhost.replace('/', '%2f')}`;
-              connectionOpts = merge(connectionOpts, this._sslOpts);
-            } else {
-              reject('Missing required SSL connection parameters');
-            }
+            connectionString = `${this._sslProtocol}://${connectionParams.deviceId || connectionParams.client}:` +
+              `${connectionParams.secret}@${connectionParams.host}:` +
+              `${connectionParams.protocols.amqp.sslPort}/${connectionParams.vhost.replace('/', '%2f')}`;
+            connectionOpts = merge(connectionOpts, this._sslOpts);
           } else {
             connectionString = `${this._protocol}://${connectionParams.deviceId || connectionParams.client}:` +
               `${connectionParams.secret}@${connectionParams.host}:` +

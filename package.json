@@ -68,7 +68,7 @@
     "humps": "^1.0.0",
     "lodash": "^4.6.1",
     "merge": "^1.2.0",
-    "mqtt": "^1.7.4",
+    "mqtt": "^1.8.0",
     "stompjs": "git://github.com/gfoiani/stomp-websocket.git#2.4.0",
     "underscore": "^1.8.3",
     "when": "^3.7.5"
