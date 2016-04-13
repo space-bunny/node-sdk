@@ -4,8 +4,19 @@ All notable changes to this project will be documented in this file.
 
 - `0.1.x` Releases - [0.1.0]
 - `0.2.x` Releases - [0.2.0] [0.2.1]
+- `0.3.x` Releases - [0.3.0]
 
 ---
+
+## [0.3.0](https://github.com/space-bunny/node-sdk/releases/tag/v0.3.0)
+
+#### Changed
+
+- Endpoint configurations
+
+#### Improved
+
+- Upgrade TLS version to 1.2
 
 ## [0.2.1](https://github.com/space-bunny/node-sdk/releases/tag/v0.2.1)
 
