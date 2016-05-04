@@ -7,6 +7,7 @@
 // Import some helpers modules
 import merge from 'merge';
 import Promise from 'bluebird';
+import _ from 'lodash';
 
 // Import mqtt library
 import mqtt from 'mqtt';
@@ -79,12 +80,17 @@ class MqttClient extends SpaceBunny {
     // Publish message
     return new Promise((resolve, reject) => {
       this._connect().then((client) => {
-        client.on('connect', () => {
+        const _sendMessage = () => {
           const bufferedMessage = new Buffer(this._encapsulateContent(message));
           client.publish(this._topicFor(channel), bufferedMessage, merge(this._connectionOpts, opts), () => {
             resolve(true);
           });
-        });
+        };
+        if (!client.connected) {
+          client.on('connect', () => { _sendMessage(); });
+        } else {
+          _sendMessage();
+        }
       }).catch((reason) => {
         reject(reason);
       });
@@ -100,11 +106,17 @@ class MqttClient extends SpaceBunny {
    */
   unsubscribe(topics) {
     return new Promise((resolve, reject) => {
-      this._mqttConnection.unsubscribe(Object.keys(topics)).then(() => {
-        resolve(true);
-      }).catch((reason) => {
+      try {
+        if (_.isEmpty(topics)) {
+          resolve(true);
+        } else {
+          this._mqttConnection.unsubscribe(Object.keys(topics), () => {
+            resolve(true);
+          });
+        }
+      } catch (reason) {
         reject(reason);
-      });
+      }
     });
   }
 
@@ -118,14 +130,23 @@ class MqttClient extends SpaceBunny {
       if (this._mqttConnection === undefined) {
         reject('Invalid connection');
       } else {
-        this._mqttConnection.unsubscribe(this._topics).then(() => {
-          this._mqttConnection.end().then(() => {
+        const _closeConnection = () => {
+          this._mqttConnection.end(true, () => {
             this._mqttConnection = undefined;
             resolve(true);
           });
-        }).catch((reason) => {
+        };
+        try {
+          if (_.isEmpty(this._topics)) {
+            _closeConnection();
+          } else {
+            this._mqttConnection.unsubscribe(Object.keys(this._topics), () => {
+              _closeConnection();
+            });
+          }
+        } catch (reason) {
           reject(reason);
-        });
+        }
       }
     });
   }
