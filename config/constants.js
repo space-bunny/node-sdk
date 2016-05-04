@@ -6,12 +6,12 @@ exports.CONFIG = {
     secureProtocol: 'https'
   },
   deviceEndpoint: {
-    url: 'http://api.demo.spacebunny.io',
+    url: 'https://api.spacebunny.io',
     api_version: '/v1',
     path: '/device_configurations'
   },
   accessKeyEndpoint: {
-    url: 'http://api.demo.spacebunny.io',
+    url: 'https://api.spacebunny.io',
     api_version: '/v1',
     path: '/live_stream_key_configurations'
   },
@@ -72,7 +72,7 @@ exports.CONFIG = {
       ssl: {
         protocol: 'wss',
       },
-      enpoint: 'ws'
+      endpoint: 'ws'
     }
   }
 };
