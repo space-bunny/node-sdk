@@ -37,6 +37,7 @@ class StompClient extends SpaceBunny {
     const webStompOpts = CONFIG.webStomp;
     this._webSocketOpts = webStompOpts.webSocket;
     this._connectionHeaders = stompOpts.connection.headers;
+    this._connectionOpts = stompOpts.connection.opts;
     this._existingQueuePrefix = stompOpts.existingQueuePrefix;
   }
 
@@ -52,7 +53,7 @@ class StompClient extends SpaceBunny {
     opts = merge({}, opts);
     // subscribe for input messages
     return new Promise((resolve, reject) => {
-      this._connect().then((client) => {
+      this.connect().then((client) => {
         const topic = this._subcriptionFor(this._existingQueuePrefix, this._inboxTopic);
         const subscriptionCallback = (message) => {
           // Create message object
@@ -88,7 +89,7 @@ class StompClient extends SpaceBunny {
     opts = merge({}, opts);
     // Publish message
     return new Promise((resolve, reject) => {
-      this._connect().then((client) => {
+      this.connect().then((client) => {
         const destination = this._destinationFor('exchange', channel);
         client.send(destination, this._connectionHeaders, this._encapsulateContent(message));
         resolve(true);
@@ -121,18 +122,15 @@ class StompClient extends SpaceBunny {
     });
   }
 
-  // ------------ PRIVATE METHODS -------------------
-
   /**
    * Establish an stomp connection with the broker.
    * If a connection already exists, returns the current connection
    *
-   * @private
    * @param {Object} opts - connection options
    * @return a promise containing current connection
    */
-  _connect(opts) {
-    opts = merge({}, opts);
+  connect(opts = {}) {
+    opts = merge(this._connectionOpts, opts);
     return new Promise((resolve, reject) => {
       this.getEndpointConfigs().then((endpointConfigs) => {
         const connectionParams = endpointConfigs.connection;
@@ -180,6 +178,8 @@ class StompClient extends SpaceBunny {
       });
     });
   }
+
+  // ------------ PRIVATE METHODS -------------------
 
   /**
    * Generate the subscription string for a specific channel

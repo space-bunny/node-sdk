@@ -36,7 +36,7 @@ class AmqpClient extends SpaceBunny {
     this._deviceExchangeArgs = amqpOptions.deviceExchangeArgs;
     this._subscribeArgs = amqpOptions.subscribeArgs;
     this._publishArgs = amqpOptions.publishArgs;
-    this._socketOptions = amqpOptions.socketOptions;
+    this._connectionOpts = amqpOptions.connectionOpts;
   }
 
   /**
@@ -127,18 +127,15 @@ class AmqpClient extends SpaceBunny {
     });
   }
 
-  // ------------ PRIVATE METHODS -------------------
-
   /**
    * Establish an amqp connection with the broker
    * using configurations retrieved from the endpoint.
    * If the connnection already exists, returns the current connnection
    *
-   * @private
    * @return a promise containing current connection
    */
-  _connect() {
-    let connectionOpts = merge({}, this._socketOptions);
+  connect(opts = {}) {
+    let connectionOpts = merge(this._connectionOpts, opts);
 
     return new Promise((resolve, reject) => {
       this.getEndpointConfigs().then((endpointConfigs) => {
@@ -180,6 +177,8 @@ class AmqpClient extends SpaceBunny {
     });
   }
 
+  // ------------ PRIVATE METHODS -------------------
+
   /**
    * Creates a channel on current connection
    *
@@ -194,7 +193,7 @@ class AmqpClient extends SpaceBunny {
       if (this._amqpChannels[channelName]) {
         resolve(this._amqpChannels[channelName]);
       } else {
-        this._connect().then((conn) => {
+        this.connect().then((conn) => {
           if (opts.withConfirm === true) {
             return conn.createConfirmChannel();
           } else {

@@ -57,7 +57,8 @@ exports.CONFIG = {
         max_hbrlck_fails: 10,
         'accept-version': '1.0,1.1,1.2',
         'heart-beat': '10000,10000'
-      }
+      },
+      opts: {}
     },
     existingQueuePrefix: 'amq/queue',
     stream: {

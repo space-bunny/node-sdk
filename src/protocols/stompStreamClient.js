@@ -119,7 +119,7 @@ class StompStreamClient extends StompClient {
       if (stream === undefined && (channel === undefined || deviceId === undefined)) {
         reject('Missing Stream or Device ID and Channel');
       }
-      this._connect().then((client) => {
+      this.connect().then((client) => {
         let topic = undefined;
         let tempQueue = undefined;
         if (stream) {

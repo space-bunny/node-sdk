@@ -49,7 +49,7 @@ class MqttClient extends SpaceBunny {
     opts = merge({}, opts);
     // subscribe for input messages
     return new Promise((resolve, reject) => {
-      this._connect().then((client) => {
+      this.connect().then((client) => {
         this._topics[this._topicFor(this._inboxTopic)] = opts.qos || this._connectionOpts.qos;
         client.subscribe(this._topics, merge(this._connectionOpts, opts), (err) => {
           if (err) {
@@ -79,7 +79,7 @@ class MqttClient extends SpaceBunny {
   publish(channel, message, opts) {
     // Publish message
     return new Promise((resolve, reject) => {
-      this._connect().then((client) => {
+      this.connect().then((client) => {
         const _sendMessage = () => {
           const bufferedMessage = new Buffer(this._encapsulateContent(message));
           client.publish(this._topicFor(channel), bufferedMessage, merge(this._connectionOpts, opts), () => {
@@ -151,18 +151,15 @@ class MqttClient extends SpaceBunny {
     });
   }
 
-  // ------------ PRIVATE METHODS -------------------
-
   /**
    * Establish an mqtt connection with the broker.
    * If a connection already exists, returns the current connection
    *
-   * @private
    * @param {Object} opts - connection options
    * @return a promise containing current connection
    */
-  _connect(opts) {
-    opts = merge({}, opts);
+  connect(opts = {}) {
+    opts = merge(this._connectionOpts, opts);
 
     return new Promise((resolve, reject) => {
       this.getEndpointConfigs().then((endpointConfigs) => {
@@ -200,6 +197,8 @@ class MqttClient extends SpaceBunny {
       });
     });
   }
+
+  // ------------ PRIVATE METHODS -------------------
 
   /**
    * Generate the topic for a specific channel
