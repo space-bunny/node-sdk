@@ -15,7 +15,7 @@ exports.CONFIG = {
     api_version: '/v1',
     path: '/live_stream_key_configurations'
   },
-  ssl: {
+  tls: {
     secureProtocol: 'TLSv1_2_method'
   },
   fromApiHeader: 'x-from-sb-api',
@@ -26,7 +26,7 @@ exports.CONFIG = {
   amqp: {
     ackTypes: ['auto', 'manual'],
     protocol: 'amqp',
-    ssl: {
+    tls: {
       protocol: 'amqps'
     },
     inputQueueArgs: {},
@@ -41,7 +41,7 @@ exports.CONFIG = {
   },
   mqtt: {
     protocol: 'mqtt',
-    ssl: {
+    tls: {
       protocol: 'mqtts',
       rejectUnauthorized: true
     },
@@ -70,7 +70,7 @@ exports.CONFIG = {
     ackTypes: ['client'],
     webSocket: {
       protocol: 'ws',
-      ssl: {
+      tls: {
         protocol: 'wss',
       },
       endpoint: 'ws'

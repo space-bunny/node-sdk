@@ -31,8 +31,8 @@ class MqttClient extends SpaceBunny {
     this._subscription = undefined;
     const mqttOptions = CONFIG.mqtt;
     this._protocol = mqttOptions.protocol;
-    this._sslOpts.protocol = mqttOptions.ssl.protocol;
-    this._sslOpts.rejectUnauthorized = mqttOptions.ssl.rejectUnauthorized;
+    this._tlsOpts.protocol = mqttOptions.tls.protocol;
+    this._tlsOpts.rejectUnauthorized = mqttOptions.tls.rejectUnauthorized;
     this._connectionOpts = mqttOptions.connection.opts;
     this._connectionTimeout = mqttOptions.connection.timeout;
   }
@@ -170,14 +170,14 @@ class MqttClient extends SpaceBunny {
           try {
             let mqttConnectionParams = {
               host: connectionParams.host,
-              port: (this._ssl) ? connectionParams.protocols.mqtt.sslPort : connectionParams.protocols.mqtt.port,
+              port: (this._tls) ? connectionParams.protocols.mqtt.tlsPort : connectionParams.protocols.mqtt.port,
               username: `${connectionParams.vhost}:${connectionParams.deviceId || connectionParams.client}`,
               password: connectionParams.secret,
               clientId: connectionParams.deviceId || connectionParams.client,
               connectionTimeout: opts.connectionTimeout || this._connectionTimeout
             };
-            if (this._ssl) {
-              mqttConnectionParams = merge(mqttConnectionParams, this._sslOpts);
+            if (this._tls) {
+              mqttConnectionParams = merge(mqttConnectionParams, this._tlsOpts);
             }
             const client = mqtt.connect(mqttConnectionParams);
             client.on('error', (reason) => {

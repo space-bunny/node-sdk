@@ -141,15 +141,15 @@ class StompClient extends SpaceBunny {
             let client = undefined;
             if (typeof process === 'object' && `${process}` === '[object process]') {
               // code is runnning in nodejs: STOMP uses TCP sockets
-              if (this._ssl) {
-                client = Stomp.overTCP(connectionParams.host, connectionParams.protocols.stomp.sslPort, this._sslOpts);
+              if (this._tls) {
+                client = Stomp.overTCP(connectionParams.host, connectionParams.protocols.stomp.tlsPort, this._tlsOpts);
               } else {
                 client = Stomp.overTCP(connectionParams.host, connectionParams.protocols.stomp.port);
               }
             } else {
               // code is runnning in a browser: web STOMP uses Web sockets
-              const protocol = (this._ssl) ? this._webSocketOpts.ssl.protocol : this._webSocketOpts.protocol;
-              const port = (this._ssl) ? connectionParams.protocols.webStomp.sslPort :
+              const protocol = (this._tls) ? this._webSocketOpts.tls.protocol : this._webSocketOpts.protocol;
+              const port = (this._tls) ? connectionParams.protocols.webStomp.tlsPort :
                 connectionParams.protocols.webStomp.port;
               const connectionString = `${protocol}://${connectionParams.host}:${port}/${this._webSocketOpts.endpoint}`;
               const ws = new WebSocket(connectionString);

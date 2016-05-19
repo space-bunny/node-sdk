@@ -38,27 +38,27 @@ class SpaceBunny {
     this._liveStreamSuffix = CONFIG.liveStreamSuffix;
     this._tempQueueSuffix = CONFIG.tempQueueSuffix;
     this._liveStreams = [];
-    this._ssl = this._connectionParams.ssl || false;
-    this._sslOpts = {};
-    if (this._connectionParams.cert) { this._sslOpts.cert = fs.readFileSync(this._connectionParams.cert); }
-    if (this._connectionParams.key) { this._sslOpts.key = fs.readFileSync(this._connectionParams.key); }
-    if (this._connectionParams.passphrase) { this._sslOpts.passphrase = this._connectionParams.passphrase; }
+    this._tls = this._connectionParams.tls || false;
+    this._tlsOpts = {};
+    if (this._connectionParams.cert) { this._tlsOpts.cert = fs.readFileSync(this._connectionParams.cert); }
+    if (this._connectionParams.key) { this._tlsOpts.key = fs.readFileSync(this._connectionParams.key); }
+    if (this._connectionParams.passphrase) { this._tlsOpts.passphrase = this._connectionParams.passphrase; }
     if (this._connectionParams.ca) {
       if (Array.isArray(this._connectionParams.ca)) {
-        this._sslOpts.ca = this._connectionParams.ca.map((element) => {
+        this._tlsOpts.ca = this._connectionParams.ca.map((element) => {
           return fs.readFileSync(element);
         });
       } else {
-        this._sslOpts.ca = [fs.readFileSync(this._connectionParams.ca)];
+        this._tlsOpts.ca = [fs.readFileSync(this._connectionParams.ca)];
       }
     }
-    if (this._connectionParams.pfx) { this._sslOpts.pfx = fs.readFileSync(this._connectionParams.pfx); }
+    if (this._connectionParams.pfx) { this._tlsOpts.pfx = fs.readFileSync(this._connectionParams.pfx); }
     if (this._connectionParams.disableCertCheck) {
-      this._sslOpts.rejectUnauthorized = false;
+      this._tlsOpts.rejectUnauthorized = false;
     } else {
-      this._sslOpts.rejectUnauthorized = true;
+      this._tlsOpts.rejectUnauthorized = true;
     }
-    this._sslOpts.secureProtocol = this._connectionParams.secureProtocol || CONFIG.ssl.secureProtocol;
+    this._tlsOpts.secureProtocol = this._connectionParams.secureProtocol || CONFIG.tls.secureProtocol;
   }
 
   /**
@@ -102,8 +102,8 @@ class SpaceBunny {
         } else if (this._deviceId && this._secret && this._host && this._port && this._vhost) {
           // Manually provided configs
           this._connectionParams.protocols = {};
-          if (this._ssl) {
-            this._connectionParams.protocols[this._protocol] = { sslPort: this._port };
+          if (this._tls) {
+            this._connectionParams.protocols[this._protocol] = { tlsPort: this._port };
           } else {
             this._connectionParams.protocols[this._protocol] = { port: this._port };
           }
@@ -117,8 +117,8 @@ class SpaceBunny {
         if (this._host && this._port && this._vhost) {
           // Manually provided configs
           this._connectionParams.protocols = {};
-          if (this._ssl) {
-            this._connectionParams.protocols[this._protocol] = { sslPort: this._port };
+          if (this._tls) {
+            this._connectionParams.protocols[this._protocol] = { tlsPort: this._port };
           } else {
             this._connectionParams.protocols[this._protocol] = { port: this._port };
           }
@@ -162,12 +162,14 @@ class SpaceBunny {
    * @return all channels configured for the current device
    */
   channels() {
-    this.getEndpointConfigs().then((endpointConfigs) => {
-      this._channels = endpointConfigs.channels.map((obj) => {
+    if (this._endpointConfigs.channels) {
+      this._channels = this._endpointConfigs.channels.map((obj) => {
         return obj.name;
       });
       return this._channels || [];
-    });
+    } else {
+      return [];
+    }
   }
 
   /**
@@ -260,7 +262,7 @@ class SpaceBunny {
    */
   _generateHostname(endpoint) {
     let hostname = `${(this._endpointUrl || endpoint.url)}`;
-    // const endpointProtocol = (this._ssl) ? CONFIG.endpoint.secureProtocol : CONFIG.endpoint.protocol;
+    // const endpointProtocol = (this._tls) ? CONFIG.endpoint.secureProtocol : CONFIG.endpoint.protocol;
     const endpointProtocol = CONFIG.endpoint.protocol;
     if (!startsWith(hostname, endpointProtocol)) {
       hostname = `${endpointProtocol}://${hostname}`;
