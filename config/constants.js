@@ -6,16 +6,16 @@ exports.CONFIG = {
     secureProtocol: 'https'
   },
   deviceEndpoint: {
-    url: 'http://api.demo.spacebunny.io',
+    url: 'https://api.spacebunny.io',
     api_version: '/v1',
     path: '/device_configurations'
   },
   accessKeyEndpoint: {
-    url: 'http://api.demo.spacebunny.io',
+    url: 'https://api.spacebunny.io',
     api_version: '/v1',
     path: '/live_stream_key_configurations'
   },
-  ssl: {
+  tls: {
     secureProtocol: 'TLSv1_2_method'
   },
   fromApiHeader: 'x-from-sb-api',
@@ -26,7 +26,7 @@ exports.CONFIG = {
   amqp: {
     ackTypes: ['auto', 'manual'],
     protocol: 'amqp',
-    ssl: {
+    tls: {
       protocol: 'amqps'
     },
     inputQueueArgs: {},
@@ -41,7 +41,7 @@ exports.CONFIG = {
   },
   mqtt: {
     protocol: 'mqtt',
-    ssl: {
+    tls: {
       protocol: 'mqtts',
       rejectUnauthorized: true
     },
@@ -57,7 +57,8 @@ exports.CONFIG = {
         max_hbrlck_fails: 10,
         'accept-version': '1.0,1.1,1.2',
         'heart-beat': '10000,10000'
-      }
+      },
+      opts: {}
     },
     existingQueuePrefix: 'amq/queue',
     stream: {
@@ -69,10 +70,10 @@ exports.CONFIG = {
     ackTypes: ['client'],
     webSocket: {
       protocol: 'ws',
-      ssl: {
+      tls: {
         protocol: 'wss',
       },
-      enpoint: 'ws'
+      endpoint: 'ws'
     }
   }
 };

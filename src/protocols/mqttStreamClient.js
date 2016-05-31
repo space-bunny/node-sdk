@@ -23,7 +23,7 @@ class MqttStreamClient extends MqttClient {
    */
   streamFrom(streamHooks = [], opts) {
     return new Promise((resolve, reject) => {
-      this._connect().then((mqttClient) => {
+      this.connect().then((mqttClient) => {
         const emptyFunction = () => { return undefined; };
         streamHooks.forEach((streamHook) => {
           const stream = streamHook.stream;

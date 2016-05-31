@@ -7,6 +7,7 @@
 // Import some helpers modules
 import merge from 'merge';
 import Promise from 'bluebird';
+import _ from 'lodash';
 
 // Import mqtt library
 import mqtt from 'mqtt';
@@ -30,8 +31,8 @@ class MqttClient extends SpaceBunny {
     this._subscription = undefined;
     const mqttOptions = CONFIG.mqtt;
     this._protocol = mqttOptions.protocol;
-    this._sslOpts.protocol = mqttOptions.ssl.protocol;
-    this._sslOpts.rejectUnauthorized = mqttOptions.ssl.rejectUnauthorized;
+    this._tlsOpts.protocol = mqttOptions.tls.protocol;
+    this._tlsOpts.rejectUnauthorized = mqttOptions.tls.rejectUnauthorized;
     this._connectionOpts = mqttOptions.connection.opts;
     this._connectionTimeout = mqttOptions.connection.timeout;
   }
@@ -48,7 +49,7 @@ class MqttClient extends SpaceBunny {
     opts = merge({}, opts);
     // subscribe for input messages
     return new Promise((resolve, reject) => {
-      this._connect().then((client) => {
+      this.connect().then((client) => {
         this._topics[this._topicFor(this._inboxTopic)] = opts.qos || this._connectionOpts.qos;
         client.subscribe(this._topics, merge(this._connectionOpts, opts), (err) => {
           if (err) {
@@ -78,13 +79,18 @@ class MqttClient extends SpaceBunny {
   publish(channel, message, opts) {
     // Publish message
     return new Promise((resolve, reject) => {
-      this._connect().then((client) => {
-        client.on('connect', () => {
+      this.connect().then((client) => {
+        const _sendMessage = () => {
           const bufferedMessage = new Buffer(this._encapsulateContent(message));
           client.publish(this._topicFor(channel), bufferedMessage, merge(this._connectionOpts, opts), () => {
             resolve(true);
           });
-        });
+        };
+        if (!client.connected) {
+          client.on('connect', () => { _sendMessage(); });
+        } else {
+          _sendMessage();
+        }
       }).catch((reason) => {
         reject(reason);
       });
@@ -100,11 +106,17 @@ class MqttClient extends SpaceBunny {
    */
   unsubscribe(topics) {
     return new Promise((resolve, reject) => {
-      this._mqttConnection.unsubscribe(Object.keys(topics)).then(() => {
-        resolve(true);
-      }).catch((reason) => {
+      try {
+        if (_.isEmpty(topics)) {
+          resolve(true);
+        } else {
+          this._mqttConnection.unsubscribe(Object.keys(topics), () => {
+            resolve(true);
+          });
+        }
+      } catch (reason) {
         reject(reason);
-      });
+      }
     });
   }
 
@@ -118,30 +130,36 @@ class MqttClient extends SpaceBunny {
       if (this._mqttConnection === undefined) {
         reject('Invalid connection');
       } else {
-        this._mqttConnection.unsubscribe(this._topics).then(() => {
-          this._mqttConnection.end().then(() => {
+        const _closeConnection = () => {
+          this._mqttConnection.end(true, () => {
             this._mqttConnection = undefined;
             resolve(true);
           });
-        }).catch((reason) => {
+        };
+        try {
+          if (_.isEmpty(this._topics)) {
+            _closeConnection();
+          } else {
+            this._mqttConnection.unsubscribe(Object.keys(this._topics), () => {
+              _closeConnection();
+            });
+          }
+        } catch (reason) {
           reject(reason);
-        });
+        }
       }
     });
   }
-
-  // ------------ PRIVATE METHODS -------------------
 
   /**
    * Establish an mqtt connection with the broker.
    * If a connection already exists, returns the current connection
    *
-   * @private
    * @param {Object} opts - connection options
    * @return a promise containing current connection
    */
-  _connect(opts) {
-    opts = merge({}, opts);
+  connect(opts = {}) {
+    opts = merge(this._connectionOpts, opts);
 
     return new Promise((resolve, reject) => {
       this.getEndpointConfigs().then((endpointConfigs) => {
@@ -152,14 +170,14 @@ class MqttClient extends SpaceBunny {
           try {
             let mqttConnectionParams = {
               host: connectionParams.host,
-              port: (this._ssl) ? connectionParams.protocols.mqtt.sslPort : connectionParams.protocols.mqtt.port,
+              port: (this._tls) ? connectionParams.protocols.mqtt.tlsPort : connectionParams.protocols.mqtt.port,
               username: `${connectionParams.vhost}:${connectionParams.deviceId || connectionParams.client}`,
               password: connectionParams.secret,
               clientId: connectionParams.deviceId || connectionParams.client,
               connectionTimeout: opts.connectionTimeout || this._connectionTimeout
             };
-            if (this._ssl) {
-              mqttConnectionParams = merge(mqttConnectionParams, this._sslOpts);
+            if (this._tls) {
+              mqttConnectionParams = merge(mqttConnectionParams, this._tlsOpts);
             }
             const client = mqtt.connect(mqttConnectionParams);
             client.on('error', (reason) => {
@@ -179,6 +197,8 @@ class MqttClient extends SpaceBunny {
       });
     });
   }
+
+  // ------------ PRIVATE METHODS -------------------
 
   /**
    * Generate the topic for a specific channel

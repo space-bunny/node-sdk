@@ -32,13 +32,13 @@ A module that exports the base SpaceBunny client
 
 | Param | Type | Description |
 | --- | --- | --- |
-| opts | <code>Object</code> | constructor options may contain api-key or connection options |
+| opts | <code>Object</code> | constructor options may contain Device-Key or connection options |
 
 <a name="module_SpaceBunny..SpaceBunny+getEndpointConfigs"></a>
 
 #### spaceBunny.getEndpointConfigs() ⇒
-Check if api-key or connection parameters have already been passed
-If at least api-key is passed ask the endpoint for the configurations
+Check if Device-Key or connection parameters have already been passed
+If at least Device-Key is passed ask the endpoint for the configurations
 else if also connection parameters are not passed raise an exception
 
 **Kind**: instance method of <code>[SpaceBunny](#module_SpaceBunny..SpaceBunny)</code>  
