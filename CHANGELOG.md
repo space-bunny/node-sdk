@@ -5,8 +5,16 @@ All notable changes to this project will be documented in this file.
 - `0.1.x` Releases - [0.1.0]
 - `0.2.x` Releases - [0.2.0] [0.2.1]
 - `0.3.x` Releases - [0.3.0]
+- `0.4.x` Releases - [0.4.0]
 
 ---
+
+## [0.4.0](https://github.com/space-bunny/node-sdk/releases/tag/v0.4.0)
+
+#### Changed
+
+- Move from SSL to TLS
+- Client Connect as public API
 
 ## [0.3.0](https://github.com/space-bunny/node-sdk/releases/tag/v0.3.0)
 
