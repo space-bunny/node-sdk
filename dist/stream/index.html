@@ -36,9 +36,9 @@
         <input type="text" name="endpoint" id="endpoint" value="">
       </div>
       <div class="small-2 columns">
-        <label for="ssl">SSL</label>
-        <input type="radio" name="ssl" id="ssl" value="false" checked>No
-        <input type="radio" name="ssl" id="ssl" value="true">Yes
+        <label for="tls">TLS</label>
+        <input type="radio" name="tls" id="tls" value="false" checked>No
+        <input type="radio" name="tls" id="tls" value="true">Yes
       </div>
       <div class="small-1 columns end"></div>
     </div>
@@ -74,7 +74,7 @@
           <input type="text" name="stream-name" id="stream-name" value="" placeholder="stream-name">
         </div>
         <div class="small-4 columns end">
-          <label for="ssl">Cache</label>
+          <label for="tls">Cache</label>
           <input type="radio" name="cache" id="cache" value="true" checked>Yes
           <input type="radio" name="cache" id="cache" value="false">No
         </div>
@@ -159,7 +159,7 @@
             var client = $('#client').val() || undefined;
             var secret = $('#secret').val() || undefined;
             var endpoint = $('#endpoint').val() || undefined;
-            var ssl = ($('#ssl:checked').val() == 'true') ? true : false;
+            var tls = ($('#tls:checked').val() == 'true') ? true : false;
 
             if(client) {
               connectionParams['client'] = client;
@@ -178,7 +178,7 @@
             }
 
             if(endpoint) { connectionParams['endpointUrl'] = endpoint; }
-            if(ssl) { connectionParams['ssl'] = ssl; }
+            if(tls) { connectionParams['tls'] = tls; }
 
             var streamHooks = [];
             $('.topic').each(function(index) {

@@ -28,9 +28,9 @@
         <input type="text" name="endpoint" id="endpoint" value="" placeholder="endpoint url">
       </div>
       <div class="small-2 columns">
-        <label for="ssl">SSL</label>
-        <input type="radio" name="ssl" id="ssl" value="false" checked>No
-        <input type="radio" name="ssl" id="ssl" value="true">Yes
+        <label for="tls">TLS</label>
+        <input type="radio" name="tls" id="tls" value="false" checked>No
+        <input type="radio" name="tls" id="tls" value="true">Yes
       </div>
       <div class="small-3 columns">
         <button type="button" name="connect-button" id="connect-button" class="small success">Connect</button>
@@ -130,8 +130,8 @@
             // Auto Config
             var endpointUrl = $('#endpoint').val() || undefined;
             var deviceKey = $('#device-key').val() || undefined;
-            var ssl = ($('#ssl:checked').val() == 'true') ? true : false;
-            var connectionParams = { deviceKey: deviceKey, ssl: ssl };
+            var tls = ($('#tls:checked').val() == 'true') ? true : false;
+            var connectionParams = { deviceKey: deviceKey, tls: tls };
             if (endpointUrl !== undefined) {
               connectionParams['endpointUrl'] = endpointUrl;
             }
