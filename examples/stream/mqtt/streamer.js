@@ -13,12 +13,12 @@ var connectionParams = {
   secret: 'your-secret',
 };
 
-// Auto Config with SSL
+// Auto Config with tls
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
 // var connectionParams = {
 //   client: 'your-client-id',
 //   secret: 'your-secret',
-//   ssl: true,
+//   tls: true,
 //   ca: '/path/to/ca_certificate.pem',
 //   cert: '/path/to/client_certificate.pem',
 //   key: '/path/to/client_key.pem'

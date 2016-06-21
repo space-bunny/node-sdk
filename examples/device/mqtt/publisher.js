@@ -1,3 +1,4 @@
+var _ = require('underscore');
 var MqttClient = require('spacebunny').MqttClient;
 
 // Prerequisites: you have created a device through the Space Bunny's web interface. You also have a 'data' channel (name
@@ -15,16 +16,16 @@ var connectionParams = { deviceKey: 'your-device-key' };
 //   deviceId: 'device-id',
 //   secret: 'device-secret',
 //   host: 'hostname',
-//   port: 5672, // default for AMQP
+//   port: 1883, // default for MQTT
 //   vhost: 'vhost',
 //   channels: [ 'data', 'alarms' ]
 // };
 
-// If you want to connecto using a secure channel, you must enable ssl
-// and provide the client certificate path
+// If you want to connecto using a secure channel, you must enable tls
+// and provide the client certificate paths [optional]
 // var connectionParams = {
 //   deviceKey: 'your-device-key',
-//   ssl: true,
+//   tls: true,
 //   ca: '/path/to/ca_certificate.pem',
 //   cert: '/path/to/client_certificate.pem',
 //   key: '/path/to/client_key.pem'
@@ -32,18 +33,43 @@ var connectionParams = { deviceKey: 'your-device-key' };
 
 var mqttClient = new MqttClient(connectionParams);
 
-// Publishing Options
-// retain: (default missing) if true means that messages are sent as retained messages
-var publishingOpts = { retain: true };
+var disconnect = function() {
+  mqttClient.disconnect().then(function(res) {
+    console.log('Bye Bye.');
+    process.exit(0);
+  }).catch(function(reason) {
+    console.error(reason);  // eslint-disable-line no-console
+    process.exit(1);
+  });
+}
 
-var content = { some: 'json' };
-// Get the first channel configured for the target device
-var channels = mqttClient.channels();
-mqttClient.publish(channels[0], content, publishingOpts).then(function(res) {
-  console.log(res);  // eslint-disable-line no-console
-  mqttClient.disconnect();
-  process.exit(0);
-}).catch(function(reason) {
-  console.error(reason);  // eslint-disable-line no-console
-  process.exit(1);
+process.once('SIGINT', function() { disconnect(); });
+
+
+_(60).times(function(n) {
+
+  // 'publish' takes two mandatory arguments (channel's name and payload) and a variety of options: one of these options is
+  // the retain flag, when is true means that messages are sent as retained messages
+  // Take a look at SDK's documentation for further details.
+  setTimeout(function(){
+    // Publishing Options
+    // retain: (default missing) if true means that messages are sent as retained messages
+    var publishingOpts = { retain: true };
+    var content = { some: 'json' };
+    mqttClient.connect().then(function() {
+      // Select a channel or you can use mqttClient.channels() to get the complete channels' list
+      var channel = 'data';
+      mqttClient.publish(channel, content, publishingOpts).then(function(res) {
+        console.log('published message ' + (n+1));
+        if (n == 59) { disconnect(); }
+      }).catch(function(reason) {
+        console.error(reason);  // eslint-disable-line no-console
+        process.exit(1);
+      });
+    }).catch(function(reason) {
+      console.error(reason);  // eslint-disable-line no-console
+      process.exit(1);
+    });
+  }, n * 1000);
+
 });

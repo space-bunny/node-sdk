@@ -280,14 +280,15 @@ class SpaceBunny {
   _parseContent(message) {
     let parsedMessage = message;
     if (Buffer.isBuffer(parsedMessage)) {
-      const content = parsedMessage.toString('utf-8');
-      try {
-        parsedMessage = JSON.parse(content);
-      } catch (ex) {
-        parsedMessage = content;
-      }
+      parsedMessage = parsedMessage.toString('utf-8');
     }
-    return parsedMessage;
+    let res = undefined;
+    try {
+      res = JSON.parse(parsedMessage);
+    } catch (ex) {
+      res = parsedMessage;
+    }
+    return res;
   }
 
 }
