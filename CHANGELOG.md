@@ -5,9 +5,16 @@ All notable changes to this project will be documented in this file.
 - `0.1.x` Releases - [0.1.0]
 - `0.2.x` Releases - [0.2.0] [0.2.1]
 - `0.3.x` Releases - [0.3.0]
-- `0.4.x` Releases - [0.4.0]
+- `0.4.x` Releases - [0.4.0] [0.4.1]
 
 ---
+
+## [0.4.1](https://github.com/space-bunny/node-sdk/releases/tag/v0.4.1)
+
+#### Changed
+
+- Improve content parsing
+- Update examples
 
 ## [0.4.0](https://github.com/space-bunny/node-sdk/releases/tag/v0.4.0)
 
