@@ -24,11 +24,11 @@ var connectionParams = { deviceKey: 'your-device-key' };
 //   channels: [ 'data', 'alarms' ]
 // };
 
-// If you want to connecto using a secure channel, you must enable ssl
-// and provide the client certificate path
+// If you want to connecto using a secure channel, you must enable tls
+// and provide the client certificate paths [optional]
 // var connectionParams = {
 //   deviceKey: 'your-device-key',
-//   ssl: true,
+//   tls: true,
 //   ca: '/path/to/ca_certificate.pem',
 //   cert: '/path/to/client_certificate.pem',
 //   key: '/path/to/client_key.pem'
@@ -36,8 +36,12 @@ var connectionParams = { deviceKey: 'your-device-key' };
 
 var mqttClient = new MqttClient(connectionParams);
 
-mqttClient.onReceive(messageCallback).then(function(res) {
-  console.log(res); // eslint-disable-line no-console
+mqttClient.connect().then(function() {
+  mqttClient.onReceive(messageCallback).then(function(res) {
+    console.log('Start receiving..');  // eslint-disable-line no-console
+  }).catch(function(reason) {
+    console.error(reason);  // eslint-disable-line no-console
+  });
 }).catch(function(reason) {
-  console.error(reason.stack);  // eslint-disable-line no-console
+  console.error(reason);  // eslint-disable-line no-console
 });

@@ -21,11 +21,11 @@ var connectionParams = { deviceKey: 'your-device-key' };
 //   channels: [ 'data', 'alarms' ]
 // };
 
-// If you want to connecto using a secure channel, you must enable ssl
+// If you want to connecto using a secure channel, you must enable tls
 // and provide the client certificate path
 // var connectionParams = {
 //   deviceKey: 'your-device-key',
-//   ssl: true,
+//   tls: true,
 //   ca: '/path/to/ca_certificate.pem',
 //   cert: '/path/to/client_certificate.pem',
 //   key: '/path/to/client_key.pem'
@@ -71,9 +71,16 @@ _(60).times(function(n) {
     setTimeout(function(){
       var content = { some: 'json' };
       var publishOpts = { withConfirm: true };
-      amqpClient.publish('data', content, publishOpts).then(function(res) {
-        console.log('published message ' + (n+1));
-        if (n == 59) { disconnect(); }
+      amqpClient.connect().then(function() {
+        // Select a channel or you can use amqpClient.channels() to get the complete channels' list
+        var channel = 'data';
+        amqpClient.publish(channel, content, publishOpts).then(function(res) {
+          console.log('published message ' + (n+1));
+          if (n == 59) { disconnect(); }
+        }).catch(function(reason) {
+          console.error(reason);  // eslint-disable-line no-console
+          process.exit(1);
+        });
       }).catch(function(reason) {
         console.error(reason);  // eslint-disable-line no-console
         process.exit(1);

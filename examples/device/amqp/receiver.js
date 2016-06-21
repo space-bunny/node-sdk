@@ -26,11 +26,11 @@ var connectionParams = { deviceKey: 'your-device-key' };
 //   channels: [ 'data', 'alarms' ]
 // };
 
-// If you want to connecto using a secure channel, you must enable ssl
+// If you want to connecto using a secure channel, you must enable tls
 // and provide the client certificate path
 // var connectionParams = {
 //   deviceKey: 'your-device-key',
-//   ssl: true,
+//   tls: true,
 //   ca: '/path/to/ca_certificate.pem',
 //   cert: '/path/to/client_certificate.pem',
 //   key: '/path/to/client_key.pem'
@@ -74,8 +74,12 @@ process.once('SIGINT', function() { disconnect(); });
 var subscriptionOpts = { noAck: false, allUpTo: false, requeue: false, discardMine: false, discardFromApi: false };
 
 // When a message is sent on the inbox channel of the current device, the callback function will bel called
-amqpClient.onReceive(messageCallback, subscriptionOpts).then(function(res) {
-  console.log('Start receiving..');  // eslint-disable-line no-console
+amqpClient.connect().then(function() {
+  amqpClient.onReceive(messageCallback, subscriptionOpts).then(function(res) {
+    console.log('Start receiving..');  // eslint-disable-line no-console
+  }).catch(function(reason) {
+    console.error(reason);  // eslint-disable-line no-console
+  });
 }).catch(function(reason) {
   console.error(reason);  // eslint-disable-line no-console
 });

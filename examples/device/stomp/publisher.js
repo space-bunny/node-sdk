@@ -18,14 +18,14 @@ var connectionParams = { deviceKey: 'your-device-key' };
 //   host: 'hostname',
 //   port: 61613, // default for STOMP
 //   vhost: 'vhost',
-//   channels: [ { name: 'data' }, { name: 'alarms' } ]
+//   channels: [ 'data', 'alarms' ]
 // };
 
-// If you want to connecto using a secure channel, you must enable ssl
+// If you want to connecto using a secure channel, you must enable tls
 // and provide the client certificate path
 // var connectionParams = {
 //   deviceKey: 'your-device-key',
-//   ssl: true,
+//   tls: true,
 //   ca: '/path/to/ca_certificate.pem',
 //   cert: '/path/to/client_certificate.pem',
 //   key: '/path/to/client_key.pem'

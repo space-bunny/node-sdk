@@ -21,14 +21,14 @@ var connectionParams = { deviceKey: 'your-device-key' };
 //   host: 'hostname',
 //   port: 61613, // default for STOMP
 //   vhost: 'vhost',
-//   channels: [ { name: 'data' }, { name: 'alarms' } ]
+//   channels: [ 'data', 'alarms' ]
 // };
 
-// If you want to connecto using a secure channel, you must enable ssl
-// and provide the client certificate path
+// If you want to connecto using a secure channel, you must enable tls
+// and provide the client certificate paths [optional]
 // var connectionParams = {
 //   deviceKey: 'your-device-key',
-//   ssl: true,
+//   tls: true,
 //   ca: '/path/to/ca_certificate.pem',
 //   cert: '/path/to/client_certificate.pem',
 //   key: '/path/to/client_key.pem'
@@ -68,8 +68,12 @@ process.once('SIGINT', function() { disconnect(); });
 var subscriptionOpts = { discardMine: false, discardFromApi: false };
 
 // When a message is sent on the inbox channel of the current device, the callback function will bel called
-stompClient.onReceive(messageCallback, subscriptionOpts).then(function(res) {
-  console.log(res);  // eslint-disable-line no-console
+stompClient.connect().then(function() {
+  stompClient.onReceive(messageCallback, subscriptionOpts).then(function(res) {
+    console.log('Start receiving..');  // eslint-disable-line no-console
+  }).catch(function(reason) {
+    console.error(reason);  // eslint-disable-line no-console
+  });
 }).catch(function(reason) {
   console.error(reason);  // eslint-disable-line no-console
 });
