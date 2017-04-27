@@ -1,12 +1,13 @@
 {
   "name": "spacebunny",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "NodeJS client library for Space Bunny IoT platform",
   "main": "lib/index.js",
   "scripts": {
     "test": "jest",
-    "doc": "jsdoc -c ./jsdoc_conf.json",
+    "docs": "gulp docs",
     "start": "gulp",
+    "watch": "gulp watch",
     "build": "gulp build"
   },
   "jest": {
@@ -23,7 +24,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@bitbucket.org:fancypixel/spacebunny-node.git"
+    "url": "https://github.com/space-bunny/node-sdk.git"
   },
   "keywords": [
     "spacebunny",
