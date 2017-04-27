@@ -119,6 +119,7 @@ class AmqpClient extends SpaceBunny {
       } else {
         this._amqpConnection.close().then(() => {
           this._amqpConnection = undefined;
+          this._amqpChannels = {};
           resolve(true);
         }).catch((reason) => {
           reject(reason);
