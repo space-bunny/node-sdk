@@ -168,15 +168,15 @@ For more advanced usage please refer to example files in `dist` folder
 
 ## Watch changes to src files (with automatic transpilation on save)
 
-`gulp watch`
+`npm run watch`
 
 ## Build dist version
 
-`gulp build`
+`npm run build`
 
 ## Generate documentation
 
-`gulp docs`
+`npm run docs`
 
 ## License
 
