@@ -101,7 +101,8 @@ gulp.task('docs', function() {
 const paths = {
   src: path.join(__dirname, 'src', '**', '*.js'),
   dest: path.join(__dirname, 'lib'),
-  sourceRoot: path.join(__dirname, 'src')
+  sourceRoot: path.join(__dirname, 'src'),
+  relativeSourceRoot: './src'
 };
 
 gulp.task('transpile', function() {
@@ -112,7 +113,7 @@ gulp.task('transpile', function() {
     .pipe(babel({
       presets: ['babel-preset-es2015']
     }))
-    .pipe(sourcemaps.write('.', { sourceRoot: paths.sourceRoot }))
+    .pipe(sourcemaps.write('.', { sourceRoot: paths.relativeSourceRoot }))
     .pipe(gulp.dest(paths.dest));
 });
 
