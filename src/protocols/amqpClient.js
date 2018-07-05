@@ -156,7 +156,7 @@ class AmqpClient extends SpaceBunny {
               `${connectionParams.secret}@${connectionParams.host}:` +
               `${connectionParams.protocols.amqp.port}/${connectionParams.vhost.replace('/', '%2f')}`;
           }
-          amqp.connect(connectionString, connectionOpts).then((conn) => {
+          return amqp.connect(connectionString, connectionOpts).then((conn) => {
             conn.on('error', (err) => {
               this.emit('error', err);
               reject(err);

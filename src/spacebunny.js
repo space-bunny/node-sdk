@@ -217,7 +217,8 @@ class SpaceBunny extends EventEmitter {
    */
   tempQueue(prefix, suffix, currentTime) {
     const timestamp = currentTime || new Date().getTime();
-    return `${timestamp}-${this._connectionParams.client}-` +
+    const deviceId = this._connectionParams.client || this._connectionParams.deviceId;
+    return `${timestamp}-${deviceId}-` +
       `${this.exchangeName(prefix, suffix)}.` +
       `${this._tempQueueSuffix}`;
   }
