@@ -3,17 +3,11 @@
 exports.CONFIG = {
   endpoint: {
     protocol: 'http',
-    secureProtocol: 'https'
-  },
-  deviceEndpoint: {
-    url: 'https://api.spacebunny.io',
-    api_version: '/v1',
-    path: '/device_configurations'
-  },
-  accessKeyEndpoint: {
-    url: 'https://api.spacebunny.io',
-    api_version: '/v1',
-    path: '/live_stream_key_configurations'
+    secureProtocol: 'https',
+    host: 'api.spacebunny.io',
+    port: 3000,
+    deviceConfigurationsPath: 'device_configurations',
+    liveStreamKeyConfigurationsPath: 'live_stream_key_configurations'
   },
   tls: {
     secureProtocol: 'TLSv1_2_method'

@@ -113,9 +113,11 @@ class StompClient extends SpaceBunny {
           this._subscription.unsubscribe();
         }
         this._stompConnection.disconnect(() => {
+          this.emit('disconnect');
           this._stompConnection = undefined;
           resolve(true);
         }).catch((reason) => {
+          this._stompConnection = undefined;
           reject(reason);
         });
       }
@@ -165,8 +167,11 @@ class StompClient extends SpaceBunny {
             });
             client.connect(headers, () => {
               this._stompConnection = client;
+              this.emit('connect');
               resolve(this._stompConnection);
             }, (err) => {
+              this.emit('error', err);
+              this._stompConnection = undefined;
               reject(err);
             });
           } catch (reason) {
@@ -177,6 +182,10 @@ class StompClient extends SpaceBunny {
         reject(reason);
       });
     });
+  }
+
+  isConnected() {
+    return (this._stompConnection !== undefined);
   }
 
   // ------------ PRIVATE METHODS -------------------

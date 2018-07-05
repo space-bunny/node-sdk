@@ -133,6 +133,7 @@ class MqttClient extends SpaceBunny {
         const _closeConnection = () => {
           this._mqttConnection.end(true, () => {
             this._mqttConnection = undefined;
+            this.emit('disconnect');
             resolve(true);
           });
         };
@@ -181,12 +182,16 @@ class MqttClient extends SpaceBunny {
             }
             const client = mqtt.connect(mqttConnectionParams);
             client.on('error', (reason) => {
+              this.emit('error', reason);
               reject(reason);
             });
             client.on('close', (reason) => {
               reject(reason);
+              this.emit('close', reason);
+              this._mqttConnection = undefined;
             });
             this._mqttConnection = client;
+            this.emit('connect');
             resolve(this._mqttConnection);
           } catch (reason) {
             reject(reason);
@@ -196,6 +201,10 @@ class MqttClient extends SpaceBunny {
         reject(reason);
       });
     });
+  }
+
+  isConnected() {
+    return (this._mqttConnection !== undefined);
   }
 
   // ------------ PRIVATE METHODS -------------------
