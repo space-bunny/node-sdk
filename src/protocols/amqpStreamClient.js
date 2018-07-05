@@ -54,6 +54,8 @@ class AmqpStreamClient extends AmqpClient {
    *
    * @private
    * @param {Object} streamHook - Object containit hook info
+   * { stream: {String}, callback: {func}}
+   * or
    * { deviceId: {String}, channel: {String}, callback: {func}}
    * @param {Object} opts - connection options
    * @return a promise containing current connection
