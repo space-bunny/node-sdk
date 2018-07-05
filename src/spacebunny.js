@@ -10,6 +10,8 @@ import axios from 'axios';
 import humps from 'humps';
 import Promise from 'bluebird';
 import { startsWith, filter } from 'lodash';
+import url from 'url';
+import EventEmitter from 'events';
 
 // TODO validate enpointConfig object format with Joi
 // import Joi from 'joi';
@@ -20,11 +22,12 @@ const CONFIG = require('../config/constants').CONFIG;
  * @constructor
  * @param {Object} opts - constructor options may contain Device-Key or connection options
  */
-class SpaceBunny {
+class SpaceBunny extends EventEmitter {
   constructor(opts = {}) {
+    super();
     this._connectionParams = merge({}, humps.camelizeKeys(opts));
     this._endpointConfigs = undefined;
-    this._endpointUrl = this._connectionParams.endpointUrl;
+    this._endpoint = merge(CONFIG.endpoint, this._connectionParams.endpoint);
     this._deviceKey = this._connectionParams.deviceKey;
     this._channels = this._connectionParams.channels;
     this._deviceId = this._connectionParams.deviceId;
@@ -76,12 +79,10 @@ class SpaceBunny {
       }
       // Contact endpoint to retrieve configs
       // Switch endpoint if you are using sdk as device or as access key stream
-      let endpoint = '';
       if ((this._deviceId && this._secret) || this._deviceKey) { // Device credentials
-        endpoint = CONFIG.deviceEndpoint;
         // uses endpoint passed from user, default endpoint otherwise
-        const hostname = this._generateHostname(endpoint);
-        const uri = `${hostname}${endpoint.api_version}${endpoint.path}`;
+        const hostname = this._generateHostname();
+        const uri = url.resolve(hostname, this._endpoint.deviceConfigurationsPath);
         if (this._deviceKey) { // Get configs from endpoint
           const options = {
             url: uri,
@@ -129,10 +130,9 @@ class SpaceBunny {
           resolve(this._endpointConfigs);
         } else {
           // Get configs from endpoint
-          endpoint = CONFIG.accessKeyEndpoint;
           // uses endpoint passed from user, default endpoint otherwise
-          const hostname = this._generateHostname(endpoint);
-          const uri = `${hostname}${endpoint.api_version}${endpoint.path}`;
+          const hostname = this._generateHostname();
+          const uri = url.resolve(hostname, this._endpoint.liveStreamKeyConfigurationsPath);
           const options = {
             url: uri,
             method: 'get',
@@ -260,12 +260,14 @@ class SpaceBunny {
    * @private
    * @return the string representing the endpoint url
    */
-  _generateHostname(endpoint) {
-    let hostname = `${(this._endpointUrl || endpoint.url)}`;
-    // const endpointProtocol = (this._tls) ? CONFIG.endpoint.secureProtocol : CONFIG.endpoint.protocol;
-    const endpointProtocol = CONFIG.endpoint.protocol;
-    if (!startsWith(hostname, endpointProtocol)) {
-      hostname = `${endpointProtocol}://${hostname}`;
+  _generateHostname() {
+    if (this._endpoint.url) {
+      return this._endpoint.url;
+    }
+    let hostname = `${this._endpoint.host}:${this._endpoint.port}`;
+    const protocol = (this._tls) ? this._endpoint.secureProtocol : this._endpoint.protocol;
+    if (!startsWith(hostname, protocol)) {
+      hostname = `${protocol}://${hostname}`;
     }
     return hostname;
   }

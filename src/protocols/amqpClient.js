@@ -120,6 +120,7 @@ class AmqpClient extends SpaceBunny {
         this._amqpConnection.close().then(() => {
           this._amqpConnection = undefined;
           this._amqpChannels = {};
+          this.emit('disconnect');
           resolve(true);
         }).catch((reason) => {
           reject(reason);
@@ -157,15 +158,23 @@ class AmqpClient extends SpaceBunny {
           }
           amqp.connect(connectionString, connectionOpts).then((conn) => {
             conn.on('error', (err) => {
+              this.emit('error', err);
               reject(err);
             });
+            conn.on('close', (err) => {
+              this.emit('close', err);
+              this._amqpConnection = undefined;
+            });
             conn.on('blocked', (reason) => {
+              this.emit('blocked', reason);
               console.warn(reason); // eslint-disable-line no-console
             });
             conn.on('unblocked', (reason) => {
+              this.emit('unblocked', reason);
               console.warn(reason); // eslint-disable-line no-console
             });
             this._amqpConnection = conn;
+            this.emit('connect');
             resolve(this._amqpConnection);
           }).catch((reason) => {
             reject(reason);
@@ -175,6 +184,10 @@ class AmqpClient extends SpaceBunny {
         reject(reason);
       });
     });
+  }
+
+  isConnected() {
+    return (this._amqpConnection !== undefined);
   }
 
   // ------------ PRIVATE METHODS -------------------
