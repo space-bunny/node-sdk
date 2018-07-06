@@ -14,7 +14,6 @@ import StompClient from './stompClient';
 const CONFIG = require('../../config/constants').CONFIG;
 
 class StompStreamClient extends StompClient {
-
   /**
    * @constructor
    * @param {Object} opts - options must contain client and secret for access keys
@@ -42,7 +41,7 @@ class StompStreamClient extends StompClient {
     if (promises.length > 0) {
       return Promise.any(promises);
     } else {
-      return Promise.reject('Missing stream hooks');
+      return Promise.reject(new Error('Missing stream hooks'));
     }
   }
 
@@ -56,9 +55,29 @@ class StompStreamClient extends StompClient {
   unsubscribe(deviceId, channel) {
     return new Promise((resolve, reject) => {
       if (this._stompConnection === undefined) {
-        reject('Invalid connection');
+        reject(new Error('Invalid connection'));
       } else {
-        const topic = this._topicFor(deviceId, channel);
+        const topic = this._streamChannelTopicFor(deviceId, channel);
+        const subscription = this._subscriptions[topic];
+        subscription.unsubscribe(topic);
+        delete this._subscriptions[topic];
+        resolve(true);
+      }
+    });
+  }
+
+  /**
+   * Unsubscribe client from a topic
+   *
+   * @param {String} stream - Device uuid
+   * @return a promise containing the result of the operation
+   */
+  unsubscribeStream(stream) {
+    return new Promise((resolve, reject) => {
+      if (this._stompConnection === undefined) {
+        reject(new Error('Invalid connection'));
+      } else {
+        const topic = this._streamTopicFor(stream);
         const subscription = this._subscriptions[topic];
         subscription.unsubscribe(topic);
         delete this._subscriptions[topic];
@@ -75,7 +94,7 @@ class StompStreamClient extends StompClient {
   disconnect() {
     return new Promise((resolve, reject) => {
       if (this._stompConnection === undefined) {
-        reject('Invalid connection');
+        reject(new Error('Invalid connection'));
       } else {
         for (const subscription in this._subscriptions) {
           if (subscription) {
@@ -113,15 +132,15 @@ class StompStreamClient extends StompClient {
       const stream = streamHook.stream;
       const deviceId = streamHook.deviceId;
       const channel = streamHook.channel;
-      const cache = (typeof(streamHook.cache) !== 'boolean') ? true : streamHook.cache;
+      const cache = (typeof (streamHook.cache) !== 'boolean') ? true : streamHook.cache;
       const emptyFunction = () => { return undefined; };
       const callback = streamHook.callback || emptyFunction;
       if (stream === undefined && (channel === undefined || deviceId === undefined)) {
-        reject('Missing Stream or Device ID and Channel');
+        reject(new Error('Missing Stream or Device ID and Channel'));
       }
       this.connect().then((client) => {
-        let topic = undefined;
-        let tempQueue = undefined;
+        let topic;
+        let tempQueue;
         if (stream) {
           if (!this.liveStreamExists(stream)) {
             console.error(`Stream ${stream} does not exist`); // eslint-disable-line no-console
@@ -178,8 +197,8 @@ class StompStreamClient extends StompClient {
    * @return a string that represents the topic name for that channel
    */
   _cachedStreamTopicFor(streamName, type) {
-    return `/${type || this._existingQueuePrefix}/${this.liveStreamByName(streamName)}.` +
-      `${this._liveStreamSuffix}`;
+    return `/${type || this._existingQueuePrefix}/${this.liveStreamByName(streamName)}.`
+      + `${this._liveStreamSuffix}`;
   }
 
   /**
@@ -192,10 +211,9 @@ class StompStreamClient extends StompClient {
    * @return a string that represents the topic name for that channel
    */
   _streamTopicFor(streamName, type, pattern) {
-    return `/${type || this._exchangePrefix}/${this.liveStreamByName(streamName)}.` +
-      `${this._liveStreamSuffix}/${pattern || this._defaultPattern}`;
+    return `/${type || this._exchangePrefix}/${this.liveStreamByName(streamName)}.`
+      + `${this._liveStreamSuffix}/${pattern || this._defaultPattern}`;
   }
-
 }
 
 // Remove unwnated methods inherited from StompClient
