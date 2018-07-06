@@ -153,7 +153,7 @@ class SpaceBunny extends EventEmitter {
           });
         }
       } else { // No configs or missing some info
-        reject('Missing Device Key or wrong connection parameters');
+        reject(new Error('Missing Device Key or wrong connection parameters'));
       }
     });
   }
@@ -218,9 +218,9 @@ class SpaceBunny extends EventEmitter {
   tempQueue(prefix, suffix, currentTime) {
     const timestamp = currentTime || new Date().getTime();
     const deviceId = this._connectionParams.client || this._connectionParams.deviceId;
-    return `${timestamp}-${deviceId}-` +
-      `${this.exchangeName(prefix, suffix)}.` +
-      `${this._tempQueueSuffix}`;
+    return `${timestamp}-${deviceId}-`
+      + `${this.exchangeName(prefix, suffix)}.`
+      + `${this._tempQueueSuffix}`;
   }
 
   /**
@@ -285,7 +285,7 @@ class SpaceBunny extends EventEmitter {
     if (Buffer.isBuffer(parsedMessage)) {
       parsedMessage = parsedMessage.toString('utf-8');
     }
-    let res = undefined;
+    let res;
     try {
       res = JSON.parse(parsedMessage);
     } catch (ex) {
@@ -293,7 +293,6 @@ class SpaceBunny extends EventEmitter {
     }
     return res;
   }
-
 }
 
 export default SpaceBunny;

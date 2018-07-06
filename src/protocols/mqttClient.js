@@ -18,7 +18,6 @@ import SpaceBunny from '../spacebunny';
 const CONFIG = require('../../config/constants').CONFIG;
 
 class MqttClient extends SpaceBunny {
-
   /**
    * @constructor
    * @param {Object} opts - options must contain Device-Key or connection options
@@ -50,10 +49,10 @@ class MqttClient extends SpaceBunny {
     // subscribe for input messages
     return new Promise((resolve, reject) => {
       this.connect().then((client) => {
-        this._topics[this._topicFor(this._inboxTopic)] = opts.qos || this._connectionOpts.qos;
+        this._topics[this._topicFor(null, this._inboxTopic)] = opts.qos || this._connectionOpts.qos;
         client.subscribe(this._topics, merge(this._connectionOpts, opts), (err) => {
           if (err) {
-            reject(false);
+            reject(err);
           } else {
             client.on('message', (topic, message) => {
               // TODO filterMine and filterWeb
@@ -82,7 +81,7 @@ class MqttClient extends SpaceBunny {
       this.connect().then((client) => {
         const _sendMessage = () => {
           const bufferedMessage = new Buffer(this._encapsulateContent(message));
-          client.publish(this._topicFor(channel), bufferedMessage, merge(this._connectionOpts, opts), () => {
+          client.publish(this._topicFor(null, channel), bufferedMessage, merge(this._connectionOpts, opts), () => {
             resolve(true);
           });
         };
@@ -128,7 +127,7 @@ class MqttClient extends SpaceBunny {
   disconnect() {
     return new Promise((resolve, reject) => {
       if (this._mqttConnection === undefined) {
-        reject('Invalid connection');
+        reject(new Error('Invalid connection'));
       } else {
         const _closeConnection = () => {
           this._mqttConnection.end(true, () => {
@@ -213,11 +212,12 @@ class MqttClient extends SpaceBunny {
    * Generate the topic for a specific channel
    *
    * @private
+   * @param {String} deviceId - device id
    * @param {String} channel - channel name on which you want to publish a message
    * @return a string that represents the topic name for that channel
    */
-  _topicFor(channel) {
-    return `${this.deviceId()}/${channel}`;
+  _topicFor(deviceId, channel) {
+    return `${deviceId || this.deviceId()}/${channel}`;
   }
 }
 
