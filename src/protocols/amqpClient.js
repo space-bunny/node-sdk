@@ -16,10 +16,10 @@ import amqp from 'amqplib';
 // Import SpaceBunny main module from which AmqpClient inherits
 import SpaceBunny from '../spacebunny';
 import AmqpMessage from '../messages/amqpMessage';
-const CONFIG = require('../../config/constants').CONFIG;
+
+const { CONFIG } = require('../../config/constants');
 
 class AmqpClient extends SpaceBunny {
-
   /**
    * @constructor
    * @param {Object} opts - options must contain Device-Key or connection options
@@ -90,7 +90,7 @@ class AmqpClient extends SpaceBunny {
     opts = merge(this._publishArgs, opts);
     return new Promise((resolve, reject) => {
       this._createChannel('output', opts).then((ch) => {
-        const bufferedMessage = new Buffer(this._encapsulateContent(message));
+        const bufferedMessage = Buffer.from(this._encapsulateContent(message));
         const promises = [
           ch.checkExchange(this.deviceId()),
           ch.publish(this.deviceId(), this._routingKeyFor(channel), bufferedMessage, opts)
@@ -115,7 +115,7 @@ class AmqpClient extends SpaceBunny {
   disconnect() {
     return new Promise((resolve, reject) => {
       if (this._amqpConnection === undefined) {
-        reject('Not Connected');
+        reject(new Error('Not Connected'));
       } else {
         this._amqpConnection.close().then(() => {
           this._amqpConnection = undefined;
@@ -142,19 +142,20 @@ class AmqpClient extends SpaceBunny {
     return new Promise((resolve, reject) => {
       this.getEndpointConfigs().then((endpointConfigs) => {
         const connectionParams = endpointConfigs.connection;
-        if (this._amqpConnection !== undefined) {
+        if (this.isConnected()) {
           resolve(this._amqpConnection);
+          return undefined;
         } else {
           let connectionString = '';
           if (this._tls) {
-            connectionString = `${this._tlsProtocol}://${connectionParams.deviceId || connectionParams.client}:` +
-              `${connectionParams.secret}@${connectionParams.host}:` +
-              `${connectionParams.protocols.amqp.tlsPort}/${connectionParams.vhost.replace('/', '%2f')}`;
+            connectionString = `${this._tlsProtocol}://${connectionParams.deviceId || connectionParams.client}:`
+              + `${connectionParams.secret}@${connectionParams.host}:`
+              + `${connectionParams.protocols.amqp.tlsPort}/${connectionParams.vhost.replace('/', '%2f')}`;
             connectionOpts = merge(connectionOpts, this._tlsOpts);
           } else {
-            connectionString = `${this._protocol}://${connectionParams.deviceId || connectionParams.client}:` +
-              `${connectionParams.secret}@${connectionParams.host}:` +
-              `${connectionParams.protocols.amqp.port}/${connectionParams.vhost.replace('/', '%2f')}`;
+            connectionString = `${this._protocol}://${connectionParams.deviceId || connectionParams.client}:`
+              + `${connectionParams.secret}@${connectionParams.host}:`
+              + `${connectionParams.protocols.amqp.port}/${connectionParams.vhost.replace('/', '%2f')}`;
           }
           return amqp.connect(connectionString, connectionOpts).then((conn) => {
             conn.on('error', (err) => {
@@ -174,6 +175,7 @@ class AmqpClient extends SpaceBunny {
               console.warn(reason); // eslint-disable-line no-console
             });
             this._amqpConnection = conn;
+            this.on('error', () => {});
             this.emit('connect');
             resolve(this._amqpConnection);
           }).catch((reason) => {
@@ -234,7 +236,7 @@ class AmqpClient extends SpaceBunny {
     return new Promise((resolve, reject) => {
       const ch = this._amqpChannels[channelName];
       if (ch === undefined) {
-        reject('Invalid Channel Object');
+        reject(new Error('Invalid Channel Object'));
       } else {
         ch.close().then(() => {
           this._amqpChannels[channelName] = undefined;
@@ -278,7 +280,6 @@ class AmqpClient extends SpaceBunny {
     }
     return true;
   }
-
 }
 
 export default AmqpClient;

@@ -15,10 +15,10 @@ import Stomp from 'stompjs';
 // Import SpaceBunny main module from which StompClient inherits
 import SpaceBunny from '../spacebunny';
 import StompMessage from '../messages/stompMessage';
-const CONFIG = require('../../config/constants').CONFIG;
+
+const { CONFIG } = require('../../config/constants');
 
 class StompClient extends SpaceBunny {
-
   /**
    * @constructor
    * @param {Object} opts - options must contain Device-Key or connection options
@@ -106,8 +106,8 @@ class StompClient extends SpaceBunny {
    */
   disconnect() {
     return new Promise((resolve, reject) => {
-      if (this._stompConnection === undefined) {
-        reject('Invalid connection');
+      if (!this.isConnected()) {
+        reject(new Error('Invalid connection'));
       } else {
         if (this._subscription !== undefined) {
           this._subscription.unsubscribe();
@@ -136,11 +136,11 @@ class StompClient extends SpaceBunny {
     return new Promise((resolve, reject) => {
       this.getEndpointConfigs().then((endpointConfigs) => {
         const connectionParams = endpointConfigs.connection;
-        if (this._stompConnection !== undefined) {
+        if (this.isConnected()) {
           resolve(this._stompConnection);
         } else {
           try {
-            let client = undefined;
+            let client;
             if (typeof process === 'object' && `${process}` === '[object process]') {
               // code is runnning in nodejs: STOMP uses TCP sockets
               if (this._tls) {
@@ -151,8 +151,8 @@ class StompClient extends SpaceBunny {
             } else {
               // code is runnning in a browser: web STOMP uses Web sockets
               const protocol = (this._tls) ? this._webSocketOpts.tls.protocol : this._webSocketOpts.protocol;
-              const port = (this._tls) ? connectionParams.protocols.webStomp.tlsPort :
-                connectionParams.protocols.webStomp.port;
+              const port = (this._tls)
+                ? connectionParams.protocols.webStomp.tlsPort : connectionParams.protocols.webStomp.port;
               const connectionString = `${protocol}://${connectionParams.host}:${port}/${this._webSocketOpts.endpoint}`;
               const ws = new WebSocket(connectionString);
               client = Stomp.over(ws);
@@ -170,10 +170,14 @@ class StompClient extends SpaceBunny {
               this.emit('connect');
               resolve(this._stompConnection);
             }, (err) => {
-              this.emit('error', err);
-              this._stompConnection = undefined;
-              reject(err);
+              this.emit('error', err.body);
+              // this._stompConnection = undefined;
+              // reject(err.body);
             });
+            client.debug = (str) => {
+              this.emit('debug', str);
+            };
+            this.on('error', () => {});
           } catch (reason) {
             reject(reason);
           }
@@ -185,7 +189,7 @@ class StompClient extends SpaceBunny {
   }
 
   isConnected() {
-    return (this._stompConnection !== undefined);
+    return (this._stompConnection !== undefined && this._stompConnection.connected);
   }
 
   // ------------ PRIVATE METHODS -------------------
@@ -237,7 +241,6 @@ class StompClient extends SpaceBunny {
     }
     return false;
   }
-
 }
 
 export default StompClient;

@@ -5,7 +5,7 @@ exports.CONFIG = {
     protocol: 'http',
     secureProtocol: 'https',
     host: 'api.spacebunny.io',
-    port: 3000,
+    port: 80,
     deviceConfigurationsPath: 'device_configurations',
     liveStreamKeyConfigurationsPath: 'live_stream_key_configurations'
   },
