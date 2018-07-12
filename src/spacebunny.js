@@ -16,7 +16,7 @@ import EventEmitter from 'events';
 // TODO validate enpointConfig object format with Joi
 // import Joi from 'joi';
 
-const CONFIG = require('../config/constants').CONFIG;
+const { CONFIG } = require('../config/constants');
 
 /**
  * @constructor
