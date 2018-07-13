@@ -74,8 +74,9 @@ class SpaceBunny extends EventEmitter {
   getEndpointConfigs() {
     return new Promise((resolve, reject) => {
       // Resolve with configs if already retrieved
-      if (this._endpointConfigs !== undefined) {
+      if (this._endpointConfigs !== undefined || this.isConnected()) {
         resolve(this._endpointConfigs);
+        return undefined;
       }
       // Contact endpoint to retrieve configs
       // Switch endpoint if you are using sdk as device or as access key stream
@@ -265,7 +266,8 @@ class SpaceBunny extends EventEmitter {
     if (this._endpoint.url) {
       return this._endpoint.url;
     }
-    let hostname = `${this._endpoint.host}:${this._endpoint.port}`;
+    const port = (this._tls) ? this._endpoint.securePort : this._endpoint.port;
+    let hostname = `${this._endpoint.host}:${port}`;
     const protocol = (this._tls) ? this._endpoint.secureProtocol : this._endpoint.protocol;
     if (!startsWith(hostname, protocol)) {
       hostname = `${protocol}://${hostname}`;
