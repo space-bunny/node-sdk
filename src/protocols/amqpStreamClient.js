@@ -64,13 +64,13 @@ class AmqpStreamClient extends AmqpClient {
     // Receive messages from imput queue
     return new Promise((resolve, reject) => {
       const {
-        stream = undefined, deviceId = undefined, channel = undefined, bindingKey = undefined
+        stream = undefined, deviceId = undefined, channel = undefined, topic = undefined
       } = streamHook;
       const cache = (typeof (streamHook.cache) !== 'boolean') ? true : streamHook.cache;
       if (stream === undefined && (channel === undefined || deviceId === undefined)) {
         reject(new Error('Missing Stream or Device ID and Channel'));
       }
-      const routingKey = bindingKey || this._defaultStreamRoutingKey;
+      const routingKey = streamHook.routingKey || this._defaultStreamRoutingKey;
       const emptyFunction = function () { return undefined; };
       const callback = streamHook.callback || emptyFunction;
 
@@ -118,7 +118,10 @@ class AmqpStreamClient extends AmqpClient {
           promisesChain = this._amqpChannels[`${currentTime}`].checkExchange(channelExchangeName).then(() => {
             return this._amqpChannels[`${currentTime}`].assertQueue(tempQueue, this._streamQueueArguments);
           }).then(() => {
-            return this._amqpChannels[`${currentTime}`].bindQueue(tempQueue, channelExchangeName, routingKey);
+            return this._amqpChannels[`${currentTime}`].bindQueue(tempQueue, channelExchangeName,
+              this._streamRoutingKeyFor({
+                deviceId, channel, routingKey, topic
+              }));
           }).then(() => {
             return this._amqpChannels[`${currentTime}`].consume(tempQueue, (message) => {
               callback(this._parseContent(message.content), message.fields, message.properties);
@@ -172,6 +175,27 @@ class AmqpStreamClient extends AmqpClient {
    */
   _cachedStreamQueue(streamName) {
     return `${this.liveStreamByName(streamName)}.${this._liveStreamSuffix}`;
+  }
+
+  /**
+   * Generate the exchange name for a device's channel
+   *
+   * @private
+   * @param {Object} params - params
+   * @return a string that represents the rounting key
+   */
+  _streamRoutingKeyFor(params = {}) {
+    const {
+      deviceId = undefined, channel = undefined, routingKey = this._defaultStreamRoutingKey, topic = undefined
+    } = params;
+    if (routingKey) {
+      return routingKey;
+    } else {
+      let streamRoutingKey = deviceId;
+      if (channel) { streamRoutingKey += `.${channel}`; }
+      if (topic) { streamRoutingKey += `.${topic}`; }
+      return `${streamRoutingKey}`;
+    }
   }
 }
 

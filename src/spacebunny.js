@@ -156,6 +156,7 @@ class SpaceBunny extends EventEmitter {
       } else { // No configs or missing some info
         reject(new Error('Missing Device Key or wrong connection parameters'));
       }
+      return undefined;
     });
   }
 

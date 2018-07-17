@@ -8,8 +8,16 @@ All notable changes to this project will be documented in this file.
 - `0.4.x` Releases - [0.4.0] [0.4.1] [0.4.3] [0.4.4]
 - `0.5.x` Releases - [0.5.0] [0.5.1] [0.5.2]
 - `0.6.x` Releases - [0.6.0] [0.6.1]
+- `0.6.x` Releases - [0.6.0] [0.6.1]
 
 ---
+
+## [0.7.0](https://github.com/space-bunny/node-sdk/releases/tag/v0.7.0)
+
+#### Changed
+
+- Add support for publishing on custom topic
+- Add support for streaming from custom routing key or appended topic
 
 ## [0.6.1](https://github.com/space-bunny/node-sdk/releases/tag/v0.6.1)
 

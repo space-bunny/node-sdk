@@ -23,7 +23,7 @@ class StompStreamClient extends StompClient {
     super(opts);
     this._subscriptions = {};
     const stompStreamOpts = CONFIG.stomp.stream;
-    this._exchangePrefix = stompStreamOpts.exchangePrefix;
+    this._defaultResource = CONFIG.stomp.defaultResource;
     this._defaultPattern = stompStreamOpts.defaultPattern;
   }
 
@@ -113,7 +113,7 @@ class StompStreamClient extends StompClient {
     return new Promise((resolve, reject) => {
       // Receive messages from imput queue
       const {
-        stream = undefined, deviceId = undefined, channel = undefined, bindingKey = undefined
+        stream = undefined, deviceId = undefined, channel = undefined, routingKey = undefined, topic = undefined
       } = streamHook;
       const cache = (typeof (streamHook.cache) !== 'boolean') ? true : streamHook.cache;
       const emptyFunction = () => { return undefined; };
@@ -122,7 +122,7 @@ class StompStreamClient extends StompClient {
         reject(new Error('Missing Stream or Device ID'));
       }
       this.connect().then((client) => {
-        let topic;
+        let streamTopic;
         let tempQueue;
         if (stream) {
           if (!this.liveStreamExists(stream)) {
@@ -131,16 +131,18 @@ class StompStreamClient extends StompClient {
           }
           if (cache) {
             // Cached streams are connected to the existing live stream queue
-            topic = this._cachedStreamTopicFor({ stream });
+            streamTopic = this._cachedStreamTopicFor({ stream });
           } else {
             // Uncached streams are connected to the stream exchange and create a temp queue
-            topic = this._streamTopicFor({ stream, bindingKey });
+            streamTopic = this._streamTopicFor({ stream, routingKey, topic });
             tempQueue = this.tempQueue(stream, this._liveStreamSuffix);
           }
         } else {
           // else if current hook is channel (or a couple deviceId, channel)
           // creates a temp queue, binds to channel exchange and starts consuming
-          topic = this._streamChannelTopicFor({ deviceId, channel, bindingKey });
+          streamTopic = this._streamChannelTopicFor({
+            deviceId, channel, routingKey, topic
+          });
           tempQueue = this.tempQueue(deviceId, channel);
         }
         const subscriptionHeaders = {};
@@ -149,8 +151,8 @@ class StompStreamClient extends StompClient {
           callback(this._parseContent(message.body), message.headers);
         };
         try {
-          const subscriptionId = md5(`${tempQueue}-${topic}`);
-          const subscription = client.subscribe(topic, messageCallback, {
+          const subscriptionId = md5(`${tempQueue}-${streamTopic}`);
+          const subscription = client.subscribe(streamTopic, messageCallback, {
             ...subscriptionHeaders,
             id: subscriptionId
           });
@@ -174,18 +176,25 @@ class StompStreamClient extends StompClient {
    * @param {String} deviceId - deviceId from which you want to stream from
    * @param {String} channel - channel name from which you want to stream from
    * @param {String} type - resource type on which subscribe or publish [exchange/queue]
-   * @param {String} bindingKey - binding pattern
+   * @param {String} routingKey - binding pattern
    * @return a string that represents the topic name for that channel
    */
   _streamChannelTopicFor(params = {}) {
     const {
-      deviceId = undefined, channel = undefined, type = this._exchangePrefix, bindingKey = this._defaultPattern
+      deviceId = undefined, channel = undefined, type = this._defaultResource,
+      routingKey = this._defaultPattern, topic = undefined
     } = params;
-    let topic = deviceId;
+    let resource = deviceId;
     if (channel) {
-      topic += `.${channel}`;
+      resource += `.${channel}`;
     }
-    return `/${type}/${topic}/${bindingKey}`;
+    let finalTopic = resource;
+    if (topic) {
+      finalTopic += `.${topic}`;
+    } else {
+      finalTopic = routingKey;
+    }
+    return `/${type}/${resource}/${finalTopic}`;
   }
 
   /**
@@ -210,15 +219,15 @@ class StompStreamClient extends StompClient {
    * @private
    * @param {String} stream - stream name from which you want to stream
    * @param {String} type - resource type on which subscribe or publish [exchange/queue]
-   * @param {String} bindingKey - binding pattern
+   * @param {String} routingKey - binding pattern
    * @return a string that represents the topic name for that channel
    */
   _streamTopicFor(params = {}) {
     const {
-      stream = undefined, type = this._exchangePrefix, bindingKey = this._defaultPattern
+      stream = undefined, type = this._defaultResource, routingKey = this._defaultPattern
     } = params;
-    const topic = this.liveStreamByName(stream);
-    return `/${type}/${topic}.${this._liveStreamSuffix}/${bindingKey}`;
+    const resource = this.liveStreamByName(stream);
+    return `/${type}/${resource}.${this._liveStreamSuffix}/${routingKey}`;
   }
 }
 

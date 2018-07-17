@@ -39,6 +39,7 @@ class StompClient extends SpaceBunny {
     this._connectionHeaders = stompOpts.connection.headers;
     this._connectionOpts = stompOpts.connection.opts;
     this._existingQueuePrefix = stompOpts.existingQueuePrefix;
+    this._defaultResource = stompOpts.defaultResource;
   }
 
   /**
@@ -90,7 +91,8 @@ class StompClient extends SpaceBunny {
     // Publish message
     return new Promise((resolve, reject) => {
       this.connect().then((client) => {
-        const destination = this._destinationFor('exchange', channel);
+        const { routingKey = undefined, topic = undefined } = opts;
+        const destination = this._destinationFor({ channel, routingKey, topic });
         client.send(destination, this._connectionHeaders, this._encapsulateContent(message));
         resolve(true);
       }).catch((reason) => {
@@ -214,8 +216,23 @@ class StompClient extends SpaceBunny {
    * @param {String} channel - channel name on which you want to publish a message
    * @return a string that represents the topic name for that channel
    */
-  _destinationFor(type, channel) {
-    return `/${type}/${this.deviceId()}/${this.deviceId()}.${channel}`;
+  _destinationFor(params = {}) {
+    const {
+      type = this._defaultResource, channel = undefined, topic = undefined, routingKey = undefined
+    } = params;
+    let messageRoutingKey;
+    if (routingKey) {
+      messageRoutingKey = routingKey;
+    } else {
+      messageRoutingKey = this.deviceId();
+      if (!_.isEmpty(channel)) {
+        messageRoutingKey += `.${channel}`;
+      }
+      if (!_.isEmpty(topic)) {
+        messageRoutingKey += `.${topic}`;
+      }
+    }
+    return `/${type}/${this.deviceId()}/${messageRoutingKey}`;
   }
 
   /**
