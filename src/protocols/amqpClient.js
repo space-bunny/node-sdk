@@ -91,9 +91,10 @@ class AmqpClient extends SpaceBunny {
     return new Promise((resolve, reject) => {
       this._createChannel('output', opts).then((ch) => {
         const bufferedMessage = Buffer.from(this._encapsulateContent(message));
+        const { routingKey = undefined, topic = undefined } = opts;
         const promises = [
           ch.checkExchange(this.deviceId()),
-          ch.publish(this.deviceId(), this._routingKeyFor(channel), bufferedMessage, opts)
+          ch.publish(this.deviceId(), this._routingKeyFor({ channel, routingKey, topic }), bufferedMessage, opts)
         ];
         if (opts.withConfirm === true) {
           promises.push(ch.waitForConfirms());
@@ -252,11 +253,23 @@ class AmqpClient extends SpaceBunny {
    * Generate the routing key for a specific channel
    *
    * @private
-   * @param {String} channel - channel name on which you want to publish a message
+   * @param {Object} params - params
    * @return a string that represents the routing key for that channel
    */
-  _routingKeyFor(channel) {
-    return `${this.deviceId()}.${channel}`;
+  _routingKeyFor(params) {
+    const { channel = undefined, routingKey = undefined, topic = undefined } = params;
+    if (routingKey) {
+      return routingKey;
+    } else {
+      let messageRoutingKey = this.deviceId();
+      if (!_.isEmpty(channel)) {
+        messageRoutingKey += `.${channel}`;
+      }
+      if (!_.isEmpty(topic)) {
+        messageRoutingKey += `.${topic}`;
+      }
+      return messageRoutingKey;
+    }
   }
 
   /**

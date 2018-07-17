@@ -56,6 +56,7 @@ exports.CONFIG = {
       opts: {}
     },
     existingQueuePrefix: 'amq/queue',
+    defaultResource: 'exchange',
     stream: {
       exchangePrefix: 'exchange',
       defaultPattern: '#'
