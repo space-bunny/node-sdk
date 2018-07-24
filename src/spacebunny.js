@@ -10,7 +10,7 @@ import axios from 'axios';
 import humps from 'humps';
 import Promise from 'bluebird';
 import { startsWith, filter } from 'lodash';
-import url from 'url';
+import urljoin from 'url-join';
 import EventEmitter from 'events';
 
 // TODO validate enpointConfig object format with Joi
@@ -83,7 +83,7 @@ class SpaceBunny extends EventEmitter {
       if ((this._deviceId && this._secret) || this._deviceKey) { // Device credentials
         // uses endpoint passed from user, default endpoint otherwise
         const hostname = this._generateHostname();
-        const uri = url.resolve(hostname, this._endpoint.deviceConfigurationsPath);
+        const uri = urljoin(hostname, this._endpoint.deviceConfigurationsPath);
         if (this._deviceKey) { // Get configs from endpoint
           const options = {
             url: uri,
@@ -133,7 +133,7 @@ class SpaceBunny extends EventEmitter {
           // Get configs from endpoint
           // uses endpoint passed from user, default endpoint otherwise
           const hostname = this._generateHostname();
-          const uri = url.resolve(hostname, this._endpoint.liveStreamKeyConfigurationsPath);
+          const uri = urljoin(hostname, this._endpoint.liveStreamKeyConfigurationsPath);
           const options = {
             url: uri,
             method: 'get',
