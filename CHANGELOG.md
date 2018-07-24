@@ -9,10 +9,15 @@ All notable changes to this project will be documented in this file.
 - `0.5.x` Releases - [0.5.0] [0.5.1] [0.5.2]
 - `0.6.x` Releases - [0.6.0] [0.6.1]
 - `0.6.x` Releases - [0.6.0] [0.6.1]
+- `0.7.x` Releases - [0.7.0] [0.7.1]
 
 ---
 
-## [0.7.0](https://github.com/space-bunny/node-sdk/releases/tag/v0.7.0)
+## [0.7.1](https://github.com/space-bunny/node-sdk/releases/tag/v0.7.1)
+
+#### Changed
+
+- Fix URL generation
 
 #### Changed
 
