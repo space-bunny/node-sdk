@@ -54,7 +54,7 @@ class MqttStreamClient extends MqttClient {
             mqttClient.on('message', (topic, message) => {
               const splitted = topic.split('/');
               const streams = streamHooks.filter((streamHook) => {
-                return this.liveStreamByName(streamHook.stream) === splitted[0] ||
+                return streamHook.stream === splitted[0] ||
                   (streamHook.deviceId === splitted[0] && streamHook.channel === splitted[1]);
               });
               let callback = emptyFunction;
@@ -94,7 +94,7 @@ class MqttStreamClient extends MqttClient {
    * @return a string that represents the topic name for that stream
    */
   _streamTopicFor(stream) {
-    return `${this.liveStreamByName(stream)}/${this._liveStreamSuffix}`;
+    return `${stream}/${this._liveStreamSuffix}`;
   }
 }
 

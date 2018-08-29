@@ -174,7 +174,7 @@ class AmqpStreamClient extends AmqpClient {
    * @return a string that represents the stream queue
    */
   _cachedStreamQueue(streamName) {
-    return `${this.liveStreamByName(streamName)}.${this._liveStreamSuffix}`;
+    return `${streamName}.${this._liveStreamSuffix}`;
   }
 
   /**

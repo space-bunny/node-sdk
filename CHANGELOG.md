@@ -13,6 +13,12 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.7.2](https://github.com/space-bunny/node-sdk/releases/tag/v0.7.2)
+
+#### Changed
+
+- Connect to stream by its name
+
 ## [0.7.1](https://github.com/space-bunny/node-sdk/releases/tag/v0.7.1)
 
 #### Changed
