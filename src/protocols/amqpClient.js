@@ -7,7 +7,6 @@
 // Import some helpers modules
 import merge from 'merge';
 import Promise from 'bluebird';
-import when from 'when';
 import _ from 'lodash';
 
 // Import amqplib
@@ -53,7 +52,7 @@ class AmqpClient extends SpaceBunny {
     // Receive messages from imput queue
     return new Promise((resolve, reject) => {
       this._createChannel('input', opts).then((ch) => {
-        return when.all([
+        return Promise.all([
           ch.checkQueue(`${this.deviceId()}.${this._inboxTopic}`, this._inputQueueArgs),
           ch.consume(`${this.deviceId()}.${this._inboxTopic}`, (message) => {
             // Create message object
@@ -90,16 +89,16 @@ class AmqpClient extends SpaceBunny {
     opts = merge(this._publishArgs, opts);
     return new Promise((resolve, reject) => {
       this._createChannel('output', opts).then((ch) => {
-        const bufferedMessage = Buffer.from(this._encapsulateContent(message));
         const { routingKey = undefined, topic = undefined } = opts;
         const promises = [
           ch.checkExchange(this.deviceId()),
-          ch.publish(this.deviceId(), this._routingKeyFor({ channel, routingKey, topic }), bufferedMessage, opts)
+          ch.publish(this.deviceId(), this._routingKeyFor({ channel, routingKey, topic }),
+            Buffer.from(this._encapsulateContent(message)), opts)
         ];
         if (opts.withConfirm === true) {
           promises.push(ch.waitForConfirms());
         }
-        return when.all(promises);
+        return Promise.all(promises);
       }).then((res) => {
         resolve(res);
       }).catch((reason) => {
