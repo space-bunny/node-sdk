@@ -76,7 +76,6 @@
     "mqtt": "2.18.2",
     "stompjs": "git://github.com/gfoiani/stomp-websocket.git#2.4.0",
     "underscore": "1.9.1",
-    "url-join": "4.0.0",
-    "when": "3.7.8"
+    "url-join": "4.0.0"
   }
 }
