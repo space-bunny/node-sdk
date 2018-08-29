@@ -209,7 +209,7 @@ class StompStreamClient extends StompClient {
     const {
       stream = undefined, type = this._existingQueuePrefix
     } = params;
-    const topic = this.liveStreamByName(stream);
+    const topic = stream;
     return `/${type}/${topic}.${this._liveStreamSuffix}`;
   }
 
@@ -226,7 +226,7 @@ class StompStreamClient extends StompClient {
     const {
       stream = undefined, type = this._defaultResource, routingKey = this._defaultPattern
     } = params;
-    const resource = this.liveStreamByName(stream);
+    const resource = stream;
     return `/${type}/${resource}.${this._liveStreamSuffix}/${routingKey}`;
   }
 }

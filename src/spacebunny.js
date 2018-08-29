@@ -191,7 +191,7 @@ class SpaceBunny extends EventEmitter {
   liveStreamByName(streamName) {
     const liveStreams = filter(this._liveStreams, (stream) => { return stream.name === streamName; });
     if (liveStreams.length > 0) {
-      return liveStreams[0].id || streamName;
+      return liveStreams[0].name || streamName;
     } else {
       return streamName;
     }
