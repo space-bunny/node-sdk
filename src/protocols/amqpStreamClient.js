@@ -64,13 +64,13 @@ class AmqpStreamClient extends AmqpClient {
     // Receive messages from imput queue
     return new Promise((resolve, reject) => {
       const {
-        stream = undefined, deviceId = undefined, channel = undefined, topic = undefined
+        stream = undefined, deviceId = undefined, channel = undefined,
+        topic = undefined, routingKey = undefined
       } = streamHook;
       const cache = (typeof (streamHook.cache) !== 'boolean') ? true : streamHook.cache;
       if (stream === undefined && (channel === undefined || deviceId === undefined)) {
         reject(new Error('Missing Stream or Device ID and Channel'));
       }
-      const routingKey = streamHook.routingKey || this._defaultStreamRoutingKey;
       const emptyFunction = function () { return undefined; };
       const callback = streamHook.callback || emptyFunction;
 
@@ -186,9 +186,13 @@ class AmqpStreamClient extends AmqpClient {
    */
   _streamRoutingKeyFor(params = {}) {
     const {
-      deviceId = undefined, channel = undefined, routingKey = this._defaultStreamRoutingKey, topic = undefined
+      deviceId = undefined, channel = undefined, routingKey = undefined, topic = undefined
     } = params;
-    if (routingKey) {
+    if (_.isEmpty(routingKey) && _.isEmpty(deviceId)) {
+      // if both routingKey and deviceId are empty return default routingKey
+      return this._defaultStreamRoutingKey;
+    } else if (routingKey) {
+      // return routing key if present
       return routingKey;
     } else {
       let streamRoutingKey = deviceId;
