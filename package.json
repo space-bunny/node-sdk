@@ -72,7 +72,6 @@
     "humps": "2.0.1",
     "js-md5": "0.7.3",
     "lodash": "4.17.10",
-    "merge": "1.2.0",
     "mqtt": "2.18.2",
     "stompjs": "git://github.com/gfoiani/stomp-websocket.git#2.4.0",
     "underscore": "1.9.1",

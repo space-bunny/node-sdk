@@ -5,14 +5,13 @@
  */
 
 // Import some helpers modules
-import merge from 'merge';
+import _ from 'lodash';
 import Promise from 'bluebird';
 
 // Import MqttClient main module from which MqttStreamClient inherits
 import MqttClient from './mqttClient';
 
 class MqttStreamClient extends MqttClient {
-
   /**
    * Subscribe to multiple stream hooks
    *
@@ -21,7 +20,7 @@ class MqttStreamClient extends MqttClient {
    * @param {Object} options - subscription options
    * @return promise containing the result of multiple subscriptions
    */
-  streamFrom(streamHooks = [], opts) {
+  streamFrom(streamHooks = [], opts = {}) {
     return new Promise((resolve, reject) => {
       this.connect().then((mqttClient) => {
         const emptyFunction = () => { return undefined; };
@@ -30,9 +29,9 @@ class MqttStreamClient extends MqttClient {
           const deviceId = streamHook.deviceId;
           const channel = streamHook.channel;
           const qos = streamHook.qos;
-          const cache = (typeof(streamHook.cache) !== 'boolean') ? true : streamHook.cache;
+          const cache = (typeof streamHook.cache !== 'boolean') ? true : streamHook.cache;
           if (stream === undefined && (channel === undefined || deviceId === undefined)) {
-            reject('Missing Stream or Device ID and Channel');
+            reject(new Error('Missing Stream or Device ID and Channel'));
           }
           if (stream) {
             if (!this.liveStreamExists(stream)) {
@@ -47,15 +46,15 @@ class MqttStreamClient extends MqttClient {
             this._topics[this._streamChannelTopicFor(deviceId, channel)] = qos || this._connectionOpts.qos;
           }
         });
-        mqttClient.subscribe(this._topics, merge(this._connectionOpts, opts), (err) => {
+        mqttClient.subscribe(this._topics, _.merge(this._connectionOpts, opts), (err) => {
           if (err) {
-            reject(false);
+            reject(err);
           } else {
             mqttClient.on('message', (topic, message) => {
               const splitted = topic.split('/');
               const streams = streamHooks.filter((streamHook) => {
-                return streamHook.stream === splitted[0] ||
-                  (streamHook.deviceId === splitted[0] && streamHook.channel === splitted[1]);
+                return streamHook.stream === splitted[0]
+                  || (streamHook.deviceId === splitted[0] && streamHook.channel === splitted[1]);
               });
               let callback = emptyFunction;
               if (streams.length > 0) {

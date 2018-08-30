@@ -5,7 +5,7 @@
  */
 
 // Import some helpers modules
-import merge from 'merge';
+import _ from 'lodash';
 import Promise from 'bluebird';
 import md5 from 'js-md5';
 
@@ -19,7 +19,7 @@ class StompStreamClient extends StompClient {
    * @constructor
    * @param {Object} opts - options must contain client and secret for access keys
    */
-  constructor(opts) {
+  constructor(opts = {}) {
     super(opts);
     this._subscriptions = {};
     const stompStreamOpts = CONFIG.stomp.stream;
@@ -35,7 +35,7 @@ class StompStreamClient extends StompClient {
    * @param {Object} options - subscription options
    * @return promise containing the result of multiple subscriptions
    */
-  streamFrom(streamHooks = [], opts) {
+  streamFrom(streamHooks = [], opts = {}) {
     if (streamHooks.length > 0) {
       return Promise.mapSeries(streamHooks, (streamHook) => {
         return this._attachStreamHook(streamHook, opts);
@@ -109,8 +109,8 @@ class StompStreamClient extends StompClient {
    * @return a promise containing current connection
    */
   _attachStreamHook(streamHook, opts = {}) {
-    opts = merge({}, opts);
     return new Promise((resolve, reject) => {
+      // const localOpts = _.merge({}, opts);
       // Receive messages from imput queue
       const {
         stream = undefined, deviceId = undefined, channel = undefined, routingKey = undefined, topic = undefined
@@ -157,7 +157,7 @@ class StompStreamClient extends StompClient {
             id: subscriptionId
           });
           this._subscriptions[subscriptionId] = subscription;
-          resolve(merge(streamHook, { id: subscriptionId }));
+          resolve(_.merge(streamHook, { id: subscriptionId }));
         } catch (e) {
           console.error(e); // eslint-disable-line no-console
           resolve(undefined);

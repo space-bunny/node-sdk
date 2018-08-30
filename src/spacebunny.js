@@ -5,11 +5,10 @@
 
 // Import some helpers modules
 import fs from 'fs';
-import merge from 'merge';
 import axios from 'axios';
 import humps from 'humps';
 import Promise from 'bluebird';
-import { startsWith, filter } from 'lodash';
+import _ from 'lodash';
 import urljoin from 'url-join';
 import EventEmitter from 'events';
 
@@ -25,9 +24,9 @@ const { CONFIG } = require('../config/constants');
 class SpaceBunny extends EventEmitter {
   constructor(opts = {}) {
     super();
-    this._connectionParams = merge({}, humps.camelizeKeys(opts));
+    this._connectionParams = _.merge({}, humps.camelizeKeys(opts));
     this._endpointConfigs = undefined;
-    this._endpoint = merge(CONFIG.endpoint, this._connectionParams.endpoint);
+    this._endpoint = _.merge(CONFIG.endpoint, this._connectionParams.endpoint);
     this._deviceKey = this._connectionParams.deviceKey;
     this._channels = this._connectionParams.channels;
     this._deviceId = this._connectionParams.deviceId;
@@ -189,7 +188,7 @@ class SpaceBunny extends EventEmitter {
    * @return the stream ID which corresponds to the input stream name
    */
   liveStreamByName(streamName) {
-    const liveStreams = filter(this._liveStreams, (stream) => { return stream.name === streamName; });
+    const liveStreams = _.filter(this._liveStreams, (stream) => { return stream.name === streamName; });
     if (liveStreams.length > 0) {
       return liveStreams[0].name || streamName;
     } else {
@@ -204,7 +203,7 @@ class SpaceBunny extends EventEmitter {
    * @return true if stream exists, false otherwise
    */
   liveStreamExists(streamName) {
-    const liveStreams = filter(this._liveStreams, (stream) => { return stream.name === streamName; });
+    const liveStreams = _.filter(this._liveStreams, (stream) => { return stream.name === streamName; });
     return (liveStreams.length > 0);
   }
 
@@ -270,7 +269,7 @@ class SpaceBunny extends EventEmitter {
     const port = (this._tls) ? this._endpoint.securePort : this._endpoint.port;
     let hostname = `${this._endpoint.host}:${port}`;
     const protocol = (this._tls) ? this._endpoint.secureProtocol : this._endpoint.protocol;
-    if (!startsWith(hostname, protocol)) {
+    if (!_.startsWith(hostname, protocol)) {
       hostname = `${protocol}://${hostname}`;
     }
     return hostname;
