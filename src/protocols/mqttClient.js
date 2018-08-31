@@ -5,7 +5,6 @@
  */
 
 // Import some helpers modules
-import merge from 'merge';
 import Promise from 'bluebird';
 import _ from 'lodash';
 
@@ -15,7 +14,7 @@ import mqtt from 'mqtt';
 // Import SpaceBunny main module from which MqttClient inherits
 import SpaceBunny from '../spacebunny';
 
-const CONFIG = require('../../config/constants').CONFIG;
+const { CONFIG } = require('../../config/constants');
 
 class MqttClient extends SpaceBunny {
   /**
@@ -23,7 +22,7 @@ class MqttClient extends SpaceBunny {
    * @param {Object} opts - options must contain Device-Key or connection options
    * (deviceId and secret) for devices.
    */
-  constructor(opts) {
+  constructor(opts = {}) {
     super(opts);
     this._topics = {};
     this._mqttConnection = undefined;
@@ -44,13 +43,13 @@ class MqttClient extends SpaceBunny {
    * @param {Object} options - subscription options
    * @return promise containing the result of the subscription
    */
-  onReceive(callback, opts) {
-    opts = merge({}, opts);
+  onReceive(callback, opts = {}) {
     // subscribe for input messages
     return new Promise((resolve, reject) => {
+      const localOpts = _.merge({}, opts);
       this.connect().then((client) => {
-        this._topics[this._topicFor(null, this._inboxTopic)] = opts.qos || this._connectionOpts.qos;
-        client.subscribe(this._topics, merge(this._connectionOpts, opts), (err) => {
+        this._topics[this._topicFor(null, this._inboxTopic)] = localOpts.qos || this._connectionOpts.qos;
+        client.subscribe(this._topics, _.merge(this._connectionOpts, localOpts), (err) => {
           if (err) {
             reject(err);
           } else {
@@ -75,13 +74,13 @@ class MqttClient extends SpaceBunny {
    * @param {Object} opts - publication options
    * @return a promise containing the result of the operation
    */
-  publish(channel, message, opts) {
+  publish(channel, message, opts = {}) {
     // Publish message
     return new Promise((resolve, reject) => {
       this.connect().then((client) => {
         const _sendMessage = () => {
-          const bufferedMessage = new Buffer(this._encapsulateContent(message));
-          client.publish(this._topicFor(null, channel), bufferedMessage, merge(this._connectionOpts, opts), () => {
+          const bufferedMessage = Buffer.from(this._encapsulateContent(message));
+          client.publish(this._topicFor(null, channel), bufferedMessage, _.merge(this._connectionOpts, opts), () => {
             resolve(true);
           });
         };
@@ -159,9 +158,8 @@ class MqttClient extends SpaceBunny {
    * @return a promise containing current connection
    */
   connect(opts = {}) {
-    opts = merge(this._connectionOpts, opts);
-
     return new Promise((resolve, reject) => {
+      const localOpts = _.merge(this._connectionOpts, opts);
       this.getEndpointConfigs().then((endpointConfigs) => {
         const connectionParams = endpointConfigs.connection;
         if (this._mqttConnection !== undefined) {
@@ -174,10 +172,10 @@ class MqttClient extends SpaceBunny {
               username: `${connectionParams.vhost}:${connectionParams.deviceId || connectionParams.client}`,
               password: connectionParams.secret,
               clientId: connectionParams.deviceId || connectionParams.client,
-              connectionTimeout: opts.connectionTimeout || this._connectionTimeout
+              connectionTimeout: localOpts.connectionTimeout || this._connectionTimeout
             };
             if (this._tls) {
-              mqttConnectionParams = merge(mqttConnectionParams, this._tlsOpts);
+              mqttConnectionParams = _.merge(mqttConnectionParams, this._tlsOpts);
             }
             const client = mqtt.connect(mqttConnectionParams);
             client.on('error', (reason) => {

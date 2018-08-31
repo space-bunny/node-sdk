@@ -5,7 +5,6 @@
  */
 
 // Import some helpers modules
-import merge from 'merge';
 import Promise from 'bluebird';
 import _ from 'lodash';
 
@@ -24,7 +23,7 @@ class StompClient extends SpaceBunny {
    * @param {Object} opts - options must contain Device-Key or connection options
    * (deviceId and secret) for devices.
    */
-  constructor(opts) {
+  constructor(opts = {}) {
     super(opts);
     this._stompConnection = undefined;
     this._subscription = undefined;
@@ -50,16 +49,16 @@ class StompClient extends SpaceBunny {
    * @param {Object} options - subscription options
    * @return promise containing the result of the subscription
    */
-  onReceive(callback, opts) {
-    opts = merge({}, opts);
+  onReceive(callback, opts = {}) {
     // subscribe for input messages
     return new Promise((resolve, reject) => {
+      const localOpts = _.merge({}, opts);
       this.connect().then((client) => {
         const topic = this._subcriptionFor(this._existingQueuePrefix, this._inboxTopic);
         const subscriptionCallback = (message) => {
           // Create message object
-          const stompMessage = new StompMessage(message, this._deviceId, opts);
-          const ackNeeded = this._autoAck(opts.ack);
+          const stompMessage = new StompMessage(message, this._deviceId, localOpts);
+          const ackNeeded = this._autoAck(localOpts.ack);
           // Check if should be accepted or not
           if (stompMessage.blackListed()) {
             if (ackNeeded) { message.nack(); }
@@ -86,12 +85,12 @@ class StompClient extends SpaceBunny {
    * @param {Object} opts - publication options
    * @return a promise containing the result of the operation
    */
-  publish(channel, message, opts) {
-    opts = merge({}, opts);
+  publish(channel, message, opts = {}) {
     // Publish message
     return new Promise((resolve, reject) => {
+      const localOpts = _.merge({}, opts);
       this.connect().then((client) => {
-        const { routingKey = undefined, topic = undefined } = opts;
+        const { routingKey = undefined, topic = undefined } = localOpts;
         const destination = this._destinationFor({ channel, routingKey, topic });
         client.send(destination, this._connectionHeaders, this._encapsulateContent(message));
         resolve(true);
@@ -134,8 +133,8 @@ class StompClient extends SpaceBunny {
    * @return a promise containing current connection
    */
   connect(opts = {}) {
-    opts = merge(this._connectionOpts, opts);
     return new Promise((resolve, reject) => {
+      // const localOpts = _.merge(this._connectionOpts, opts);
       this.getEndpointConfigs().then((endpointConfigs) => {
         const connectionParams = endpointConfigs.connection;
         if (this.isConnected()) {
@@ -162,7 +161,7 @@ class StompClient extends SpaceBunny {
               client.heartbeat.incoming = 10000;
               client.debug = null;
             }
-            const headers = merge(this._connectionHeaders, {
+            const headers = _.merge(this._connectionHeaders, {
               login: connectionParams.deviceId || connectionParams.client,
               passcode: connectionParams.secret,
               host: connectionParams.vhost

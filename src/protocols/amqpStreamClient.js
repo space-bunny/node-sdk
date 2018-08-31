@@ -5,7 +5,7 @@
  */
 
 // Import some helpers modules
-import merge from 'merge';
+import _ from 'lodash';
 import Promise from 'bluebird';
 import md5 from 'js-md5';
 
@@ -19,7 +19,7 @@ class AmqpStreamClient extends AmqpClient {
    * @constructor
    * @param {Object} opts - options must contain client and secret for access keys
    */
-  constructor(opts) {
+  constructor(opts = {}) {
     super(opts);
     const amqpStreamOptions = CONFIG.amqp.stream;
     this._defaultStreamRoutingKey = amqpStreamOptions.defaultStreamRoutingKey;
@@ -35,7 +35,7 @@ class AmqpStreamClient extends AmqpClient {
    * @param {Object} options - subscription options
    * @return promise containing the result of multiple subscriptions
    */
-  streamFrom(streamHooks = [], opts) {
+  streamFrom(streamHooks = [], opts = {}) {
     if (streamHooks.length > 0) {
       return Promise.mapSeries(streamHooks, (streamHook) => {
         return this._attachStreamHook(streamHook, opts);
@@ -60,17 +60,17 @@ class AmqpStreamClient extends AmqpClient {
    * @param {Object} opts - connection options
    * @return a promise containing current connection
    */
-  _attachStreamHook(streamHook, opts) {
+  _attachStreamHook(streamHook, opts = {}) {
     // Receive messages from imput queue
     return new Promise((resolve, reject) => {
       const {
-        stream = undefined, deviceId = undefined, channel = undefined, topic = undefined
+        stream = undefined, deviceId = undefined, channel = undefined,
+        topic = undefined, routingKey = undefined
       } = streamHook;
       const cache = (typeof (streamHook.cache) !== 'boolean') ? true : streamHook.cache;
       if (stream === undefined && (channel === undefined || deviceId === undefined)) {
         reject(new Error('Missing Stream or Device ID and Channel'));
       }
-      const routingKey = streamHook.routingKey || this._defaultStreamRoutingKey;
       const emptyFunction = function () { return undefined; };
       const callback = streamHook.callback || emptyFunction;
 
@@ -94,7 +94,7 @@ class AmqpStreamClient extends AmqpClient {
                 return this._amqpChannels[`${currentTime}`].consume(tempQueue, (message) => {
                   // Call message callback
                   callback(this._parseContent(message.content), message.fields, message.properties);
-                }, merge(this._subscribeArgs, opts));
+                }, _.merge(this._subscribeArgs, opts));
               });
           } else {
             // Uncached streams are connected to the stream exchange and create a temp queue
@@ -107,7 +107,7 @@ class AmqpStreamClient extends AmqpClient {
             }).then(() => {
               return this._amqpChannels[`${currentTime}`].consume(tempQueue, (message) => {
                 callback(this._parseContent(message.content), message.fields, message.properties);
-              }, merge(this._subscribeArgs, opts));
+              }, _.merge(this._subscribeArgs, opts));
             });
           }
         } else {
@@ -125,14 +125,14 @@ class AmqpStreamClient extends AmqpClient {
           }).then(() => {
             return this._amqpChannels[`${currentTime}`].consume(tempQueue, (message) => {
               callback(this._parseContent(message.content), message.fields, message.properties);
-            }, merge(this._subscribeArgs, opts));
+            }, _.merge(this._subscribeArgs, opts));
           });
         }
         return promisesChain;
       }).then(() => {
         const subscriptionId = md5(tempQueue);
         this._subscriptions[subscriptionId] = { amqpChannel: currentTime };
-        resolve(merge(streamHook, { id: subscriptionId }));
+        resolve(_.merge(streamHook, { id: subscriptionId }));
       }).catch((reason) => {
         reject(reason);
       });
@@ -186,9 +186,13 @@ class AmqpStreamClient extends AmqpClient {
    */
   _streamRoutingKeyFor(params = {}) {
     const {
-      deviceId = undefined, channel = undefined, routingKey = this._defaultStreamRoutingKey, topic = undefined
+      deviceId = undefined, channel = undefined, routingKey = undefined, topic = undefined
     } = params;
-    if (routingKey) {
+    if (_.isEmpty(routingKey) && _.isEmpty(deviceId)) {
+      // if both routingKey and deviceId are empty return default routingKey
+      return this._defaultStreamRoutingKey;
+    } else if (routingKey) {
+      // return routing key if present
       return routingKey;
     } else {
       let streamRoutingKey = deviceId;

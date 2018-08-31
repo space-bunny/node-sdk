@@ -5,7 +5,6 @@
  */
 
 // Import some helpers modules
-import merge from 'merge';
 import Promise from 'bluebird';
 import _ from 'lodash';
 
@@ -24,7 +23,7 @@ class AmqpClient extends SpaceBunny {
    * @param {Object} opts - options must contain Device-Key or connection options
    * (deviceId and secret) for devices.
    */
-  constructor(opts) {
+  constructor(opts = {}) {
     super(opts);
     this._amqpConnection = undefined;
     this._amqpChannels = {};
@@ -46,28 +45,28 @@ class AmqpClient extends SpaceBunny {
    * @param {Object} options - subscription options
    * @return promise containing the result of the subscription
    */
-  onReceive(callback, opts) {
-    opts = merge(this._subscribeArgs, opts);
-    opts.noAck = (opts.ack === null);
+  onReceive(callback, opts = {}) {
     // Receive messages from imput queue
     return new Promise((resolve, reject) => {
-      this._createChannel('input', opts).then((ch) => {
+      const localOpts = _.merge(this._subscribeArgs, opts);
+      localOpts.noAck = (localOpts.ack === null);
+      this._createChannel('input', localOpts).then((ch) => {
         return Promise.all([
           ch.checkQueue(`${this.deviceId()}.${this._inboxTopic}`, this._inputQueueArgs),
           ch.consume(`${this.deviceId()}.${this._inboxTopic}`, (message) => {
             // Create message object
-            const amqpMessage = new AmqpMessage(message, this._deviceId, opts);
-            const ackNeeded = this._autoAck(opts.ack);
+            const amqpMessage = new AmqpMessage(message, this._deviceId, localOpts);
+            const ackNeeded = this._autoAck(localOpts.ack);
             // Check if should be accepted or not
             if (amqpMessage.blackListed()) {
-              if (ackNeeded) { ch.nack(message, opts.allUpTo, opts.requeue); }
+              if (ackNeeded) { ch.nack(message, localOpts.allUpTo, localOpts.requeue); }
               return;
             }
             // Call message callback
             callback(this._parseContent(amqpMessage.content), amqpMessage.fields, amqpMessage.properties);
             // Check if ACK is needed
-            if (ackNeeded) { ch.ack(message, opts.allUpTo); }
-          }, opts)
+            if (ackNeeded) { ch.ack(message, localOpts.allUpTo); }
+          }, localOpts)
         ]);
       }).then((res) => {
         resolve(res);
@@ -137,9 +136,8 @@ class AmqpClient extends SpaceBunny {
    * @return a promise containing current connection
    */
   connect(opts = {}) {
-    let connectionOpts = merge(this._connectionOpts, opts);
-
     return new Promise((resolve, reject) => {
+      let connectionOpts = _.merge(this._connectionOpts, opts);
       this.getEndpointConfigs().then((endpointConfigs) => {
         const connectionParams = endpointConfigs.connection;
         if (this.isConnected()) {
@@ -151,7 +149,7 @@ class AmqpClient extends SpaceBunny {
             connectionString = `${this._tlsProtocol}://${connectionParams.deviceId || connectionParams.client}:`
               + `${connectionParams.secret}@${connectionParams.host}:`
               + `${connectionParams.protocols.amqp.tlsPort}/${connectionParams.vhost.replace('/', '%2f')}`;
-            connectionOpts = merge(connectionOpts, this._tlsOpts);
+            connectionOpts = _.merge(connectionOpts, this._tlsOpts);
           } else {
             connectionString = `${this._protocol}://${connectionParams.deviceId || connectionParams.client}:`
               + `${connectionParams.secret}@${connectionParams.host}:`
