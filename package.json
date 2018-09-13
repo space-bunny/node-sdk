@@ -1,6 +1,6 @@
 {
   "name": "spacebunny",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "description": "NodeJS client library for Space Bunny IoT platform",
   "main": "lib/index.js",
   "scripts": {

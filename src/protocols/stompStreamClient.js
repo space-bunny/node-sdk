@@ -110,7 +110,8 @@ class StompStreamClient extends StompClient {
    */
   _attachStreamHook(streamHook, opts = {}) {
     return new Promise((resolve, reject) => {
-      // const localOpts = _.merge({}, opts);
+      // let localOpts = _.cloneDeep(opts);
+      // localOpts = _.merge({}, localOpts);
       // Receive messages from imput queue
       const {
         stream = undefined, deviceId = undefined, channel = undefined, routingKey = undefined, topic = undefined

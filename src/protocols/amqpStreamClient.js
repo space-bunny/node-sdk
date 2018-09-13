@@ -81,6 +81,8 @@ class AmqpStreamClient extends AmqpClient {
         let promisesChain;
         // if current hook is a stream
         // checks the existence of the stream queue and starts consuming
+        let localOpts = _.cloneDeep(opts);
+        localOpts = _.merge(this._subscribeArgs, localOpts);
         if (stream) {
           if (!this.liveStreamExists(stream)) {
             console.error(`Stream ${stream} does not exist`); // eslint-disable-line no-console
@@ -94,7 +96,7 @@ class AmqpStreamClient extends AmqpClient {
                 return this._amqpChannels[`${currentTime}`].consume(tempQueue, (message) => {
                   // Call message callback
                   callback(this._parseContent(message.content), message.fields, message.properties);
-                }, _.merge(this._subscribeArgs, opts));
+                }, localOpts);
               });
           } else {
             // Uncached streams are connected to the stream exchange and create a temp queue
@@ -107,7 +109,7 @@ class AmqpStreamClient extends AmqpClient {
             }).then(() => {
               return this._amqpChannels[`${currentTime}`].consume(tempQueue, (message) => {
                 callback(this._parseContent(message.content), message.fields, message.properties);
-              }, _.merge(this._subscribeArgs, opts));
+              }, localOpts);
             });
           }
         } else {
@@ -125,7 +127,7 @@ class AmqpStreamClient extends AmqpClient {
           }).then(() => {
             return this._amqpChannels[`${currentTime}`].consume(tempQueue, (message) => {
               callback(this._parseContent(message.content), message.fields, message.properties);
-            }, _.merge(this._subscribeArgs, opts));
+            }, localOpts);
           });
         }
         return promisesChain;
