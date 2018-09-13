@@ -46,7 +46,8 @@ class MqttClient extends SpaceBunny {
   onReceive(callback, opts = {}) {
     // subscribe for input messages
     return new Promise((resolve, reject) => {
-      const localOpts = _.merge({}, opts);
+      let localOpts = _.cloneDeep(opts);
+      localOpts = _.merge({}, localOpts);
       this.connect().then((client) => {
         this._topics[this._topicFor(null, this._inboxTopic)] = localOpts.qos || this._connectionOpts.qos;
         client.subscribe(this._topics, _.merge(this._connectionOpts, localOpts), (err) => {
@@ -80,7 +81,9 @@ class MqttClient extends SpaceBunny {
       this.connect().then((client) => {
         const _sendMessage = () => {
           const bufferedMessage = Buffer.from(this._encapsulateContent(message));
-          client.publish(this._topicFor(null, channel), bufferedMessage, _.merge(this._connectionOpts, opts), () => {
+          let localOpts = _.cloneDeep(opts);
+          localOpts = _.merge(this._connectionOpts, localOpts);
+          client.publish(this._topicFor(null, channel), bufferedMessage, localOpts, () => {
             resolve(true);
           });
         };
@@ -159,7 +162,8 @@ class MqttClient extends SpaceBunny {
    */
   connect(opts = {}) {
     return new Promise((resolve, reject) => {
-      const localOpts = _.merge(this._connectionOpts, opts);
+      let localOpts = _.cloneDeep(opts);
+      localOpts = _.merge(this._connectionOpts, localOpts);
       this.getEndpointConfigs().then((endpointConfigs) => {
         const connectionParams = endpointConfigs.connection;
         if (this._mqttConnection !== undefined) {

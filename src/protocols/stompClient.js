@@ -52,7 +52,8 @@ class StompClient extends SpaceBunny {
   onReceive(callback, opts = {}) {
     // subscribe for input messages
     return new Promise((resolve, reject) => {
-      const localOpts = _.merge({}, opts);
+      let localOpts = _.cloneDeep(opts);
+      localOpts = _.merge({}, localOpts);
       this.connect().then((client) => {
         const topic = this._subcriptionFor(this._existingQueuePrefix, this._inboxTopic);
         const subscriptionCallback = (message) => {
@@ -88,7 +89,8 @@ class StompClient extends SpaceBunny {
   publish(channel, message, opts = {}) {
     // Publish message
     return new Promise((resolve, reject) => {
-      const localOpts = _.merge({}, opts);
+      let localOpts = _.cloneDeep(opts);
+      localOpts = _.merge({}, localOpts);
       this.connect().then((client) => {
         const { routingKey = undefined, topic = undefined } = localOpts;
         const destination = this._destinationFor({ channel, routingKey, topic });
@@ -134,7 +136,8 @@ class StompClient extends SpaceBunny {
    */
   connect(opts = {}) {
     return new Promise((resolve, reject) => {
-      // const localOpts = _.merge(this._connectionOpts, opts);
+      // let localOpts = _.cloneDeep(opts);
+      // localOpts = _.merge(this._connectionOpts, localOpts);
       this.getEndpointConfigs().then((endpointConfigs) => {
         const connectionParams = endpointConfigs.connection;
         if (this.isConnected()) {

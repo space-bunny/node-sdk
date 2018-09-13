@@ -48,7 +48,8 @@ class AmqpClient extends SpaceBunny {
   onReceive(callback, opts = {}) {
     // Receive messages from imput queue
     return new Promise((resolve, reject) => {
-      const localOpts = _.merge(this._subscribeArgs, opts);
+      let localOpts = _.cloneDeep(opts);
+      localOpts = _.merge(this._subscribeArgs, localOpts);
       localOpts.noAck = (localOpts.ack === null);
       this._createChannel('input', localOpts).then((ch) => {
         return Promise.all([
@@ -86,7 +87,8 @@ class AmqpClient extends SpaceBunny {
    */
   publish(channel, message, opts = {}) {
     return new Promise((resolve, reject) => {
-      const localOpts = _.merge(this._publishArgs, opts);
+      let localOpts = _.cloneDeep(opts);
+      localOpts = _.merge(this._publishArgs, localOpts);
       this._createChannel('output', localOpts).then((ch) => {
         const { routingKey = undefined, topic = undefined } = localOpts;
         const promises = [
@@ -137,7 +139,8 @@ class AmqpClient extends SpaceBunny {
    */
   connect(opts = {}) {
     return new Promise((resolve, reject) => {
-      let connectionOpts = _.merge(this._connectionOpts, opts);
+      let connectionOpts = _.cloneDeep(opts);
+      connectionOpts = _.merge(this._connectionOpts, connectionOpts);
       this.getEndpointConfigs().then((endpointConfigs) => {
         const connectionParams = endpointConfigs.connection;
         if (this.isConnected()) {

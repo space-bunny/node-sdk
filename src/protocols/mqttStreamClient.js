@@ -46,7 +46,9 @@ class MqttStreamClient extends MqttClient {
             this._topics[this._streamChannelTopicFor(deviceId, channel)] = qos || this._connectionOpts.qos;
           }
         });
-        mqttClient.subscribe(this._topics, _.merge(this._connectionOpts, opts), (err) => {
+        let localOpts = _.cloneDeep(opts);
+        localOpts = _.merge(this._connectionOpts, localOpts);
+        mqttClient.subscribe(this._topics, localOpts, (err) => {
           if (err) {
             reject(err);
           } else {
