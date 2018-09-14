@@ -47,7 +47,7 @@ class MqttStreamClient extends MqttClient {
           }
         });
         let localOpts = _.cloneDeep(opts);
-        localOpts = _.merge(this._connectionOpts, localOpts);
+        localOpts = _.merge(_.cloneDeep(this._connectionOpts), localOpts);
         mqttClient.subscribe(this._topics, localOpts, (err) => {
           if (err) {
             reject(err);
