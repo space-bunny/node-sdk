@@ -82,7 +82,7 @@ class AmqpStreamClient extends AmqpClient {
         // if current hook is a stream
         // checks the existence of the stream queue and starts consuming
         let localOpts = _.cloneDeep(opts);
-        localOpts = _.merge(this._subscribeArgs, localOpts);
+        localOpts = _.merge(_.cloneDeep(this._subscribeArgs), localOpts);
         if (stream) {
           if (!this.liveStreamExists(stream)) {
             console.error(`Stream ${stream} does not exist`); // eslint-disable-line no-console

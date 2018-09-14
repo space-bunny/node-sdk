@@ -137,7 +137,7 @@ class StompClient extends SpaceBunny {
   connect(opts = {}) {
     return new Promise((resolve, reject) => {
       // let localOpts = _.cloneDeep(opts);
-      // localOpts = _.merge(this._connectionOpts, localOpts);
+      // localOpts = _.merge(_.cloneDeep(this._connectionOpts), localOpts);
       this.getEndpointConfigs().then((endpointConfigs) => {
         const connectionParams = endpointConfigs.connection;
         if (this.isConnected()) {
@@ -164,7 +164,7 @@ class StompClient extends SpaceBunny {
               client.heartbeat.incoming = 10000;
               client.debug = null;
             }
-            const headers = _.merge(this._connectionHeaders, {
+            const headers = _.merge(_.cloneDeep(this._connectionHeaders), {
               login: connectionParams.deviceId || connectionParams.client,
               passcode: connectionParams.secret,
               host: connectionParams.vhost

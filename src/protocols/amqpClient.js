@@ -49,7 +49,7 @@ class AmqpClient extends SpaceBunny {
     // Receive messages from imput queue
     return new Promise((resolve, reject) => {
       let localOpts = _.cloneDeep(opts);
-      localOpts = _.merge(this._subscribeArgs, localOpts);
+      localOpts = _.merge(_.cloneDeep(this._subscribeArgs), localOpts);
       localOpts.noAck = (localOpts.ack === null);
       this._createChannel('input', localOpts).then((ch) => {
         return Promise.all([
@@ -88,7 +88,7 @@ class AmqpClient extends SpaceBunny {
   publish(channel, message, opts = {}) {
     return new Promise((resolve, reject) => {
       let localOpts = _.cloneDeep(opts);
-      localOpts = _.merge(this._publishArgs, localOpts);
+      localOpts = _.merge(_.cloneDeep(this._publishArgs), localOpts);
       this._createChannel('output', localOpts).then((ch) => {
         const { routingKey = undefined, topic = undefined } = localOpts;
         const promises = [
@@ -140,7 +140,7 @@ class AmqpClient extends SpaceBunny {
   connect(opts = {}) {
     return new Promise((resolve, reject) => {
       let connectionOpts = _.cloneDeep(opts);
-      connectionOpts = _.merge(this._connectionOpts, connectionOpts);
+      connectionOpts = _.merge(_.cloneDeep(this._connectionOpts), connectionOpts);
       this.getEndpointConfigs().then((endpointConfigs) => {
         const connectionParams = endpointConfigs.connection;
         if (this.isConnected()) {
@@ -217,6 +217,14 @@ class AmqpClient extends SpaceBunny {
           }
         }).then((ch) => {
           this._amqpChannels[channelName] = ch;
+          this._amqpChannels[channelName].on('error', (err) => {
+            console.error(err);
+            this._amqpChannels[channelName] = undefined;
+          });
+          this._amqpChannels[channelName].on('close', (err) => {
+            console.error(err);
+            this._amqpChannels[channelName] = undefined;
+          });
           resolve(ch);
         }).catch((reason) => {
           reject(reason);
