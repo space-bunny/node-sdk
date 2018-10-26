@@ -10,6 +10,7 @@ import Promise from 'bluebird';
 
 // Import MqttClient main module from which MqttStreamClient inherits
 import MqttClient from './mqttClient';
+import { parseContent } from '../utils';
 
 class MqttStreamClient extends MqttClient {
   /**
@@ -62,7 +63,7 @@ class MqttStreamClient extends MqttClient {
               if (streams.length > 0) {
                 callback = streams[0].callback || emptyFunction;
               }
-              callback(topic, this._parseContent(message));
+              callback(topic, parseContent(message));
             });
             resolve(true);
           }

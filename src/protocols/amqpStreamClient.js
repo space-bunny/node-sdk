@@ -11,6 +11,7 @@ import md5 from 'js-md5';
 
 // Import AmqpClient module from which AmqpStreamClient inherits
 import AmqpClient from './amqpClient';
+import { parseContent } from '../utils';
 
 const { CONFIG } = require('../../config/constants');
 
@@ -95,7 +96,7 @@ class AmqpStreamClient extends AmqpClient {
               .checkQueue(tempQueue, this._streamQueueArguments).then(() => {
                 return this._amqpChannels[`${currentTime}`].consume(tempQueue, (message) => {
                   // Call message callback
-                  callback(this._parseContent(message.content), message.fields, message.properties);
+                  callback(parseContent(message.content), message.fields, message.properties);
                 }, localOpts);
               });
           } else {
@@ -108,7 +109,7 @@ class AmqpStreamClient extends AmqpClient {
               return this._amqpChannels[`${currentTime}`].bindQueue(tempQueue, streamExchange, routingKey);
             }).then(() => {
               return this._amqpChannels[`${currentTime}`].consume(tempQueue, (message) => {
-                callback(this._parseContent(message.content), message.fields, message.properties);
+                callback(parseContent(message.content), message.fields, message.properties);
               }, localOpts);
             });
           }
@@ -126,7 +127,7 @@ class AmqpStreamClient extends AmqpClient {
               }));
           }).then(() => {
             return this._amqpChannels[`${currentTime}`].consume(tempQueue, (message) => {
-              callback(this._parseContent(message.content), message.fields, message.properties);
+              callback(parseContent(message.content), message.fields, message.properties);
             }, localOpts);
           });
         }

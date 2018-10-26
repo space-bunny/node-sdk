@@ -14,6 +14,7 @@ import amqp from 'amqplib';
 // Import SpaceBunny main module from which AmqpClient inherits
 import SpaceBunny from '../spacebunny';
 import AmqpMessage from '../messages/amqpMessage';
+import { encapsulateContent } from '../utils';
 
 const { CONFIG } = require('../../config/constants');
 
@@ -56,7 +57,12 @@ class AmqpClient extends SpaceBunny {
           ch.checkQueue(`${this.deviceId()}.${this._inboxTopic}`, this._inputQueueArgs),
           ch.consume(`${this.deviceId()}.${this._inboxTopic}`, (message) => {
             // Create message object
-            const amqpMessage = new AmqpMessage(message, this._deviceId, localOpts);
+            const amqpMessage = new AmqpMessage({
+              message,
+              receiverId: this._deviceId,
+              subscriptionOpts: localOpts,
+              channel: ch
+            });
             const ackNeeded = this._autoAck(localOpts.ack);
             // Check if should be accepted or not
             if (amqpMessage.blackListed()) {
@@ -64,7 +70,7 @@ class AmqpClient extends SpaceBunny {
               return;
             }
             // Call message callback
-            callback(this._parseContent(amqpMessage.content), amqpMessage.fields, amqpMessage.properties);
+            callback(amqpMessage);
             // Check if ACK is needed
             if (ackNeeded) { ch.ack(message, localOpts.allUpTo); }
           }, localOpts)
@@ -94,7 +100,7 @@ class AmqpClient extends SpaceBunny {
         const promises = [
           ch.checkExchange(this.deviceId()),
           ch.publish(this.deviceId(), this._routingKeyFor({ channel, routingKey, topic }),
-            Buffer.from(this._encapsulateContent(message)), localOpts)
+            Buffer.from(encapsulateContent(message)), localOpts)
         ];
         if (localOpts.withConfirm === true) {
           promises.push(ch.waitForConfirms());
@@ -218,11 +224,11 @@ class AmqpClient extends SpaceBunny {
         }).then((ch) => {
           this._amqpChannels[channelName] = ch;
           this._amqpChannels[channelName].on('error', (err) => {
-            console.error(err);
+            console.error(err); // eslint-disable-line no-console
             this._amqpChannels[channelName] = undefined;
           });
           this._amqpChannels[channelName].on('close', (err) => {
-            console.error(err);
+            console.error(err); // eslint-disable-line no-console
             this._amqpChannels[channelName] = undefined;
           });
           resolve(ch);
