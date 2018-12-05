@@ -11,6 +11,7 @@ import Promise from 'bluebird';
 import _ from 'lodash';
 import urljoin from 'url-join';
 import EventEmitter from 'events';
+import uuid from 'uuid-v4';
 
 // TODO validate enpointConfig object format with Joi
 // import Joi from 'joi';
@@ -219,7 +220,7 @@ class SpaceBunny extends EventEmitter {
   tempQueue(prefix, suffix, currentTime) {
     const timestamp = currentTime || new Date().getTime();
     const deviceId = this._connectionParams.client || this._connectionParams.deviceId;
-    return `${timestamp}-${deviceId}-`
+    return `${uuid()}-${timestamp}-${deviceId}-`
       + `${this.exchangeName(prefix, suffix)}.`
       + `${this._tempQueueSuffix}`;
   }
