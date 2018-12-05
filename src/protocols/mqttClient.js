@@ -13,6 +13,7 @@ import mqtt from 'mqtt';
 
 // Import SpaceBunny main module from which MqttClient inherits
 import SpaceBunny from '../spacebunny';
+import { parseContent, encapsulateContent } from '../utils';
 
 const { CONFIG } = require('../../config/constants');
 
@@ -56,7 +57,7 @@ class MqttClient extends SpaceBunny {
           } else {
             client.on('message', (topic, message) => {
               // TODO filterMine and filterWeb
-              callback(topic, this._parseContent(message));
+              callback(topic, parseContent(message));
             });
             resolve(true);
           }
@@ -80,7 +81,7 @@ class MqttClient extends SpaceBunny {
     return new Promise((resolve, reject) => {
       this.connect().then((client) => {
         const _sendMessage = () => {
-          const bufferedMessage = Buffer.from(this._encapsulateContent(message));
+          const bufferedMessage = Buffer.from(encapsulateContent(message));
           let localOpts = _.cloneDeep(opts);
           localOpts = _.merge(_.cloneDeep(this._connectionOpts), localOpts);
           client.publish(this._topicFor(null, channel), bufferedMessage, localOpts, () => {

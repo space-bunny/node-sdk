@@ -14,6 +14,7 @@ import Stomp from 'stompjs';
 // Import SpaceBunny main module from which StompClient inherits
 import SpaceBunny from '../spacebunny';
 import StompMessage from '../messages/stompMessage';
+import { parseContent, encapsulateContent } from '../utils';
 
 const { CONFIG } = require('../../config/constants');
 
@@ -58,7 +59,7 @@ class StompClient extends SpaceBunny {
         const topic = this._subcriptionFor(this._existingQueuePrefix, this._inboxTopic);
         const subscriptionCallback = (message) => {
           // Create message object
-          const stompMessage = new StompMessage(message, this._deviceId, localOpts);
+          const stompMessage = new StompMessage({ message, receiverId: this._deviceId, subscriptionOpts: localOpts });
           const ackNeeded = this._autoAck(localOpts.ack);
           // Check if should be accepted or not
           if (stompMessage.blackListed()) {
@@ -66,7 +67,7 @@ class StompClient extends SpaceBunny {
             return;
           }
           // Call message callback
-          callback(this._parseContent(stompMessage.body), stompMessage.headers);
+          callback(stompMessage);
           // Check if ACK is needed
           if (ackNeeded) { message.ack(); }
         };
@@ -94,7 +95,7 @@ class StompClient extends SpaceBunny {
       this.connect().then((client) => {
         const { routingKey = undefined, topic = undefined } = localOpts;
         const destination = this._destinationFor({ channel, routingKey, topic });
-        client.send(destination, this._connectionHeaders, this._encapsulateContent(message));
+        client.send(destination, this._connectionHeaders, encapsulateContent(message));
         resolve(true);
       }).catch((reason) => {
         reject(reason);

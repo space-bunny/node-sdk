@@ -11,6 +11,7 @@ import md5 from 'js-md5';
 
 // Import StompClient main module from which StompStreamClient inherits
 import StompClient from './stompClient';
+import { parseContent } from '../utils';
 
 const { CONFIG } = require('../../config/constants');
 
@@ -149,7 +150,7 @@ class StompStreamClient extends StompClient {
         const subscriptionHeaders = {};
         if (tempQueue) { subscriptionHeaders['x-queue-name'] = tempQueue; }
         const messageCallback = (message) => {
-          callback(this._parseContent(message.body), message.headers);
+          callback(parseContent(message.body), message.headers);
         };
         try {
           const subscriptionId = md5(`${tempQueue}-${streamTopic}`);

@@ -1,6 +1,6 @@
 {
   "name": "spacebunny",
-  "version": "0.7.7",
+  "version": "0.7.8",
   "description": "NodeJS client library for Space Bunny IoT platform",
   "main": "lib/index.js",
   "scripts": {
@@ -75,6 +75,7 @@
     "mqtt": "2.18.2",
     "stompjs": "git://github.com/gfoiani/stomp-websocket.git#2.4.0",
     "underscore": "1.9.1",
-    "url-join": "4.0.0"
+    "url-join": "4.0.0",
+    "uuid-v4": "0.1.0"
   }
 }
