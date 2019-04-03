@@ -1,27 +1,24 @@
 {
-  "parser": "babel-eslint",
-  "extends": "eslint-config-airbnb",
+  "extends": "eslint:recommended",
   "env": {
-    "browser": true,
-    "node": true,
-    "mocha": true
+    "es6": true,
+    "node": true
   },
-  "globals": {
-    "chai": true
+  "parser": "babel-eslint",
+  "parserOptions": {
+    "sourceType": "module",
+    "ecmaVersion": 6,
+    "ecmaFeatures": {
+      "impliedStrict": true
+    }
   },
   "rules": {
-    "no-trailing-spaces": [1, { "skipBlankLines": true }],
-    "quotes": [2, "single", "avoid-escape"],
-    "arrow-body-style": 0,
-    "comma-dangle": [2, "never"],
-    "no-unused-vars": [1, {"vars": "all", "args": "after-used"}],
-    "brace-style": [0, "1tbs", {"allowSingleLine": true}],
-    "no-underscore-dangle": 0,
-    "space-in-brackets": 0,
-    "func-names": 0,
-    "no-else-return": 0,
-    "no-param-reassign": 0,
-    "no-reserved-keys": 0,
-    "max-len": [1, 120, 4] # max length per row 120
-  }
+    "no-console": 1,
+    "semi": 2,
+    "no-control-regex": 0,
+    "no-undef": 0,
+    "react/require-default-props": 0
+  },
+  "plugins": [
+  ]
 }

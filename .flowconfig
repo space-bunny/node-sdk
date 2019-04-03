@@ -1,0 +1,24 @@
+[ignore]
+.*/assets/.*
+.*/config/.*
+.*/dist/.*
+.*/docs/.*
+.*/examples/.*
+.*/lib/.*
+.*/node_modules/.*
+.*/public/.*
+.*/package.json
+.*/*.lock
+.*/*.example
+
+[include]
+
+[libs]
+.*/node_modules/.*
+
+[options]
+all=true
+suppress_comment= \\(.\\|\n\\)*\\flowlint-line-ignore
+module.ignore_non_literal_requires=true
+
+[lints]
