@@ -219,12 +219,23 @@ class AmqpClient extends SpaceBunny {
    * @param {Object} opts - channel options
    * @return a promise containing the current channel
    */
-  _createChannel(channelName, opts = {}) {
-    channelName = `${channelName}${(opts.withConfirm === true) ? 'WithConfirm' : ''}`;
+  _createChannel = (channel: string, opts: any = {}): Promise<any> => {
     return new Promise((resolve, reject) => {
+      const { routingKey = undefined, topic = undefined, withConfirm = true } = opts;
+      const suffix = topic || routingKey || '';
+      const channelName = `${channel}${suffix}${(withConfirm === true) ? 'WithConfirm' : ''}`;
       if (this._amqpChannels[channelName]) {
-        resolve(this._amqpChannels[channelName]);
+        if (typeof this._amqpChannels[channelName] === 'boolean') {
+          this.on('channelOpen', (ch) => {
+            if (ch === channelName) {
+              resolve(this._amqpChannels[channelName]);
+            }
+          });
+        } else {
+          resolve(this._amqpChannels[channelName]);
+        }
       } else {
+        this._amqpChannels[channelName] = true;
         this.connect().then((conn) => {
           if (opts.withConfirm === true) {
             return conn.createConfirmChannel();
@@ -233,12 +244,18 @@ class AmqpClient extends SpaceBunny {
           }
         }).then((ch) => {
           this._amqpChannels[channelName] = ch;
+          this.emit('channelOpen', channelName);
           this._amqpChannels[channelName].on('error', (err) => {
-            console.error(err); // eslint-disable-line no-console
+            if (err) {
+              console.error(err); // eslint-disable-line no-console
+            }
+            // TODO close channel in function of error type??
             this._amqpChannels[channelName] = undefined;
           });
           this._amqpChannels[channelName].on('close', (err) => {
-            console.error(err); // eslint-disable-line no-console
+            if (err) {
+              console.error(err); // eslint-disable-line no-console
+            }
             this._amqpChannels[channelName] = undefined;
           });
           resolve(ch);
