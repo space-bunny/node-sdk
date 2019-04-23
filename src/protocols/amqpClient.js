@@ -9,22 +9,32 @@ import Promise from 'bluebird';
 import _ from 'lodash';
 
 // Import amqplib
-import amqp from 'amqplib';
+import * as amqp from 'amqplib';
 
 // Import SpaceBunny main module from which AmqpClient inherits
 import SpaceBunny from '../spacebunny';
 import AmqpMessage from '../messages/amqpMessage';
 import { encapsulateContent } from '../utils';
-
-const { CONFIG } = require('../../config/constants');
+import CONFIG from '../../config/constants';
 
 class AmqpClient extends SpaceBunny {
+
+  _amqpConnection: any;
+  _amqpChannels: any;
+  _protocol: string;
+  _tlsProtocol: string;
+  _inputQueueArgs: any;
+  _deviceExchangeArgs: any;
+  _subscribeArgs: any;
+  _publishArgs: any;
+  _connectionOpts: any;
+
   /**
    * @constructor
    * @param {Object} opts - options must contain Device-Key or connection options
    * (deviceId and secret) for devices.
    */
-  constructor(opts = {}) {
+  constructor(opts: any = {}) {
     super(opts);
     this._amqpConnection = undefined;
     this._amqpChannels = {};
@@ -35,7 +45,7 @@ class AmqpClient extends SpaceBunny {
     this._deviceExchangeArgs = amqpOptions.deviceExchangeArgs;
     this._subscribeArgs = amqpOptions.subscribeArgs;
     this._publishArgs = amqpOptions.publishArgs;
-    this._connectionOpts = amqpOptions.connectionOpts;
+    this._connectionOpts = amqpOptions.connection.opts;
   }
 
   /**
@@ -46,7 +56,7 @@ class AmqpClient extends SpaceBunny {
    * @param {Object} options - subscription options
    * @return promise containing the result of the subscription
    */
-  onReceive(callback, opts = {}) {
+  onReceive = (callback: Function, opts: any = {}): Promise<any> => {
     // Receive messages from imput queue
     return new Promise((resolve, reject) => {
       let localOpts = _.cloneDeep(opts);
@@ -91,7 +101,7 @@ class AmqpClient extends SpaceBunny {
    * @param {Object} opts - publication options
    * @return promise containing the result of the subscription
    */
-  publish(channel, message, opts = {}) {
+  publish = (channel: string, message: any, opts: any = {}): Promise<any> => {
     return new Promise((resolve, reject) => {
       let localOpts = _.cloneDeep(opts);
       localOpts = _.merge(_.cloneDeep(this._publishArgs), localOpts);
@@ -119,7 +129,7 @@ class AmqpClient extends SpaceBunny {
    *
    * @return a promise containing the result of the operation
    */
-  disconnect() {
+  disconnect = (): Promise<any> => {
     return new Promise((resolve, reject) => {
       if (this._amqpConnection === undefined) {
         reject(new Error('Not Connected'));
@@ -143,7 +153,7 @@ class AmqpClient extends SpaceBunny {
    *
    * @return a promise containing current connection
    */
-  connect(opts = {}) {
+  connect = (opts: any = {}): Promise<any> => {
     return new Promise((resolve, reject) => {
       let connectionOpts = _.cloneDeep(opts);
       connectionOpts = _.merge(_.cloneDeep(this._connectionOpts), connectionOpts);
@@ -164,7 +174,7 @@ class AmqpClient extends SpaceBunny {
               + `${connectionParams.secret}@${connectionParams.host}:`
               + `${connectionParams.protocols.amqp.port}/${connectionParams.vhost.replace('/', '%2f')}`;
           }
-          return amqp.connect(connectionString, connectionOpts).then((conn) => {
+          return amqp.connect(connectionString, connectionOpts).then((conn: any) => {
             conn.on('error', (err) => {
               this.emit('error', err);
               reject(err);
@@ -195,7 +205,7 @@ class AmqpClient extends SpaceBunny {
     });
   }
 
-  isConnected() {
+  isConnected = (): boolean => {
     return (this._amqpConnection !== undefined);
   }
 
@@ -246,7 +256,7 @@ class AmqpClient extends SpaceBunny {
    * @param {String} channelName - indicates if the channel is input or output
    * @return a promise containing the result of the operation
    */
-  _closeChannel(channelName, opts = {}) {
+  _closeChannel = (channelName: string, opts: any = {}): Promise<any> => {
     channelName = `${channelName}${(opts.withConfirm === true) ? 'WithConfirm' : ''}`;
     return new Promise((resolve, reject) => {
       const ch = this._amqpChannels[channelName];
@@ -270,17 +280,17 @@ class AmqpClient extends SpaceBunny {
    * @param {Object} params - params
    * @return a string that represents the routing key for that channel
    */
-  _routingKeyFor(params) {
+  _routingKeyFor = (params: any): string => {
     const { channel = undefined, routingKey = undefined, topic = undefined } = params;
     if (routingKey) {
       return routingKey;
     } else {
       let messageRoutingKey = this.deviceId();
       if (!_.isEmpty(channel)) {
-        messageRoutingKey += `.${channel}`;
+        messageRoutingKey += `.${channel || ''}`;
       }
       if (!_.isEmpty(topic)) {
-        messageRoutingKey += `.${topic}`;
+        messageRoutingKey += `.${topic || ''}`;
       }
       return messageRoutingKey;
     }
@@ -293,7 +303,7 @@ class AmqpClient extends SpaceBunny {
    * @param {String} ack - the ack type, it should be 'manual' or 'auto'
    * @return boolean - true if messages have to be autoacked, false otherwise
    */
-  _autoAck(ack) {
+  _autoAck = (ack: string): boolean => {
     if (ack) {
       if (!_.includes(CONFIG[this._protocol].ackTypes, ack)) {
         console.error('Wrong acknowledge type'); // eslint-disable-line no-console

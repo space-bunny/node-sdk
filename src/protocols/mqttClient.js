@@ -14,16 +14,24 @@ import mqtt from 'mqtt';
 // Import SpaceBunny main module from which MqttClient inherits
 import SpaceBunny from '../spacebunny';
 import { parseContent, encapsulateContent } from '../utils';
-
-const { CONFIG } = require('../../config/constants');
+import CONFIG from '../../config/constants';
 
 class MqttClient extends SpaceBunny {
+
+  _topics: any;
+  _mqttConnection: any;
+  _subscription: any;
+  _protocol: string;
+  _tlsOpts: any;
+  _connectionOpts: any;
+  _connectionTimeout: number;
+
   /**
    * @constructor
    * @param {Object} opts - options must contain Device-Key or connection options
    * (deviceId and secret) for devices.
    */
-  constructor(opts = {}) {
+  constructor(opts: any = {}) {
     super(opts);
     this._topics = {};
     this._mqttConnection = undefined;
@@ -44,7 +52,7 @@ class MqttClient extends SpaceBunny {
    * @param {Object} options - subscription options
    * @return promise containing the result of the subscription
    */
-  onReceive = (callback, opts = {}) => {
+  onReceive = (callback: Function, opts: any = {}): Promise<any> => {
     // subscribe for input messages
     return new Promise((resolve, reject) => {
       let localOpts = _.cloneDeep(opts);
@@ -76,7 +84,7 @@ class MqttClient extends SpaceBunny {
    * @param {Object} opts - publication options
    * @return a promise containing the result of the operation
    */
-  publish = (channel, message, opts = {}) => {
+  publish = (channel: string, message: any, opts: any = {}): Promise<any> => {
     // Publish message
     return new Promise((resolve, reject) => {
       this.connect().then((client) => {
@@ -106,7 +114,7 @@ class MqttClient extends SpaceBunny {
    * e.g. { topic_1: 1, topic_2: 0 }
    * @return a promise containing the result of the operation
    */
-  unsubscribe = (topics) => {
+  unsubscribe = (topics: any): Promise<any> => {
     return new Promise((resolve, reject) => {
       try {
         if (_.isEmpty(topics)) {
@@ -127,7 +135,7 @@ class MqttClient extends SpaceBunny {
    *
    * @return a promise containing the result of the operation
    */
-  disconnect = () => {
+  disconnect = (): Promise<any> => {
     return new Promise((resolve, reject) => {
       if (this._mqttConnection === undefined) {
         reject(new Error('Invalid connection'));
@@ -161,7 +169,7 @@ class MqttClient extends SpaceBunny {
    * @param {Object} opts - connection options
    * @return a promise containing current connection
    */
-  connect = (opts = {}) => {
+  connect = (opts: any = {}): Promise<any> => {
     return new Promise((resolve, reject) => {
       let localOpts = _.cloneDeep(opts);
       localOpts = _.merge(_.cloneDeep(this._connectionOpts), localOpts);
@@ -221,7 +229,7 @@ class MqttClient extends SpaceBunny {
    * @param {String} channel - channel name on which you want to publish a message
    * @return a string that represents the topic name for that channel
    */
-  _topicFor = (deviceId, channel) => {
+  _topicFor = (deviceId: string|void|null, channel: string) => {
     return `${deviceId || this.deviceId()}/${channel}`;
   }
 }

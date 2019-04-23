@@ -1,6 +1,4 @@
-'use strict';
-
-exports.CONFIG = {
+const CONFIG = {
   endpoint: {
     protocol: 'http',
     secureProtocol: 'https',
@@ -24,6 +22,9 @@ exports.CONFIG = {
     tls: {
       protocol: 'amqps'
     },
+    connection: {
+      opts: {}
+    },
     inputQueueArgs: {},
     deviceExchangeArgs: {},
     subscribeArgs: { noAck: true, requeue: false, allUpTo: false },
@@ -43,6 +44,9 @@ exports.CONFIG = {
     connection: {
       opts: { qos: 1 },
       timeout: 5000
+    },
+    stream: {
+      defaultStreamRoutingKey: '#'
     }
   },
   stomp: {
@@ -73,3 +77,5 @@ exports.CONFIG = {
     }
   }
 };
+
+export default CONFIG;

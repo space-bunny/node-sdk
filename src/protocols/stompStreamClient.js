@@ -12,15 +12,19 @@ import md5 from 'js-md5';
 // Import StompClient main module from which StompStreamClient inherits
 import StompClient from './stompClient';
 import { parseContent } from '../utils';
-
-const { CONFIG } = require('../../config/constants');
+import CONFIG from '../../config/constants';
 
 class StompStreamClient extends StompClient {
+
+  _subscriptions: any;
+  _defaultResource: string;
+  _defaultPattern: string;
+
   /**
    * @constructor
    * @param {Object} opts - options must contain client and secret for access keys
    */
-  constructor(opts = {}) {
+  constructor(opts: any = {}) {
     super(opts);
     this._subscriptions = {};
     const stompStreamOpts = CONFIG.stomp.stream;
@@ -36,7 +40,7 @@ class StompStreamClient extends StompClient {
    * @param {Object} options - subscription options
    * @return promise containing the result of multiple subscriptions
    */
-  streamFrom(streamHooks = [], opts = {}) {
+  streamFrom = (streamHooks: Array<any> = [], opts: any= {}): Promise<any> => {
     if (streamHooks.length > 0) {
       return Promise.mapSeries(streamHooks, (streamHook) => {
         return this._attachStreamHook(streamHook, opts);
@@ -52,13 +56,13 @@ class StompStreamClient extends StompClient {
    * @param {String} subscriptionId - subscription ID
    * @return a promise containing the result of the operation
    */
-  unsubscribe(subscriptionId = undefined) {
+  unsubscribe = (subscriptionId: string): Promise<any> => {
     return new Promise((resolve, reject) => {
       if (!this.isConnected()) {
         reject(new Error('Invalid connection'));
       } else {
         const subscription = this._subscriptions[subscriptionId];
-        if (subscription) {
+        if (!_.isEmpty(subscription)) {
           subscription.unsubscribe();
           delete this._subscriptions[subscriptionId];
           resolve(true);
@@ -74,7 +78,7 @@ class StompStreamClient extends StompClient {
    *
    * @return a promise containing the result of the operation
    */
-  disconnect() {
+  disconnect = (): Promise<any> => {
     return new Promise((resolve, reject) => {
       if (!this.isConnected()) {
         reject(new Error('Invalid connection'));
@@ -109,7 +113,7 @@ class StompStreamClient extends StompClient {
    * @param {Object} opts - connection options
    * @return a promise containing current connection
    */
-  _attachStreamHook(streamHook, opts = {}) {
+  _attachStreamHook = (streamHook: any, opts: any = {}): Promise<any> => {
     return new Promise((resolve, reject) => {
       // let localOpts = _.cloneDeep(opts);
       // localOpts = _.merge({}, localOpts);
@@ -125,7 +129,7 @@ class StompStreamClient extends StompClient {
       }
       this.connect().then((client) => {
         let streamTopic;
-        let tempQueue;
+        let tempQueue = '';
         if (stream) {
           if (!this.liveStreamExists(stream)) {
             console.error(`Stream ${stream} does not exist`); // eslint-disable-line no-console
@@ -181,12 +185,12 @@ class StompStreamClient extends StompClient {
    * @param {String} routingKey - binding pattern
    * @return a string that represents the topic name for that channel
    */
-  _streamChannelTopicFor(params = {}) {
+  _streamChannelTopicFor = (params: any = {}) => {
     const {
       deviceId = undefined, channel = undefined, type = this._defaultResource,
       routingKey = this._defaultPattern, topic = undefined
     } = params;
-    let resource = deviceId;
+    let resource = deviceId || '';
     if (channel) {
       resource += `.${channel}`;
     }
@@ -207,11 +211,11 @@ class StompStreamClient extends StompClient {
    * @param {String} type - resource type on which subscribe or publish [exchange/queue]
    * @return a string that represents the topic name for that channel
    */
-  _cachedStreamTopicFor(params = {}) {
+  _cachedStreamTopicFor = (params: any = {}) => {
     const {
       stream = undefined, type = this._existingQueuePrefix
     } = params;
-    const topic = stream;
+    const topic = stream || '';
     return `/${type}/${topic}.${this._liveStreamSuffix}`;
   }
 
@@ -224,19 +228,19 @@ class StompStreamClient extends StompClient {
    * @param {String} routingKey - binding pattern
    * @return a string that represents the topic name for that channel
    */
-  _streamTopicFor(params = {}) {
+  _streamTopicFor = (params: any = {}) => {
     const {
       stream = undefined, type = this._defaultResource, routingKey = this._defaultPattern
     } = params;
-    const resource = stream;
+    const resource = stream || '';
     return `/${type}/${resource}.${this._liveStreamSuffix}/${routingKey}`;
   }
 }
 
 // Remove unwnated methods inherited from StompClient
-delete StompStreamClient.onReceive;
-delete StompStreamClient.publish;
-delete StompStreamClient._subcriptionFor;
-delete StompStreamClient._destinationFor;
+delete StompStreamClient.prototype.onReceive;
+delete StompStreamClient.prototype.publish;
+delete StompStreamClient.prototype._subcriptionFor;
+delete StompStreamClient.prototype._destinationFor;
 
 export default StompStreamClient;
