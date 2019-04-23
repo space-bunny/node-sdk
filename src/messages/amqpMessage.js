@@ -2,32 +2,46 @@
  * A wrapper for the message object
  * @module Message
  */
+import _ from 'lodash';
 import { parseContent } from '../utils';
-
-const { CONFIG } = require('../../config/constants');
+import CONFIG from '../../config/constants';
 
 class AmqpMessage {
+
+  message: any;
+  content: any;
+  fields: any;
+  properties: any;
+  channel: any;
+  senderId: string;
+  channelName: string
+  _receiverId: string;
+  _discardMine: boolean;
+  _discardFromApi: boolean;
+
   /**
    * @constructor
    * @param {Object} message - the message received from the channel
    * @param {String} receiverId - the receiver id
    * @param {Object} opts - subscription options
    */
-  constructor(opts = {}) {
+  constructor(opts: any = {}) {
     const {
       message = undefined, receiverId = undefined, channel = undefined, subscriptionOpts = {}
     } = opts;
     this.message = message;
-    this.content = parseContent(message.content);
-    this.fields = message.fields;
-    this.properties = message.properties;
+    this.content = parseContent(_.get(message, 'content', {}));
+    this.fields = _.get(message, 'fields', {});
+    this.properties = _.get(message, 'properties', {});
     this.channel = channel;
     try {
-      [this.senderId, this.channelName] = this.fields.routingKey.split('.');
+      const [senderId, channelName] = this.fields.routingKey.split('.');
+      this.senderId = senderId;
+      this.channelName = channelName;
     } catch (ex) {
       console.error('Wrong routing key format'); // eslint-disable-line no-console
     }
-    this._receiverId = receiverId;
+    this._receiverId = receiverId || '';
     this._discardMine = subscriptionOpts.discardMine || false;
     this._discardFromApi = subscriptionOpts.discardFromApi || false;
   }
@@ -37,7 +51,7 @@ class AmqpMessage {
    *
    * @return Boolean - true if should be not considered, false otherwise
    */
-  blackListed() {
+  blackListed = () => {
     if (this._discardMine && this._receiverId === this.senderId && !this.fromApi()) return true;
     if (this._discardFromApi && this.fromApi()) return true;
     return false;
@@ -49,16 +63,16 @@ class AmqpMessage {
    *
    * @return Boolean - true if it comes from API, false otherwise
    */
-  fromApi() {
+  fromApi = () => {
     return (this.properties.headers && this.properties.headers[CONFIG.fromApiHeader]);
   }
 
-  ack(opts = {}) {
+  ack = (opts: any = {}) => {
     const { allUpTo = false } = opts;
     this.channel.nack(this.message, allUpTo);
   }
 
-  nack(opts = {}) {
+  nack = (opts: any = {}) => {
     const { allUpTo = false, requeue = true } = opts;
     this.channel.nack(this.message, allUpTo, requeue);
   }

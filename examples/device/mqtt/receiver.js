@@ -1,4 +1,4 @@
-var MqttClient = require('spacebunny').MqttClient;
+var MqttClient = require('../../../lib/index').MqttClient;
 
 var messageCallback = function(topic, message) {
   console.log(topic + ':' + message);  // eslint-disable-line no-console

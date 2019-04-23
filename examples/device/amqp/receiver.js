@@ -1,5 +1,5 @@
 'use strict';
-var AmqpClient = require('spacebunny').AmqpClient;
+var AmqpClient = require('../../../lib/index').AmqpClient;
 
 // callback called whan a message is received
 var messageCallback = function(content, field, properties) {

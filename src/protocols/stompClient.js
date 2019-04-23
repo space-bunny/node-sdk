@@ -14,21 +14,30 @@ import Stomp from 'stompjs';
 // Import SpaceBunny main module from which StompClient inherits
 import SpaceBunny from '../spacebunny';
 import StompMessage from '../messages/stompMessage';
-import { parseContent, encapsulateContent } from '../utils';
-
-const { CONFIG } = require('../../config/constants');
+import { encapsulateContent } from '../utils';
+import CONFIG from '../../config/constants';
 
 class StompClient extends SpaceBunny {
+
+  _stompConnection: any;
+  _subscription: any;
+  _protocol: string;
+  _webSocketOpts: any;
+  _connectionHeaders: any;
+  _connectionOpts: any;
+  _existingQueuePrefix: string;
+  _defaultResource: string;
+
   /**
    * @constructor
    * @param {Object} opts - options must contain Device-Key or connection options
    * (deviceId and secret) for devices.
    */
-  constructor(opts = {}) {
+  constructor(opts: any = {}) {
     super(opts);
     this._stompConnection = undefined;
     this._subscription = undefined;
-    if (typeof process === 'object' && `${process}` === '[object process]') {
+    if (typeof process === 'object' && `${process.toString()}` === '[object process]') {
       this._protocol = 'stomp';
     } else {
       this._protocol = 'webStomp';
@@ -50,7 +59,7 @@ class StompClient extends SpaceBunny {
    * @param {Object} options - subscription options
    * @return promise containing the result of the subscription
    */
-  onReceive(callback, opts = {}) {
+  onReceive = (callback: Function, opts: any = {}): Promise<any> => {
     // subscribe for input messages
     return new Promise((resolve, reject) => {
       let localOpts = _.cloneDeep(opts);
@@ -87,7 +96,7 @@ class StompClient extends SpaceBunny {
    * @param {Object} opts - publication options
    * @return a promise containing the result of the operation
    */
-  publish(channel, message, opts = {}) {
+  publish = (channel: string, message: any, opts: any = {}): Promise<any> => {
     // Publish message
     return new Promise((resolve, reject) => {
       let localOpts = _.cloneDeep(opts);
@@ -108,7 +117,7 @@ class StompClient extends SpaceBunny {
    *
    * @return a promise containing the result of the operation
    */
-  disconnect() {
+  disconnect = (): Promise<any> => {
     return new Promise((resolve, reject) => {
       if (!this.isConnected()) {
         reject(new Error('Invalid connection'));
@@ -135,7 +144,7 @@ class StompClient extends SpaceBunny {
    * @param {Object} opts - connection options
    * @return a promise containing current connection
    */
-  connect(opts = {}) {
+  connect = (opts: any = {}): Promise<any> => {
     return new Promise((resolve, reject) => {
       // let localOpts = _.cloneDeep(opts);
       // localOpts = _.merge(_.cloneDeep(this._connectionOpts), localOpts);
@@ -146,7 +155,7 @@ class StompClient extends SpaceBunny {
         } else {
           try {
             let client;
-            if (typeof process === 'object' && `${process}` === '[object process]') {
+            if (typeof process === 'object' && `${process.toString()}` === '[object process]') {
               // code is runnning in nodejs: STOMP uses TCP sockets
               if (this._tls) {
                 client = Stomp.overTCP(connectionParams.host, connectionParams.protocols.stomp.tlsPort, this._tlsOpts);
@@ -193,7 +202,7 @@ class StompClient extends SpaceBunny {
     });
   }
 
-  isConnected() {
+  isConnected = () => {
     return (this._stompConnection !== undefined && this._stompConnection.connected);
   }
 
@@ -207,7 +216,7 @@ class StompClient extends SpaceBunny {
    * @param {String} channel - channel name on which you want to publish a message
    * @return a string that represents the topic name for that channel
    */
-  _subcriptionFor(type, channel) {
+  _subcriptionFor = (type: string, channel: string) => {
     return `/${type}/${this.deviceId()}.${channel}`;
   }
 
@@ -219,7 +228,7 @@ class StompClient extends SpaceBunny {
    * @param {String} channel - channel name on which you want to publish a message
    * @return a string that represents the topic name for that channel
    */
-  _destinationFor(params = {}) {
+  _destinationFor = (params: any = {}) => {
     const {
       type = this._defaultResource, channel = undefined, topic = undefined, routingKey = undefined
     } = params;
@@ -229,10 +238,10 @@ class StompClient extends SpaceBunny {
     } else {
       messageRoutingKey = this.deviceId();
       if (!_.isEmpty(channel)) {
-        messageRoutingKey += `.${channel}`;
+        messageRoutingKey += `.${channel || ''}`;
       }
       if (!_.isEmpty(topic)) {
-        messageRoutingKey += `.${topic}`;
+        messageRoutingKey += `.${topic || ''}`;
       }
     }
     return `/${type}/${this.deviceId()}/${messageRoutingKey}`;
@@ -247,7 +256,7 @@ class StompClient extends SpaceBunny {
    * @param {String} ack - the ack type, it should be 'client' or null
    * @return boolean - true if messages have to be autoacked, false otherwise
    */
-  _autoAck(ack) {
+  _autoAck = (ack: string) => {
     if (ack) {
       if (!_.includes(CONFIG[this._protocol].ackTypes, ack)) {
         console.error('Wrong acknowledge type'); // eslint-disable-line no-console

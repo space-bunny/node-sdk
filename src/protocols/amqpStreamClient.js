@@ -12,15 +12,19 @@ import md5 from 'js-md5';
 // Import AmqpClient module from which AmqpStreamClient inherits
 import AmqpClient from './amqpClient';
 import { parseContent } from '../utils';
-
-const { CONFIG } = require('../../config/constants');
+import CONFIG from '../../config/constants';
 
 class AmqpStreamClient extends AmqpClient {
+
+  _defaultStreamRoutingKey: string;
+  _streamQueueArguments: any;
+  _subscriptions: any;
+
   /**
    * @constructor
    * @param {Object} opts - options must contain client and secret for access keys
    */
-  constructor(opts = {}) {
+  constructor(opts: any = {}) {
     super(opts);
     const amqpStreamOptions = CONFIG.amqp.stream;
     this._defaultStreamRoutingKey = amqpStreamOptions.defaultStreamRoutingKey;
@@ -36,7 +40,7 @@ class AmqpStreamClient extends AmqpClient {
    * @param {Object} options - subscription options
    * @return promise containing the result of multiple subscriptions
    */
-  streamFrom(streamHooks = [], opts = {}) {
+  streamFrom = (streamHooks: Array<any> = [], opts:any = {}): Promise<any> => {
     if (streamHooks.length > 0) {
       return Promise.mapSeries(streamHooks, (streamHook) => {
         return this._attachStreamHook(streamHook, opts);
@@ -61,7 +65,7 @@ class AmqpStreamClient extends AmqpClient {
    * @param {Object} opts - connection options
    * @return a promise containing current connection
    */
-  _attachStreamHook(streamHook, opts = {}) {
+  _attachStreamHook = (streamHook: any, opts: any = {}): Promise<any> => {
     // Receive messages from imput queue
     return new Promise((resolve, reject) => {
       const {
@@ -148,13 +152,13 @@ class AmqpStreamClient extends AmqpClient {
    * @param {String} subscriptionId - subscription ID
    * @return a promise containing the result of the operation
    */
-  unsubscribe(subscriptionId = undefined) {
+  unsubscribe = (subscriptionId: string = ''): Promise<any> => {
     return new Promise((resolve, reject) => {
       if (!this.isConnected()) {
         reject(new Error('Invalid connection'));
       } else {
         const subscription = this._subscriptions[subscriptionId];
-        if (subscription) {
+        if (!_.isEmpty(subscription)) {
           const { amqpChannel } = subscription;
           if (this._amqpChannels[amqpChannel]) {
             this._amqpChannels[amqpChannel].close();
@@ -176,7 +180,7 @@ class AmqpStreamClient extends AmqpClient {
    * @param {String} streamName - stream name from which you want to stream
    * @return a string that represents the stream queue
    */
-  _cachedStreamQueue(streamName) {
+  _cachedStreamQueue = (streamName: string) => {
     return `${streamName}.${this._liveStreamSuffix}`;
   }
 
@@ -187,18 +191,18 @@ class AmqpStreamClient extends AmqpClient {
    * @param {Object} params - params
    * @return a string that represents the rounting key
    */
-  _streamRoutingKeyFor(params = {}) {
+  _streamRoutingKeyFor = (params: any = {}) => {
     const {
       deviceId = undefined, channel = undefined, routingKey = undefined, topic = undefined
     } = params;
     if (_.isEmpty(routingKey) && _.isEmpty(deviceId)) {
       // if both routingKey and deviceId are empty return default routingKey
       return this._defaultStreamRoutingKey;
-    } else if (routingKey) {
+    } else if (!_.isEmpty(routingKey)) {
       // return routing key if present
       return routingKey;
     } else {
-      let streamRoutingKey = deviceId;
+      let streamRoutingKey = deviceId || '';
       if (channel) { streamRoutingKey += `.${channel}`; }
       if (topic) { streamRoutingKey += `.${topic}`; }
       return `${streamRoutingKey}`;
@@ -207,8 +211,8 @@ class AmqpStreamClient extends AmqpClient {
 }
 
 // Remove unwanted methods inherited from AmqpClient
-delete AmqpStreamClient.onReceive;
-delete AmqpStreamClient.publish;
-delete AmqpStreamClient._routingKeyFor;
+delete AmqpStreamClient.prototype.onReceive;
+delete AmqpStreamClient.prototype.publish;
+delete AmqpStreamClient.prototype._routingKeyFor;
 
 export default AmqpStreamClient;

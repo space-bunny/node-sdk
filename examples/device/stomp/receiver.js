@@ -1,4 +1,4 @@
-var StompClient = require('spacebunny').StompClient;
+var StompClient = require('../../../lib/index').StompClient;
 
 var messageCallback = function(content, headers) {
   console.log(content);  // eslint-disable-line no-console

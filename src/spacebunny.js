@@ -16,14 +16,34 @@ import uuid from 'uuid-v4';
 // TODO validate enpointConfig object format with Joi
 // import Joi from 'joi';
 
-const { CONFIG } = require('../config/constants');
+import CONFIG from '../config/constants';
 
 /**
  * @constructor
  * @param {Object} opts - constructor options may contain Device-Key or connection options
  */
 class SpaceBunny extends EventEmitter {
-  constructor(opts = {}) {
+
+  _connectionParams: any;
+  _endpointConfigs: any;
+  _endpoint: any;
+  _deviceKey: string;
+  _channels: any;
+  _deviceId: string;
+  _client: string;
+  _secret: string;
+  _host: string;
+  _port: number;
+  _vhost: string;
+  _protocol: string;
+  _inboxTopic: string;
+  _liveStreamSuffix: string;
+  _tempQueueSuffix: string;
+  _liveStreams: any;
+  _tls: boolean;
+  _tlsOpts: any;
+
+  constructor(opts: any = {}) {
     super();
     this._connectionParams = _.merge({}, humps.camelizeKeys(opts));
     this._endpointConfigs = undefined;
@@ -71,7 +91,7 @@ class SpaceBunny extends EventEmitter {
    *
    * @return an Object containing the connection parameters
    */
-  getEndpointConfigs() {
+  getEndpointConfigs = (): Promise<any> => {
     return new Promise((resolve, reject) => {
       // Resolve with configs if already retrieved
       if (this._endpointConfigs !== undefined || this.isConnected()) {
@@ -160,10 +180,12 @@ class SpaceBunny extends EventEmitter {
     });
   }
 
+  isConnected = (): boolean => { return false; }
+
   /**
    * @return all channels configured for the current device
    */
-  channels() {
+  channels = () => {
     if (this._endpointConfigs.channels) {
       this._channels = this._endpointConfigs.channels.map((obj) => {
         return obj.name;
@@ -177,7 +199,7 @@ class SpaceBunny extends EventEmitter {
   /**
    * @return the device ID for the current device
    */
-  deviceId() {
+  deviceId = () => {
     this._deviceId = this._deviceId || this._connectionParams.deviceId;
     return this._deviceId;
   }
@@ -188,7 +210,7 @@ class SpaceBunny extends EventEmitter {
    * @param {String} streamName - stream name
    * @return the stream ID which corresponds to the input stream name
    */
-  liveStreamByName(streamName) {
+  liveStreamByName = (streamName: string) => {
     const liveStreams = _.filter(this._liveStreams, (stream) => { return stream.name === streamName; });
     if (liveStreams.length > 0) {
       return liveStreams[0].name || streamName;
@@ -203,7 +225,10 @@ class SpaceBunny extends EventEmitter {
    * @param {String} streamName - stream name
    * @return true if stream exists, false otherwise
    */
-  liveStreamExists(streamName) {
+  liveStreamExists = (streamName: string = '') => {
+    if (_.isEmpty(streamName)) {
+      return false;
+    }
     const liveStreams = _.filter(this._liveStreams, (stream) => { return stream.name === streamName; });
     return (liveStreams.length > 0);
   }
@@ -217,7 +242,7 @@ class SpaceBunny extends EventEmitter {
    * @param {Numeric} currentTime - current timestamp
    * @return a string that represents the topic name for that channel
    */
-  tempQueue(prefix, suffix, currentTime) {
+  tempQueue = (prefix: string = '', suffix: string = '', currentTime: number|void = undefined) => {
     const timestamp = currentTime || new Date().getTime();
     const deviceId = this._connectionParams.client || this._connectionParams.deviceId;
     return `${uuid()}-${timestamp}-${deviceId}-`
@@ -233,8 +258,8 @@ class SpaceBunny extends EventEmitter {
    * @param {String} suffix - It could be a channel name or a the default stream suffix (live_stream)
    * @return a string that represents the complete exchange name
    */
-  exchangeName(prefix, suffix) {
-    return (prefix && suffix) ? `${this.liveStreamByName(prefix)}.${suffix}` : `${suffix}`;
+  exchangeName = (prefix: string = '', suffix: string = '') => {
+    return (!_.isEmpty(prefix) && !_.isEmpty(suffix)) ? `${this.liveStreamByName(prefix)}.${suffix}` : `${suffix}`;
   }
 
   // ------------ PRIVATE METHODS -------------------
@@ -245,7 +270,7 @@ class SpaceBunny extends EventEmitter {
    * @private
    * @return the string representing the endpoint url
    */
-  _generateHostname() {
+  _generateHostname = () => {
     if (this._endpoint.url) {
       return this._endpoint.url;
     }
