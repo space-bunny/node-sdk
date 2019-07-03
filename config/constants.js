@@ -42,7 +42,7 @@ const CONFIG = {
       rejectUnauthorized: true
     },
     connection: {
-      opts: { qos: 1 },
+      opts: { qos: 1, clean: true },
       timeout: 5000
     },
     stream: {

@@ -57,7 +57,7 @@ class MqttClient extends SpaceBunny {
     return new Promise((resolve, reject) => {
       let localOpts = _.cloneDeep(opts);
       localOpts = _.merge({}, localOpts);
-      this.connect().then((client) => {
+      this.connect(localOpts).then((client) => {
         this._topics[this._topicFor(null, this._inboxTopic)] = localOpts.qos || this._connectionOpts.qos;
         client.subscribe(this._topics, _.merge(_.cloneDeep(this._connectionOpts), localOpts), (err) => {
           if (err) {
@@ -87,7 +87,9 @@ class MqttClient extends SpaceBunny {
   publish = (channel: string, message: any, opts: any = {}): Promise<any> => {
     // Publish message
     return new Promise((resolve, reject) => {
-      this.connect().then((client) => {
+      let localOpts = _.cloneDeep(opts);
+      localOpts = _.merge({}, localOpts);
+      this.connect(localOpts).then((client) => {
         const _sendMessage = () => {
           const bufferedMessage = Buffer.from(encapsulateContent(message));
           let localOpts = _.cloneDeep(opts);
@@ -185,7 +187,9 @@ class MqttClient extends SpaceBunny {
               username: `${connectionParams.vhost}:${connectionParams.deviceId || connectionParams.client}`,
               password: connectionParams.secret,
               clientId: connectionParams.deviceId || connectionParams.client,
-              connectionTimeout: localOpts.connectionTimeout || this._connectionTimeout
+              connectionTimeout: localOpts.connectionTimeout || this._connectionTimeout,
+              clean: localOpts.clean,
+              ...localOpts
             };
             if (this._tls) {
               mqttConnectionParams = _.merge(mqttConnectionParams, this._tlsOpts);
