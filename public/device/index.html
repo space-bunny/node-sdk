@@ -36,8 +36,8 @@
       </div>
       <div class="small-2 columns">
         <label for="tls">TLS</label>
-        <input type="radio" name="tls" id="tls" value="false" checked>No
-        <input type="radio" name="tls" id="tls" value="true">Yes
+        <input type="radio" name="tls" id="tls" value="false">No
+        <input type="radio" name="tls" id="tls" value="true" checked>Yes
       </div>
       <div class="small-3 columns">
         <button type="button" name="connect-button" id="connect-button" class="small success">Connect</button>
@@ -74,7 +74,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/foundation/5.5.2/js/foundation.min.js"></script>
     <!-- The SpaceBunny library -->
-    <script src="/lib/spacebunny.js"></script>
+    <script src="/lib/spacebunny.var.js"></script>
     <script>
       $(document).ready(function() {
         var webStompClient = undefined;
@@ -112,7 +112,7 @@
         }
 
         var messageCallback = function(content, headers) {
-          $('#messages').append('<pre>' + htmlEntities(content) + '</pre>');
+          $('#messages').append('<pre>' + htmlEntities(content.content) + '</pre>');
         };
         if(window.WebSocket) {
 

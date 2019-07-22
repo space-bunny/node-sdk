@@ -2,6 +2,7 @@ import path from 'path';
 import webpack from 'webpack';
 import WebpackMd5Hash from 'webpack-md5-hash';
 import minimist from 'minimist';
+import _ from 'lodash';
 
 const env = process.env.NODE_ENV || 'production';
 
@@ -18,18 +19,19 @@ const GLOBALS = {
   __DEV__: false,
 };
 
-module.exports = {
+const baseConfig = {
   resolve: {
     modules: [__dirname, 'node_modules'],
     extensions: ['.js']
   },
   entry: { 'spacebunny': './src/index.js' },
-  // target: 'node',
+  target: 'node',
   output: {
     path: outputPath,
     filename: '[name].js',
-    // library: '[name]',
-    // libraryTarget: 'umd',
+    library: '[name]',
+    libraryTarget: 'umd',
+    globalObject: 'this',
   },
   devtool: 'source-map',
   // devtool: 'nosources-source-map',
@@ -89,3 +91,13 @@ module.exports = {
     { '../build/default/validation': 'commonjs ../build/default/validation' },
   ]
 };
+
+const nodejsConfig = _.cloneDeep(baseConfig);
+nodejsConfig.target = 'node';
+nodejsConfig.output.filename = '[name].js';
+
+const browserConfig = _.cloneDeep(baseConfig);
+browserConfig.target = 'web';
+browserConfig.output.filename = '[name].var.js';
+
+export default [nodejsConfig, browserConfig];
