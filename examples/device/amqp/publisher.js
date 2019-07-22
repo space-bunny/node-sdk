@@ -1,5 +1,4 @@
-var _ = require('underscore');
-var AmqpClient = require('spacebunny').AmqpClient;
+const AmqpClient = require('../../../lib/spacebunny').AmqpClient;
 
 // Prerequisites: you have created a device through the Space Bunny's web interface. You also have a 'data' channel (name
 // is not mandatory, but we'll use this for our example). You have also enabled 'data' channel for the device. See our
@@ -9,10 +8,10 @@ var AmqpClient = require('spacebunny').AmqpClient;
 // go to devices section and create or pick an existing device. Click on the 'SHOW CONFIGURATION' link, copy the Device-Key
 // and substitute it here:
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
-var connectionParams = { deviceKey: 'your-device-key' };
+const connectionParams = { deviceKey: 'your-device-key' };
 
 // You can also provide full manual configuration
-// var connectionParams = {
+// const connectionParams = {
 //   deviceId: 'device-id',
 //   secret: 'device-secret',
 //   host: 'hostname',
@@ -23,7 +22,7 @@ var connectionParams = { deviceKey: 'your-device-key' };
 
 // If you want to connecto using a secure channel, you must enable tls
 // and provide the client certificate path
-// var connectionParams = {
+// const connectionParams = {
 //   deviceKey: 'your-device-key',
 //   tls: true,
 //   ca: '/path/to/ca_certificate.pem',
@@ -33,19 +32,19 @@ var connectionParams = { deviceKey: 'your-device-key' };
 
 // Let's instantiate a Space Bunny AMQP client, providing the Device-Key, that's the fastest and simplest method
 // to create a new client.
-var amqpClient = new AmqpClient(connectionParams);
+const amqpClient = new AmqpClient(connectionParams);
 
-var disconnect = function() {
-  amqpClient.disconnect().then(function(res) {
-    console.log('Bye Bye.');
+const disconnect = () => {
+  amqpClient.disconnect().then(() => {
+    console.log('Bye Bye.');  // eslint-disable-line no-console
     process.exit(0);
-  }).catch(function(reason) {
+  }).catch((reason) => {
     console.error(reason);  // eslint-disable-line no-console
     process.exit(1);
   });
-}
+};
 
-process.once('SIGINT', function() { disconnect(); });
+process.once('SIGINT', () => { disconnect(); });
 
 // At this point the SDK is auto-configured and ready to use.
 // Configurations are automatically lazy-fetched by the SDK itself and the connection
@@ -62,20 +61,20 @@ process.once('SIGINT', function() { disconnect(); });
 // on format or content of payload.
 
 // Publish one message every second for a minute.
-_(60).times(function(n) {
+for (let n = 0; n < 60; n++) {
 
     // 'publish' takes two mandatory arguments (channel's name and payload) and a variety of options: one of these options is
     // the 'withConfirm' flag: when set to true this requires Space Bunny's platform to confirm the receipt of the message.
     // This is useful when message delivery assurance is mandatory for your use case.
     // Take a look at SDK's documentation for further details.
-    setTimeout(function(){
-      var content = { some: 'json' };
-      var publishOpts = { withConfirm: true };
+    setTimeout(() => {
+      const content = { some: 'json' };
+      const publishOpts = { withConfirm: true };
       amqpClient.connect().then(function() {
         // Select a channel or you can use amqpClient.channels() to get the complete channels' list
-        var channel = 'data';
-        amqpClient.publish(channel, content, publishOpts).then(function(res) {
-          console.log('published message ' + (n+1));
+        const channel = 'data';
+        amqpClient.publish(channel, content, publishOpts).then(() => {
+          console.log('published message ' + (n+1));   // eslint-disable-line no-console
           if (n == 59) { disconnect(); }
         }).catch(function(reason) {
           console.error(reason);  // eslint-disable-line no-console
@@ -88,7 +87,7 @@ _(60).times(function(n) {
 
     }, n * 1000);
 
-});
+}
 
 // Bonus points:
 //

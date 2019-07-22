@@ -1,21 +1,21 @@
-'use strict';
-var StompStreamClient = require('spacebunny').StompStreamClient;
+import { StompStreamClient } from '../../../lib/spacebunny';
+
 
 // callback called whan a message is received
-var messageCallback = function(content, headers) {
-  console.log(content);
+const messageCallback = (content) => {
+  console.log(content); // eslint-disable-line no-console
 };
 
 // Auto Config
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
-var connectionParams = {
+const connectionParams = {
   client: 'your-client-id',
   secret: 'your-secret',
 };
 
 // Auto Config with tls
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
-// var connectionParams = {
+// const connectionParams = {
 //   client: 'your-client-id',
 //   secret: 'your-secret',
 //   tls: true,
@@ -25,7 +25,7 @@ var connectionParams = {
 // };
 
 // Manual Config
-// var connectionParams = {
+// const connectionParams = {
 //   client: 'your-client-id',
 //   secret: 'your-secret',
 //   host: 'host',
@@ -42,14 +42,14 @@ var connectionParams = {
 // cache: (default true)
 //    true (or missing) means that you want to read messages from the stream cache
 //    false means that you want to read messages in a temporary queue that will be delete on disconnect
-var streamHooks = [
+const streamHooks = [
   { stream: 'stream-name', callback: messageCallback },
   { stream: 'stream-name-2', callback: messageCallback }
 ];
 
-var streamClient = new StompStreamClient(connectionParams);
-streamClient.streamFrom(streamHooks).then(function(res) {
+const streamClient = new StompStreamClient(connectionParams);
+streamClient.streamFrom(streamHooks).then((res) => {
   console.log(res);  // eslint-disable-line no-console
-}).catch(function(reason) {
+}).catch((reason) => {
   console.error(reason);  // eslint-disable-line no-console
 });

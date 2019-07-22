@@ -1,5 +1,4 @@
-var _ = require('underscore');
-var StompClient = require('spacebunny').StompClient;
+const StompClient = require('../../../lib/spacebunny').StompClient;
 
 // Prerequisites: you have created a device through the Space Bunny's web interface. You also have a 'data' channel (name
 // is not mandatory, but we'll use this for our example). You have also enabled 'data' channel for the device. See our
@@ -8,11 +7,12 @@ var StompClient = require('spacebunny').StompClient;
 // Once everything is set up get your Device-Key from Space Bunny's web application: on the web interface,
 // go to devices section and create or pick an existing device. Click on the 'SHOW CONFIGURATION' link,
 // copy the Device-Key and substitute it here:
-var connectionParams = { deviceKey: 'your-device-key' };
+const connectionParams = { deviceKey: 'your-device-key' };
+
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
 
 // Manual Config
-// var connectionParams = {
+// const connectionParams = {
 //   deviceId: 'device-id',
 //   secret: 'device-secret',
 //   host: 'hostname',
@@ -23,7 +23,7 @@ var connectionParams = { deviceKey: 'your-device-key' };
 
 // If you want to connecto using a secure channel, you must enable tls
 // and provide the client certificate path
-// var connectionParams = {
+// const connectionParams = {
 //   deviceKey: 'your-device-key',
 //   tls: true,
 //   ca: '/path/to/ca_certificate.pem',
@@ -33,19 +33,19 @@ var connectionParams = { deviceKey: 'your-device-key' };
 
 // Let's instantiate a Space Bunny STOMP client, providing the Device-Key, that's the fastest and simplest method
 // to create a new client.
-var stompClient = new StompClient(connectionParams);
+const stompClient = new StompClient(connectionParams);
 
-var disconnect = function() {
-  stompClient.disconnect().then(function(res) {
-    console.log('Bye Bye.');
+const disconnect = () => {
+  stompClient.disconnect().then(() => {
+    console.log('Bye Bye.'); // eslint-disable-line no-console
     process.exit(0);
   }).catch(function(reason) {
     console.error(reason);  // eslint-disable-line no-console
     process.exit(1);
   });
-}
+};
 
-process.once('SIGINT', function() { disconnect(); });
+process.once('SIGINT', () => { disconnect(); });
 
 // At this point the SDK is auto-configured and ready to use.
 // Configurations are automatically lazy-fetched by the SDK itself and the connection
@@ -62,26 +62,27 @@ process.once('SIGINT', function() { disconnect(); });
 // on format or content of payload.
 
 // Publish one message every second for a minute.
-_(60).times(function(n) {
+for (let n = 0; n < 60; n++) {
 
     // 'publish' takes two mandatory arguments (channel's name and payload) and a variety of options: one of these options is
     // the 'withConfirm' flag: when set to true this requires Space Bunny's platform to confirm the receipt of the message.
     // This is useful when message delivery assurance is mandatory for your use case.
     // Take a look at SDK's documentation for further details.
-    setTimeout(function(){
-      var content = { some: 'json' };
-      var publishOpts = { withConfirm: true };
-      stompClient.publish('data', content, publishOpts).then(function(res) {
-        console.log('published message ' + (n+1));
+    setTimeout(() => {
+      const content = { some: 'json' };
+      const publishOpts = { withConfirm: true };
+      const channel = 'inbox';
+      stompClient.publish(channel, content, publishOpts).then(() => {
+        console.log('published message ' + (n+1));   // eslint-disable-line no-console
         if (n == 59) { disconnect(); }
-      }).catch(function(reason) {
+      }).catch((reason) => {
         console.error(reason);  // eslint-disable-line no-console
         process.exit(1);
       });
 
     }, n * 1000);
 
-});
+}
 
 // Bonus points:
 //

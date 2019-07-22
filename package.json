@@ -9,6 +9,7 @@
     "debug": "cross-env NODE_ENV=development DEBUG=* node -r babel-register index.js",
     "start:dev": "cross-env NODE_ENV=development node -r babel-register index.js",
     "start:prod": "cross-env NODE_ENV=production node -r babel-register index.js",
+    "start:samples": "serve ./ -l 8080",
     "remove-lib": "rimraf ./lib",
     "clean-lib": "npm run remove-lib && mkdir lib",
     "prebuild": "npm run clean-lib",
@@ -63,8 +64,9 @@
     "flow-typed": "2.5.1",
     "minimist": "1.2.0",
     "rimraf": "2.6.3",
+    "serve": "11.1.0",
     "string-replace-loader": "2.1.1",
-    "webpack": "4.29.6",
+    "webpack": "4.36.1",
     "webpack-md5-hash": "0.0.6"
   }
 }

@@ -1,6 +1,6 @@
-var MqttClient = require('../../../lib/index').MqttClient;
+const MqttClient = require('../../../lib/spacebunny').MqttClient;
 
-var messageCallback = function(topic, message) {
+const  messageCallback = (topic, message) => {
   console.log(topic + ':' + message);  // eslint-disable-line no-console
 };
 
@@ -11,11 +11,12 @@ var messageCallback = function(topic, message) {
 // Once everything is set up get your Device-Key from Space Bunny's web application: on the web interface,
 // go to devices section and create or pick an existing device. Click on the 'SHOW CONFIGURATION' link,
 // copy the Device-Key and substitute it here:
-var connectionParams = { deviceKey: 'your-device-key' };
+const  connectionParams = { deviceKey: 'your-device-key' };
+
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
 
 // You can also provide full manual configuration
-// var connectionParams = {
+// const  connectionParams = {
 //   deviceId: 'device-id',
 //   secret: 'device-secret',
 //   host: 'hostname',
@@ -26,7 +27,7 @@ var connectionParams = { deviceKey: 'your-device-key' };
 
 // If you want to connecto using a secure channel, you must enable tls
 // and provide the client certificate paths [optional]
-// var connectionParams = {
+// const  connectionParams = {
 //   deviceKey: 'your-device-key',
 //   tls: true,
 //   ca: '/path/to/ca_certificate.pem',
@@ -34,14 +35,14 @@ var connectionParams = { deviceKey: 'your-device-key' };
 //   key: '/path/to/client_key.pem'
 // };
 
-var mqttClient = new MqttClient(connectionParams);
+const  mqttClient = new MqttClient(connectionParams);
 
-mqttClient.connect().then(function() {
-  mqttClient.onReceive(messageCallback).then(function(res) {
+mqttClient.connect().then(() => {
+  mqttClient.onReceive(messageCallback).then(() => {
     console.log('Start receiving..');  // eslint-disable-line no-console
-  }).catch(function(reason) {
+  }).catch((reason) => {
     console.error(reason);  // eslint-disable-line no-console
   });
-}).catch(function(reason) {
+}).catch((reason) => {
   console.error(reason);  // eslint-disable-line no-console
 });

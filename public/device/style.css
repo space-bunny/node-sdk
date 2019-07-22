@@ -8,6 +8,10 @@ h1, h2, h3, h4, h5, h6 {
   color: #757575 !important;
 }
 
+.home {
+  float: right;
+}
+
 .content {
     margin-top: 2em;
 }

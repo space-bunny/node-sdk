@@ -1,5 +1,4 @@
-var _ = require('underscore');
-var MqttClient = require('spacebunny').MqttClient;
+const MqttClient = require('../../../lib/spacebunny').MqttClient;
 
 // Prerequisites: you have created a device through the Space Bunny's web interface. You also have a 'data' channel (name
 // is not mandatory, but we'll use this for our example). You have also enabled 'data' channel for the device. See our
@@ -8,11 +7,12 @@ var MqttClient = require('spacebunny').MqttClient;
 // Once everything is set up get your Device-Key from Space Bunny's web application: on the web interface,
 // go to devices section and create or pick an existing device. Click on the 'SHOW CONFIGURATION' link,
 // copy the Device-Key and substitute it here:
-var connectionParams = { deviceKey: 'your-device-key' };
+const connectionParams = { deviceKey: 'your-device-key' };
+
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
 
 // You can also provide full manual configuration
-// var connectionParams = {
+// const connectionParams = {
 //   deviceId: 'device-id',
 //   secret: 'device-secret',
 //   host: 'hostname',
@@ -23,7 +23,7 @@ var connectionParams = { deviceKey: 'your-device-key' };
 
 // If you want to connecto using a secure channel, you must enable tls
 // and provide the client certificate paths [optional]
-// var connectionParams = {
+// const connectionParams = {
 //   deviceKey: 'your-device-key',
 //   tls: true,
 //   ca: '/path/to/ca_certificate.pem',
@@ -31,45 +31,45 @@ var connectionParams = { deviceKey: 'your-device-key' };
 //   key: '/path/to/client_key.pem'
 // };
 
-var mqttClient = new MqttClient(connectionParams);
+const mqttClient = new MqttClient(connectionParams);
 
-var disconnect = function() {
-  mqttClient.disconnect().then(function(res) {
-    console.log('Bye Bye.');
+const disconnect = () => {
+  mqttClient.disconnect().then(() => {
+    console.log('Bye Bye.');  // eslint-disable-line no-console
     process.exit(0);
   }).catch(function(reason) {
     console.error(reason);  // eslint-disable-line no-console
     process.exit(1);
   });
-}
+};
 
-process.once('SIGINT', function() { disconnect(); });
+process.once('SIGINT', () => { disconnect(); });
 
 
-_(60).times(function(n) {
+for (let n = 0; n < 60; n++) {
 
   // 'publish' takes two mandatory arguments (channel's name and payload) and a variety of options: one of these options is
   // the retain flag, when is true means that messages are sent as retained messages
   // Take a look at SDK's documentation for further details.
-  setTimeout(function(){
+  setTimeout(() => {
     // Publishing Options
     // retain: (default missing) if true means that messages are sent as retained messages
-    var publishingOpts = { retain: true };
-    var content = { some: 'json' };
-    mqttClient.connect().then(function() {
+    const publishingOpts = { retain: true };
+    const content = { some: 'json' };
+    mqttClient.connect().then(() => {
       // Select a channel or you can use mqttClient.channels() to get the complete channels' list
-      var channel = 'data';
-      mqttClient.publish(channel, content, publishingOpts).then(function(res) {
-        console.log('published message ' + (n+1));
+      const channel = 'inbox';
+      mqttClient.publish(channel, content, publishingOpts).then(() => {
+        console.log('published message ' + (n+1));   // eslint-disable-line no-console
         if (n == 59) { disconnect(); }
-      }).catch(function(reason) {
+      }).catch((reason) => {
         console.error(reason);  // eslint-disable-line no-console
         process.exit(1);
       });
-    }).catch(function(reason) {
+    }).catch((reason) => {
       console.error(reason);  // eslint-disable-line no-console
       process.exit(1);
     });
   }, n * 1000);
 
-});
+}
