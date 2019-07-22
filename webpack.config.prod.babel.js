@@ -15,7 +15,7 @@ console.log(`\nCompile for ${platform}-${arch} in ${outputPath}\n`); // eslint-d
 
 const GLOBALS = {
   'process.env.NODE_ENV': JSON.stringify(env),
-  __DEV__: false
+  __DEV__: false,
 };
 
 module.exports = {
@@ -24,14 +24,12 @@ module.exports = {
     extensions: ['.js']
   },
   entry: { 'spacebunny': './src/index.js' },
-  target: 'node',
+  // target: 'node',
   output: {
     path: outputPath,
     filename: '[name].js',
-    library: '[name]',
-    libraryTarget: 'umd',
-    umdNamedDefine: true,
-    globalObject: 'typeof self !== \'undefined\' ? self : this'
+    // library: '[name]',
+    // libraryTarget: 'umd',
   },
   devtool: 'source-map',
   // devtool: 'nosources-source-map',
@@ -40,15 +38,20 @@ module.exports = {
   },
   mode: 'production',
   node: {
-    __dirname: false
+    __dirname: false,
+    __filename: true,
+    fs: 'empty',
+    net: 'empty',
+    tls: 'empty',
+    module: 'empty'
   },
   plugins: [
     // Hash the files using MD5 so that their names change when the content changes.
     new WebpackMd5Hash(),
 
-    new webpack.DefinePlugin(GLOBALS),
+    new (webpack: any).DefinePlugin(GLOBALS),
 
-    new webpack.LoaderOptionsPlugin({
+    new (webpack: any).LoaderOptionsPlugin({
       minimize: true,
       debug: false,
       noInfo: true, // set to false to see a list of every file being bundled.

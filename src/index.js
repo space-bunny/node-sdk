@@ -15,6 +15,13 @@ if (typeof window !== 'undefined') {
   window.StompStreamClient = StompStreamClient;
 }
 
-// Export clients in NodeJS context
-export { Client, AmqpClient, MqttClient, StompClient,
-  StreamClient, AmqpStreamClient, MqttStreamClient, StompStreamClient };
+export {
+  Client,
+  AmqpClient,
+  MqttClient,
+  StompClient,
+  StreamClient,
+  AmqpStreamClient,
+  MqttStreamClient,
+  StompStreamClient
+};
