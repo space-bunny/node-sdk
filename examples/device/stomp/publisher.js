@@ -73,7 +73,7 @@ for (let n = 0; n < 60; n++) {
     setTimeout(() => {
       const content = { some: 'json' };
       const publishOpts = { withConfirm: true };
-      const channel = 'inbox';
+      const channel = args['channel'] || 'data';
       stompClient.publish(channel, content, publishOpts).then(() => {
         console.log('published message ' + (n+1));   // eslint-disable-line no-console
         if (n == 59) { disconnect(); }

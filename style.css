@@ -1,0 +1,30 @@
+body {
+  font-family: 'Roboto', sans-serif !important;
+  color: #757575 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Roboto', sans-serif !important;
+  color: #757575 !important;
+}
+
+.content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.links {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+    margin: 1rem;
+}
+.links > div {
+  margin: 1rem;
+}

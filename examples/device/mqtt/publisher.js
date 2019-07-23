@@ -60,7 +60,7 @@ for (let n = 0; n < 60; n++) {
     const content = { some: 'json' };
     mqttClient.connect().then(() => {
       // Select a channel or you can use mqttClient.channels() to get the complete channels' list
-      const channel = 'inbox';
+      const channel = args['channel'] || 'data';
       mqttClient.publish(channel, content, publishingOpts).then(() => {
         console.log('published message ' + (n+1));   // eslint-disable-line no-console
         if (n == 59) { disconnect(); }

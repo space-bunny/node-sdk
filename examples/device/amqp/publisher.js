@@ -74,7 +74,7 @@ for (let n = 0; n < 60; n++) {
       const publishOpts = { withConfirm: true };
       amqpClient.connect().then(function() {
         // Select a channel or you can use amqpClient.channels() to get the complete channels' list
-        const channel = 'data';
+        const channel = args['channel'] || 'data';
         amqpClient.publish(channel, content, publishOpts).then(() => {
           console.log('published message ' + (n+1));   // eslint-disable-line no-console
           if (n == 59) { disconnect(); }

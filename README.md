@@ -98,7 +98,7 @@ streamClient.streamFrom(streamHooks).then(function(res) {
 ```
 For more advanced usage please refer to example files in `examples` folder
 
-## Usage within a web page
+## Usage within a web page (plain JS)
 
 Space Bunny Node SDK is bundled using Webpack to allow the integration of the library within a web page
 
@@ -109,7 +109,7 @@ Space Bunny Node SDK is bundled using Webpack to allow the integration of the li
 In this example a device waits for incoming messages on its `inbox` channel and publishes a single message on the first configured channel
 
 ```html
-<script src="https://raw.githubusercontent.com/space-bunny/node-sdk/master/dist/spacebunny.js"></script>
+<script src="https://github.com/space-bunny/node-sdk/blob/master/lib/spacebunny.var.js"></script>
 <script>
   [...]
   // Use your Api Key
@@ -131,7 +131,7 @@ In this example a device waits for incoming messages on its `inbox` channel and 
 </script>
 ```
 
-For more advanced usage please refer to example files in `dist` folder
+For more advanced usage please refer to example files in `public` and `examples` folders
 
 ### Stream
 
@@ -142,7 +142,7 @@ A stream client can read from multiple live streams hooks
 In this example the streamer receives all messages from stream `my-stream` and `my-stream-2`
 
 ```html
-<script src="https://raw.githubusercontent.com/space-bunny/node-sdk/master/dist/spacebunny.js"></script>
+<script src="https://github.com/space-bunny/node-sdk/blob/master/lib/spacebunny.var.js"></script>
 <script>
   [...]
   var connectionParams = {
@@ -164,11 +164,43 @@ In this example the streamer receives all messages from stream `my-stream` and `
 </script>
 ```
 
-For more advanced usage please refer to example files in `dist` folder
+For more advanced usage please refer to example files in `public` and `examples` folders
 
-## Watch changes to src files (with automatic transpilation on save)
+## Run NODE examples
 
-`npm run watch`
+Examples cover device and stream scenarios:
+
+### AMQP
+```
+npm run start:node-sample examples/device/amqp/receiver.js --deviceKey=my-device-key
+npm run start:node-sample examples/device/amqp/publisher.js --deviceKey=my-device-key --channel=data
+npm run start:node-sample examples/stream/amqp/streamer.js --client=client-id --secret=secret
+ --stream=data --stream=alarms
+```
+
+### MQTT
+```
+npm run start:node-sample examples/device/mqtt/receiver.js --deviceKey=my-device-key
+npm run start:node-sample examples/device/mqtt/publisher.js --deviceKey=my-device-key --channel=data
+npm run start:node-sample examples/stream/mqtt/streamer.js --client=client-id --secret=secret
+ --stream=data --stream=alarms
+```
+
+### STOMP
+```
+npm run start:node-sample examples/device/stomp/receiver.js --deviceKey=my-device-key
+npm run start:node-sample examples/device/stomp/publisher.js --deviceKey=my-device-key --channel=data
+npm run start:node-sample examples/stream/stomp/streamer.js --client=client-id --secret=secret
+ --stream=data --stream=alarms
+```
+
+For more advanced usage please refer to example files in `public` and `examples` folders
+
+## Run HTML examples
+
+`npm run start:samples`
+
+Examples will be available on port 8080
 
 ## Build dist version
 
