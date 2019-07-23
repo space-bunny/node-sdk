@@ -1,6 +1,7 @@
 const AmqpClient = require('../../../lib/spacebunny').AmqpClient;
+const args = require('minimist')(process.argv.slice(2));
 
-// callback called whan a message is received
+// callback called when a message is received
 const messageCallback = (amqpMessage) => {
   console.log(amqpMessage.content);   // eslint-disable-line no-console
 };
@@ -12,7 +13,8 @@ const messageCallback = (amqpMessage) => {
 // Once everything is set up get your Device-Key from Space Bunny's web application: on the web interface,
 // go to devices section and create or pick an existing device. Click on the 'SHOW CONFIGURATION' link,
 // copy the Device-Key and substitute it here:
-const connectionParams = { deviceKey: 'your-device-key' };
+const deviceKey = args['deviceKey'] || args['device-key'] || args['device_key'] || 'my-device-key';
+const connectionParams = { deviceKey };
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
 
 // You can also provide full manual configuration

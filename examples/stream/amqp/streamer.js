@@ -1,6 +1,8 @@
-import { AmqpStreamClient } from '../../../lib/spacebunny';
+const AmqpStreamClient = require('../../../lib/spacebunny').AmqpStreamClient;
 
-// callback called whan a message is received
+const args = require('minimist')(process.argv.slice(2));
+
+// callback called when a message is received
 const messageCallback = (content) => {
   console.log(content); // eslint-disable-line no-console
 };
@@ -8,8 +10,8 @@ const messageCallback = (content) => {
 // Auto Config
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
 const connectionParams = {
-  client: 'your-client-id',
-  secret: 'your-secret',
+  client: args['client'] || 'your-client-id',
+  secret: args['secret'] || 'your-secret',
 };
 
 // Auto Config with tls
@@ -41,10 +43,14 @@ const connectionParams = {
 // cache: (default true)
 //    true (or missing) means that you want to read messages from the stream cache
 //    false means that you want to read messages in a temporary queue that will be delete on disconnect
-const streamHooks = [
-  { stream: 'stream-name', callback: messageCallback },
-  { stream: 'stream-name-2', callback: messageCallback }
-];
+
+// const streams = ['data', 'alarms'];
+const stream = args['stream'] || '';
+const streams = Array.isArray(stream) ? stream : [stream];
+const streamHooks = [];
+for (const streamName of streams) {
+  streamHooks.push({ stream: streamName, callback: messageCallback });
+}
 
 const streamClient = new AmqpStreamClient(connectionParams);
 streamClient.streamFrom(streamHooks).then((res) => {

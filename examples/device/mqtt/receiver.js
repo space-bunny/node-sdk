@@ -1,4 +1,5 @@
 const MqttClient = require('../../../lib/spacebunny').MqttClient;
+const args = require('minimist')(process.argv.slice(2));
 
 const  messageCallback = (topic, message) => {
   console.log(topic + ':' + message);  // eslint-disable-line no-console
@@ -11,7 +12,8 @@ const  messageCallback = (topic, message) => {
 // Once everything is set up get your Device-Key from Space Bunny's web application: on the web interface,
 // go to devices section and create or pick an existing device. Click on the 'SHOW CONFIGURATION' link,
 // copy the Device-Key and substitute it here:
-const  connectionParams = { deviceKey: 'your-device-key' };
+const deviceKey = args['deviceKey'] || args['device-key'] || args['device_key'] || 'my-device-key';
+const connectionParams = { deviceKey };
 
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
 
