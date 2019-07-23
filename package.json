@@ -39,7 +39,7 @@
     "bluebird": "3.5.5",
     "humps": "2.0.1",
     "js-md5": "0.7.3",
-    "lodash": "4.17.14",
+    "lodash": "4.17.15",
     "mqtt": "2.18.8",
     "stompjs": "git://github.com/gfoiani/stomp-websocket.git#2.4.0",
     "underscore": "1.9.1",
@@ -67,7 +67,7 @@
     "rimraf": "2.6.3",
     "serve": "11.1.0",
     "source-map-support": "0.5.12",
-    "string-replace-loader": "2.1.1",
+    "string-replace-loader": "2.2.0",
     "webpack": "4.36.1",
     "webpack-md5-hash": "0.0.6"
   }
