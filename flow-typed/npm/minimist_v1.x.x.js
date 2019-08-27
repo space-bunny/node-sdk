@@ -1,5 +1,5 @@
-// flow-typed signature: 50bc453586282fb18e63201750049659
-// flow-typed version: e6f7626e10/minimist_v1.x.x/flow_>=v0.28.x
+// flow-typed signature: 4f1f9ccb55e99cfffea0ffa6566add59
+// flow-typed version: c6154227d1/minimist_v1.x.x/flow_>=v0.28.x <=v0.103.x
 
 declare module 'minimist' {
   declare type minimistOptions = {

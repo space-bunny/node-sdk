@@ -1,5 +1,5 @@
-// flow-typed signature: 9f9fcf90be5deee0c2e27f7499b3e368
-// flow-typed version: 554c0eedf8/amqplib_v0.5.x/flow_>=v0.60.1
+// flow-typed signature: df43ae3289798115a31acac5953eb873
+// flow-typed version: c6154227d1/amqplib_v0.5.x/flow_>=v0.60.1 <=v0.103.x
 
 // @flow
 

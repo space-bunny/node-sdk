@@ -1,5 +1,5 @@
-// flow-typed signature: 89f425e9865fc8cb574c4f9dbfb29c61
-// flow-typed version: f39a579ead/underscore_v1.x.x/flow_>=v0.75.x
+// flow-typed signature: 03ec14d22edd87ba3df9d3fab8224488
+// flow-typed version: c6154227d1/underscore_v1.x.x/flow_>=v0.75.x <=v0.103.x
 
 // @flow
 /* eslint-disable */

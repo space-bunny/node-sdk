@@ -34,7 +34,7 @@
   "author": "Fancy Pixel (http://fancypixel.it)",
   "license": "MIT",
   "dependencies": {
-    "amqplib": "0.5.3",
+    "amqplib": "0.5.5",
     "axios": "0.19.0",
     "bluebird": "3.5.5",
     "humps": "2.0.1",
@@ -43,11 +43,11 @@
     "mqtt": "2.18.8",
     "stompjs": "git://github.com/gfoiani/stomp-websocket.git#2.4.0",
     "underscore": "1.9.1",
-    "url-join": "4.0.0",
+    "url-join": "4.0.1",
     "uuid-v4": "0.1.0"
   },
   "devDependencies": {
-    "ajv": "6.10.0",
+    "ajv": "6.10.2",
     "babel-cli": "6.26.0",
     "babel-core": "6.26.3",
     "babel-eslint": "8.2.6",
@@ -60,13 +60,13 @@
     "babel-runtime": "6.26.0",
     "chalk": "2.4.2",
     "cross-env": "5.2.0",
-    "eslint": "5.16.0",
+    "eslint": "6.2.2",
     "flow-bin": "0.100.0",
     "flow-typed": "2.5.1",
     "minimist": "1.2.0",
     "rimraf": "2.6.3",
     "serve": "11.1.0",
-    "source-map-support": "0.5.12",
+    "source-map-support": "0.5.13",
     "string-replace-loader": "2.2.0",
     "webpack": "4.36.1",
     "webpack-md5-hash": "0.0.6"
