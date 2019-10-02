@@ -42,7 +42,6 @@
     "lodash": "4.17.15",
     "mqtt": "2.18.8",
     "stompjs": "git://github.com/gfoiani/stomp-websocket.git#2.4.0",
-    "underscore": "1.9.1",
     "url-join": "4.0.1",
     "uuid-v4": "0.1.0"
   },
