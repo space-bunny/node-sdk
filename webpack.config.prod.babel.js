@@ -81,15 +81,7 @@ const baseConfig = {
         }
       }
     ]
-  },
-  externals: [
-    { bufferutil: 'commonjs bufferutil' },
-    { 'utf-8-validate': 'commonjs utf-8-validate' },
-    { '../build/Release/bufferutil': 'commonjs ../build/Release/bufferutil' },
-    { '../build/default/bufferutil': 'commonjs ../build/default/bufferutil' },
-    { '../build/Release/validation': 'commonjs ../build/Release/validation' },
-    { '../build/default/validation': 'commonjs ../build/default/validation' },
-  ]
+  }
 };
 
 const nodejsConfig = _.cloneDeep(baseConfig);
