@@ -172,25 +172,25 @@ Examples cover device and stream scenarios:
 
 ### AMQP
 ```
-npm run start:node-sample examples/device/amqp/receiver.js --deviceKey=my-device-key
-npm run start:node-sample examples/device/amqp/publisher.js --deviceKey=my-device-key --channel=data
-npm run start:node-sample examples/stream/amqp/streamer.js --client=client-id --secret=secret
+npm run start:node-sample examples/device/amqp/receiver.js -- --deviceKey=my-device-key
+npm run start:node-sample examples/device/amqp/publisher.js -- --deviceKey=my-device-key --channel=data
+npm run start:node-sample examples/stream/amqp/streamer.js -- --client=client-id --secret=secret
  --stream=data --stream=alarms
 ```
 
 ### MQTT
 ```
-npm run start:node-sample examples/device/mqtt/receiver.js --deviceKey=my-device-key
-npm run start:node-sample examples/device/mqtt/publisher.js --deviceKey=my-device-key --channel=data
-npm run start:node-sample examples/stream/mqtt/streamer.js --client=client-id --secret=secret
+npm run start:node-sample examples/device/mqtt/receiver.js -- --deviceKey=my-device-key
+npm run start:node-sample examples/device/mqtt/publisher.js -- --deviceKey=my-device-key --channel=data
+npm run start:node-sample examples/stream/mqtt/streamer.js -- --client=client-id --secret=secret
  --stream=data --stream=alarms
 ```
 
 ### STOMP
 ```
-npm run start:node-sample examples/device/stomp/receiver.js --deviceKey=my-device-key
-npm run start:node-sample examples/device/stomp/publisher.js --deviceKey=my-device-key --channel=data
-npm run start:node-sample examples/stream/stomp/streamer.js --client=client-id --secret=secret
+npm run start:node-sample examples/device/stomp/receiver.js -- --deviceKey=my-device-key
+npm run start:node-sample examples/device/stomp/publisher.js -- --deviceKey=my-device-key --channel=data
+npm run start:node-sample examples/stream/stomp/streamer.js -- --client=client-id --secret=secret
  --stream=data --stream=alarms
 ```
 
