@@ -196,6 +196,7 @@ class MqttClient extends SpaceBunny {
             }
             const client = mqtt.connect(mqttConnectionParams);
             client.on('error', (reason) => {
+              this._mqttConnection = undefined;
               this.emit('error', reason);
               reject(reason);
             });

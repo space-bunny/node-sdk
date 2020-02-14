@@ -176,6 +176,7 @@ class AmqpClient extends SpaceBunny {
           }
           return amqp.connect(connectionString, connectionOpts).then((conn: any) => {
             conn.on('error', (err) => {
+              this._amqpConnection = undefined;
               this.emit('error', err);
               reject(err);
             });
