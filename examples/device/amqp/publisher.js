@@ -10,7 +10,8 @@ const args = require('minimist')(process.argv.slice(2));
 // and substitute it here:
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
 const deviceKey = args['deviceKey'] || args['device-key'] || args['device_key'] || 'my-device-key';
-const connectionParams = { deviceKey };
+const tls = (args['tls'] !== false);
+const connectionParams = { deviceKey, tls };
 
 // You can also provide full manual configuration
 // const connectionParams = {

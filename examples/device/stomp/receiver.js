@@ -13,7 +13,8 @@ const messageCallback = (content) => {
 // go to devices section and create or pick an existing device. Click on the 'SHOW CONFIGURATION' link,
 // copy the Device-Key and substitute it here:
 const deviceKey = args['deviceKey'] || args['device-key'] || args['device_key'] || 'my-device-key';
-const connectionParams = { deviceKey };
+const tls = (args['tls'] !== false);
+const connectionParams = { deviceKey, tls };
 
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
 

@@ -3,7 +3,7 @@ const args = require('minimist')(process.argv.slice(2));
 
 // callback called when a message is received
 const messageCallback = (amqpMessage) => {
-  console.log(amqpMessage.content);   // eslint-disable-line no-console
+  console.log(amqpMessage);   // eslint-disable-line no-console
 };
 
 // Prerequisites: you have created a device through the Space Bunny's web interface. You also have a 'data' channel (name
@@ -14,7 +14,8 @@ const messageCallback = (amqpMessage) => {
 // go to devices section and create or pick an existing device. Click on the 'SHOW CONFIGURATION' link,
 // copy the Device-Key and substitute it here:
 const deviceKey = args['deviceKey'] || args['device-key'] || args['device_key'] || 'my-device-key';
-const connectionParams = { deviceKey };
+const tls = (args['tls'] !== false);
+const connectionParams = { deviceKey, tls };
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
 
 // You can also provide full manual configuration

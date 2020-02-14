@@ -13,7 +13,6 @@ class StompMessage {
   body: any;
   content: any;
   headers: any;
-  properties: any;
   channel: any;
   senderId: string;
   channelName: string
