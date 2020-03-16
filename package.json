@@ -62,7 +62,7 @@
     "eslint": "6.2.2",
     "flow-bin": "0.100.0",
     "flow-typed": "2.5.1",
-    "minimist": "1.2.0",
+    "minimist": "1.2.2",
     "rimraf": "3.0.0",
     "serve": "11.2.0",
     "source-map-support": "0.5.13",
