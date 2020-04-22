@@ -16,7 +16,7 @@ import uuid from 'uuid-v4';
 // import Joi from 'joi';
 import CONFIG from './config/constants';
 
-export interface IConnectionParams {
+export interface ISpaceBunnyParams {
   endpoint?: any;
   deviceKey?: string;
   channels?: IChannel[];
@@ -39,10 +39,13 @@ export interface IConnectionParams {
   protocols?: { [key: string]: IProtocol };
   autoReconnect?: boolean;
   reconnectTimeout?: number;
+  emitLogs?: boolean;
+  caching?: boolean;
+  cacheSize?: number;
 }
 
 export interface IEndpointConfigs {
-  connection?: IConnectionParams;
+  connection?: ISpaceBunnyParams;
   liveStreams?: ILiveStream[];
   channels?: IChannel[];
 }
@@ -54,6 +57,7 @@ export interface ITlsOptions {
   ca?: Buffer[];
   rejectUnauthorized?: boolean;
   secureProtocol?: string;
+  protocol?: string;
   pfx?: Buffer;
 }
 
@@ -80,12 +84,20 @@ export interface IEndpoint {
   liveStreamKeyConfigurationsPath: string;
 }
 
+export interface ICachedMessage {
+  timestamp: number;
+  channel: string;
+  message: any;
+  opts: any;
+  sent?: boolean;
+}
+
 /**
  * @constructor
  * @param {Object} opts - constructor options may contain Device-Key or connection options
  */
 class SpaceBunny extends EventEmitter {
-  protected connectionParams: IConnectionParams;
+  protected connectionParams: ISpaceBunnyParams;
 
   protected endpointConfigs: IEndpointConfigs;
 
@@ -125,11 +137,21 @@ class SpaceBunny extends EventEmitter {
 
   protected reconnectTimeout = 5000;
 
-  constructor(opts: IConnectionParams = {}) {
+  protected emitLogs = true;
+
+  protected caching = false;
+
+  private cachedMessages: ICachedMessage[] = [];
+
+  private cacheSize: number;
+
+  private static CACHE_SIZE = 100;
+
+  constructor(opts: ISpaceBunnyParams = {}) {
     super();
     this.connectionParams = camelizeKeys(opts);
     const { endpoint, deviceKey, channels, deviceId, client, secret, host, port, vhost, inboxTopic,
-      tls, cert, key, passphrase, ca, pfx, disableCertCheck, secureProtocol } = this.connectionParams;
+      tls, cert, key, passphrase, ca, pfx, disableCertCheck, secureProtocol, emitLogs, caching, cacheSize } = this.connectionParams;
     this.endpoint = merge(CONFIG.endpoint, endpoint);
     this.deviceKey = deviceKey;
     this.channels = channels;
@@ -151,9 +173,7 @@ class SpaceBunny extends EventEmitter {
     if (passphrase) { this.tlsOpts.passphrase = passphrase; }
     if (ca) {
       if (Array.isArray(ca)) {
-        this.tlsOpts.ca = ca.map((element) => {
-          return fs.readFileSync(element);
-        });
+        this.tlsOpts.ca = ca.map((element) => { return fs.readFileSync(element); });
       } else {
         this.tlsOpts.ca = [fs.readFileSync(ca)];
       }
@@ -165,6 +185,9 @@ class SpaceBunny extends EventEmitter {
       this.tlsOpts.rejectUnauthorized = true;
     }
     this.tlsOpts.secureProtocol = secureProtocol || CONFIG.tls.secureProtocol;
+    this.emitLogs = emitLogs;
+    this.caching = caching;
+    this.cacheSize = cacheSize || SpaceBunny.CACHE_SIZE;
   }
 
   /**
@@ -260,7 +283,9 @@ class SpaceBunny extends EventEmitter {
   }
 
   protected log = (level: string, message: string|Error): void => {
-    this.emit('log', { level, message });
+    if (this.emitLogs) {
+      this.emit('log', { level, message });
+    }
     if (process.env.NODE_ENV === 'development') {
       // eslint-disable-next-line no-console
       console.log(message);
@@ -303,7 +328,7 @@ class SpaceBunny extends EventEmitter {
    * @param {String} streamName - stream name
    * @return the stream ID which corresponds to the input stream name
    */
-  liveStreamByName = (streamName: string): string => {
+  protected liveStreamByName = (streamName: string): string => {
     const liveStreams = filter(this.liveStreams, (stream) => { return stream.name === streamName; });
     if (liveStreams.length > 0) {
       return liveStreams[0].name || streamName;
@@ -317,7 +342,7 @@ class SpaceBunny extends EventEmitter {
    * @param {String} streamName - stream name
    * @return true if stream exists, false otherwise
    */
-  liveStreamExists = (streamName: string): boolean => {
+  protected liveStreamExists = (streamName: string): boolean => {
     if (isEmpty(streamName)) {
       return false;
     }
@@ -334,7 +359,7 @@ class SpaceBunny extends EventEmitter {
    * @param {Numeric} currentTime - current timestamp
    * @return a string that represents the topic name for that channel
    */
-  tempQueue = (prefix: string, suffix: string, currentTime: number|void = undefined): string => {
+  protected tempQueue = (prefix: string, suffix: string, currentTime: number|void = undefined): string => {
     const timestamp = currentTime || new Date().getTime();
     const deviceId = this.connectionParams.client || this.connectionParams.deviceId;
     return `${uuid()}-${timestamp}-${deviceId}-`
@@ -350,8 +375,23 @@ class SpaceBunny extends EventEmitter {
    * @param {String} suffix - It could be a channel name or a the default stream suffix (livestream)
    * @return a string that represents the complete exchange name
    */
-  exchangeName = (prefix: string, suffix: string): string => {
+  protected exchangeName = (prefix: string, suffix: string): string => {
     return (!isEmpty(prefix) && !isEmpty(suffix)) ? `${this.liveStreamByName(prefix)}.${suffix}` : `${suffix}`;
+  }
+
+  public cacheMessage = (channel: string, message: any, opts: any = {}): void => {
+    if (this.caching !== true) { return; }
+    if (this.cachedMessages.length >= this.cacheSize) {
+      // remove eldest message
+      this.cachedMessages.shift();
+    }
+    this.cachedMessages.push({
+      timestamp: new Date().getTime(),
+      channel,
+      message,
+      opts,
+      sent: false
+    });
   }
 
   // ------------ PRIVATE METHODS -------------------
@@ -362,7 +402,7 @@ class SpaceBunny extends EventEmitter {
    * @private
    * @return the string representing the endpoint url
    */
-  generateHostname = (): string => {
+  private generateHostname = (): string => {
     if (this.endpoint.url) {
       return this.endpoint.url;
     }

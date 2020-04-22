@@ -12,7 +12,7 @@ import { cloneDeep, isEmpty, isNil, merge, pick } from 'lodash';
 import CONSTANTS from '../config/constants';
 import AmqpMessage from '../messages/amqpMessage';
 // Import SpaceBunny main module from which AmqpClient inherits
-import SpaceBunny, { IConnectionParams, IEndpointConfigs } from '../spacebunny';
+import SpaceBunny, { IEndpointConfigs, ISpaceBunnyParams } from '../spacebunny';
 import { encapsulateContent } from '../utils';
 
 export interface IAmqpConsumeOptions {
@@ -33,7 +33,7 @@ export interface IRoutingKey {
 export interface IAmqpPublishOptions {
   routingKey?: string;
   topic?: string;
-  withConfirm?: boolean
+  withConfirm?: boolean;
 }
 
 class AmqpClient extends SpaceBunny {
@@ -50,7 +50,7 @@ class AmqpClient extends SpaceBunny {
    * @param {Object} opts - options must contain Device-Key or connection options
    * (deviceId and secret) for devices.
    */
-  constructor(opts: IConnectionParams = {}) {
+  constructor(opts: ISpaceBunnyParams = {}) {
     super(opts);
     this.amqpConnection = undefined;
     this.amqpChannels = {};

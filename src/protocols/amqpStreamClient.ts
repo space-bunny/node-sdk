@@ -9,7 +9,7 @@ import { isEmpty, isNil, pick } from 'lodash';
 
 import CONFIG from '../config/constants';
 import AmqpMessage from '../messages/amqpMessage';
-import { IConnectionParams } from '../spacebunny';
+import { ISpaceBunnyParams } from '../spacebunny';
 import AmqpClient, { IAmqpConsumeOptions, IRoutingKey } from './amqpClient';
 
 export type IAmqpCallback = (message: any, fields: object, properties: object) => Promise<void>;
@@ -32,9 +32,9 @@ class AmqpStreamClient extends AmqpClient {
 
   /**
    * @constructor
-   * @param {IConnectionParams} opts - options must contain client and secret for access keys
+   * @param {ISpaceBunnyParams} opts - options must contain client and secret for access keys
    */
-  constructor(opts: IConnectionParams = {}) {
+  constructor(opts: ISpaceBunnyParams = {}) {
     super(opts);
     const amqpStreamOptions = CONFIG.amqp.stream;
     this.defaultStreamRoutingKey = amqpStreamOptions.defaultStreamRoutingKey;
