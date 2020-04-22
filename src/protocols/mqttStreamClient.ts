@@ -4,7 +4,6 @@
  * @module MqttStreamClient
  */
 
-import Promise from 'bluebird';
 // Import some helpers modules
 import _ from 'lodash';
 

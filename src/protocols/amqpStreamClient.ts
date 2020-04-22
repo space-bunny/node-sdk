@@ -4,50 +4,60 @@
  * @module AmqpStreamClient
  */
 
-import Promise from 'bluebird';
-import md5 from 'js-md5';
-// Import some helpers modules
-import _ from 'lodash';
+import * as amqp from 'amqplib';
+import { isEmpty, isNil, pick } from 'lodash';
 
 import CONFIG from '../config/constants';
-import { parseContent } from '../utils';
-// Import AmqpClient module from which AmqpStreamClient inherits
-import AmqpClient from './amqpClient';
+import AmqpMessage from '../messages/amqpMessage';
+import { IConnectionParams } from '../spacebunny';
+import AmqpClient, { IAmqpConsumeOptions, IRoutingKey } from './amqpClient';
+
+export type IAmqpCallback = (message: any, fields: object, properties: object) => Promise<void>;
+export interface ILiveStreamHook {
+  stream?: string;
+  deviceId?: string;
+  channel?: string;
+  routingKey?: string;
+  topic?: string;
+  cache?: boolean;
+  callback: IAmqpCallback;
+}
 
 class AmqpStreamClient extends AmqpClient {
+  private defaultStreamRoutingKey: string;
 
-  _defaultStreamRoutingKey: string;
-  _streamQueueArguments: any;
-  _subscriptions: any;
+  private streamQueueArguments: amqp.Options.AssertQueue;
+
+  private subscriptions: { [tag: string]: ILiveStreamHook };
 
   /**
    * @constructor
-   * @param {Object} opts - options must contain client and secret for access keys
+   * @param {IConnectionParams} opts - options must contain client and secret for access keys
    */
-  constructor(opts: any = {}) {
+  constructor(opts: IConnectionParams = {}) {
     super(opts);
     const amqpStreamOptions = CONFIG.amqp.stream;
-    this._defaultStreamRoutingKey = amqpStreamOptions.defaultStreamRoutingKey;
-    this._streamQueueArguments = amqpStreamOptions.streamQueueArguments;
-    this._subscriptions = [];
+    this.defaultStreamRoutingKey = amqpStreamOptions.defaultStreamRoutingKey;
+    this.streamQueueArguments = amqpStreamOptions.streamQueueArguments;
+    this.subscriptions = {};
   }
 
   /**
    * Subscribe to multiple stream hooks
    *
    * @param {Array} streamHooks - Array of objects. Each objects containing
-   * { deviceId: {string}, channel: {string}, callback: {func} }
+   * { name: {string}, deviceId: {string}, channel: {string}, callback: {func} }
    * @param {Object} options - subscription options
    * @return promise containing the result of multiple subscriptions
    */
-  streamFrom = (streamHooks: Array<any> = [], opts:any = {}): Promise<any> => {
-    if (streamHooks.length > 0) {
-      return Promise.mapSeries(streamHooks, (streamHook) => {
-        return this._attachStreamHook(streamHook, opts);
-      });
-    } else {
-      return Promise.reject(new Error('Missing stream hooks'));
+  public streamFrom = async (streamHooks: Array<ILiveStreamHook> = [], opts: IAmqpConsumeOptions = {}): Promise<Array<string|void>> => {
+    const promises = [];
+    for (let index = 0; index < streamHooks.length; index += 1) {
+      const streamHook = streamHooks[index];
+      const promise = this.addStreamHook(streamHook, opts);
+      promises.push(promise);
     }
+    return Promise.all(promises);
   }
 
   // ------------ PRIVATE METHODS -------------------
@@ -65,112 +75,109 @@ class AmqpStreamClient extends AmqpClient {
    * @param {Object} opts - connection options
    * @return a promise containing current connection
    */
-  _attachStreamHook = (streamHook: any, opts: any = {}): Promise<any> => {
-    // Receive messages from imput queue
-    return new Promise((resolve, reject) => {
-      const {
-        stream = undefined, deviceId = undefined, channel = undefined,
-        topic = undefined, routingKey = undefined
-      } = streamHook;
-      const cache = (typeof (streamHook.cache) !== 'boolean') ? true : streamHook.cache;
-      if (stream === undefined && (channel === undefined || deviceId === undefined)) {
-        reject(new Error('Missing Stream or Device ID and Channel'));
-      }
-      const emptyFunction = function () { return undefined; };
-      const callback = streamHook.callback || emptyFunction;
+  public addStreamHook = async (streamHook: ILiveStreamHook, opts: IAmqpConsumeOptions = {}): Promise<string|void> => {
+    // Receive messages from stream
+    const {
+      stream = undefined, deviceId = undefined, channel = undefined, cache = true,
+      topic = undefined, routingKey = undefined, callback = undefined
+    } = streamHook;
+    const { ack = undefined, allUpTo = false, requeue = false } = opts;
+    const noAck = isNil(ack);
+    if (isNil(stream) && (isNil(channel) || isNil(deviceId))) {
+      this.log('error', 'Missing Stream or Device ID and Channel');
+      return;
+    }
+    if (isNil(callback)) {
+      this.log('error', 'Missing Callback');
+      return;
+    }
+    const currentTime = new Date().getTime();
+    let tempQueue: string;
+    let consumerTag: string;
+    const ch: amqp.Channel | amqp.ConfirmChannel | void = await this.createChannel('input');
+    if (ch) {
+      try {
+        const consumeCallback = (message: amqp.ConsumeMessage | null) => {
+          if (isNil(message)) { return; }
 
-      const currentTime = new Date().getTime();
-      let tempQueue;
-      this._createChannel(`${currentTime}`).then((ch) => {
-        this._amqpChannels[`${currentTime}`] = ch;
-        let promisesChain;
+          // Create message object
+          const amqpMessage = new AmqpMessage({
+            message,
+            receiverId: this.getClient(),
+            channel: ch,
+            subscriptionOpts: pick(opts, ['discardMine', 'discardFromApi'])
+          });
+          const ackNeeded = this.autoAck(ack);
+          // Check if should be accepted or not
+          if (amqpMessage.blackListed()) {
+            if (ackNeeded) { ch.nack(message, allUpTo, requeue); }
+            return;
+          }
+          // Call message callback
+          callback(amqpMessage.getContent(), amqpMessage.getFields(), amqpMessage.getProperties());
+          // Check if ACK is needed
+          if (ackNeeded) { ch.ack(message, allUpTo); }
+        };
         // if current hook is a stream
         // checks the existence of the stream queue and starts consuming
-        let localOpts = _.cloneDeep(opts);
-        localOpts = _.merge(_.cloneDeep(this._subscribeArgs), localOpts);
         if (stream) {
           if (!this.liveStreamExists(stream)) {
-            console.error(`Stream ${stream} does not exist`); // eslint-disable-line no-console
-            resolve(false);
+            this.log('error', `Stream ${stream} does not exist`); // eslint-disable-line no-console
+            return;
           }
           if (cache) {
             // Cached streams are connected to the existing live stream queue
-            tempQueue = this._cachedStreamQueue(stream);
-            promisesChain = this._amqpChannels[`${currentTime}`]
-              .checkQueue(tempQueue, this._streamQueueArguments).then(() => {
-                return this._amqpChannels[`${currentTime}`].consume(tempQueue, (message) => {
-                  // Call message callback
-                  callback(parseContent(message.content), message.fields, message.properties);
-                }, localOpts);
-              });
+            tempQueue = this.cachedStreamQueue(stream);
+            await ch.checkQueue(tempQueue);
           } else {
             // Uncached streams are connected to the stream exchange and create a temp queue
-            const streamExchange = this.exchangeName(stream, this._liveStreamSuffix);
-            tempQueue = this.tempQueue(stream, this._liveStreamSuffix, currentTime);
-            promisesChain = this._amqpChannels[`${currentTime}`].checkExchange(streamExchange).then(() => {
-              return this._amqpChannels[`${currentTime}`].assertQueue(tempQueue, this._streamQueueArguments);
-            }).then(() => {
-              return this._amqpChannels[`${currentTime}`].bindQueue(tempQueue, streamExchange, routingKey);
-            }).then(() => {
-              return this._amqpChannels[`${currentTime}`].consume(tempQueue, (message) => {
-                callback(parseContent(message.content), message.fields, message.properties);
-              }, localOpts);
-            });
+            const streamExchange = this.exchangeName(stream, this.liveStreamSuffix);
+            tempQueue = this.tempQueue(stream, this.liveStreamSuffix, currentTime);
+            await ch.checkExchange(streamExchange);
+            await ch.assertQueue(tempQueue, this.streamQueueArguments);
+            await ch.bindQueue(tempQueue, streamExchange, routingKey);
           }
         } else {
           // else if current hook is channel (or a couple deviceId, channel)
           // creates a temp queue, binds to channel exchange and starts consuming
           const channelExchangeName = this.exchangeName(deviceId, channel);
           tempQueue = this.tempQueue(deviceId, channel, currentTime);
-          promisesChain = this._amqpChannels[`${currentTime}`].checkExchange(channelExchangeName).then(() => {
-            return this._amqpChannels[`${currentTime}`].assertQueue(tempQueue, this._streamQueueArguments);
-          }).then(() => {
-            return this._amqpChannels[`${currentTime}`].bindQueue(tempQueue, channelExchangeName,
-              this._streamRoutingKeyFor({
-                deviceId, channel, routingKey, topic
-              }));
-          }).then(() => {
-            return this._amqpChannels[`${currentTime}`].consume(tempQueue, (message) => {
-              callback(parseContent(message.content), message.fields, message.properties);
-            }, localOpts);
-          });
+          await ch.checkExchange(channelExchangeName);
+          await ch.assertQueue(tempQueue, this.streamQueueArguments);
+          await ch.bindQueue(tempQueue, channelExchangeName, this.streamRoutingKeyFor({ deviceId, channel, routingKey, topic }));
         }
-        return promisesChain;
-      }).then(() => {
-        const subscriptionId = md5(tempQueue);
-        this._subscriptions[subscriptionId] = { amqpChannel: currentTime };
-        resolve(_.merge(streamHook, { id: subscriptionId }));
-      }).catch((reason) => {
-        reject(reason);
-      });
-    });
+        consumerTag = (await ch.consume(tempQueue, consumeCallback, { noAck })).consumerTag;
+        this.subscriptions[consumerTag] = streamHook;
+        return consumerTag;
+      } catch (error) {
+        this.log('error', 'Error on addStreamHook');
+        this.log('error', error);
+      }
+    }
+    this.log('error', 'Trying to subscribe on an empty channel.');
   }
 
   /**
    * Unsubscribe client from a topic
    *
-   * @param {String} subscriptionId - subscription ID
+   * @param {String} consumerTag - Consumer Tag
    * @return a promise containing the result of the operation
    */
-  unsubscribe = (subscriptionId: string = ''): Promise<any> => {
-    return new Promise((resolve, reject) => {
-      if (!this.isConnected()) {
-        reject(new Error('Invalid connection'));
-      } else {
-        const subscription = this._subscriptions[subscriptionId];
-        if (!_.isEmpty(subscription)) {
-          const { amqpChannel } = subscription;
-          if (this._amqpChannels[amqpChannel]) {
-            this._amqpChannels[amqpChannel].close();
-            delete this._amqpChannels[amqpChannel];
-            delete this._subscriptions[subscriptionId];
-          }
-          resolve(true);
-        } else {
-          reject(new Error('Subscription not found'));
+  public unsubscribe = async (consumerTag: string): Promise<void> => {
+    if (!this.isConnected()) {
+      this.log('error', `Error trying to unsucscribe from ${consumerTag} on an invalid connection`);
+    } else {
+      try {
+        const ch: amqp.Channel | amqp.ConfirmChannel | void = await this.createChannel('input');
+        if (ch) {
+          await ch.cancel(consumerTag);
         }
+        delete this.subscriptions[consumerTag];
+      } catch (error) {
+        this.log('error', `Error unsubscribing from ${consumerTag}`);
+        this.log('error', error);
       }
-    });
+    }
   }
 
   /**
@@ -180,39 +187,36 @@ class AmqpStreamClient extends AmqpClient {
    * @param {String} streamName - stream name from which you want to stream
    * @return a string that represents the stream queue
    */
-  _cachedStreamQueue = (streamName: string) => {
-    return `${streamName}.${this._liveStreamSuffix}`;
+  private cachedStreamQueue = (streamName: string) => {
+    return `${streamName}.${this.liveStreamSuffix}`;
   }
 
   /**
    * Generate the exchange name for a device's channel
    *
    * @private
-   * @param {Object} params - params
+   * @param {Object} opts - opts
    * @return a string that represents the rounting key
    */
-  _streamRoutingKeyFor = (params: any = {}) => {
-    const {
-      deviceId = undefined, channel = undefined, routingKey = undefined, topic = undefined
-    } = params;
-    if (_.isEmpty(routingKey) && _.isEmpty(deviceId)) {
+  private streamRoutingKeyFor = (opts: IRoutingKey = {}) => {
+    const { deviceId = undefined, channel = undefined, routingKey = undefined, topic = undefined } = opts;
+    if (isEmpty(routingKey) && isEmpty(deviceId)) {
       // if both routingKey and deviceId are empty return default routingKey
-      return this._defaultStreamRoutingKey;
-    } else if (!_.isEmpty(routingKey)) {
-      // return routing key if present
-      return routingKey;
-    } else {
-      let streamRoutingKey = deviceId || '';
-      if (channel) { streamRoutingKey += `.${channel}`; }
-      if (topic) { streamRoutingKey += `.${topic}`; }
-      return `${streamRoutingKey}`;
+      return this.defaultStreamRoutingKey;
     }
+    if (!isEmpty(routingKey)) {
+      return routingKey; // return routing key if present
+    }
+    let streamRoutingKey = deviceId || '';
+    if (channel) { streamRoutingKey += `.${channel}`; }
+    if (topic) { streamRoutingKey += `.${topic}`; }
+    return `${streamRoutingKey}`;
   }
 }
 
 // Remove unwanted methods inherited from AmqpClient
 delete AmqpStreamClient.prototype.onReceive;
 delete AmqpStreamClient.prototype.publish;
-delete AmqpStreamClient.prototype._routingKeyFor;
+delete AmqpStreamClient.prototype.routingKeyFor;
 
 export default AmqpStreamClient;

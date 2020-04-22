@@ -5,7 +5,6 @@
  */
 
 // Import some helpers modules
-import Promise from 'bluebird';
 import _ from 'lodash';
 // Import mqtt library
 import mqtt from 'mqtt';

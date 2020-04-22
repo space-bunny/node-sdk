@@ -15,6 +15,27 @@ import AmqpMessage from '../messages/amqpMessage';
 import SpaceBunny, { IConnectionParams, IEndpointConfigs } from '../spacebunny';
 import { encapsulateContent } from '../utils';
 
+export interface IAmqpConsumeOptions {
+  allUpTo?: boolean;
+  ack?: 'auto' | 'manual' | void;
+  requeue?: boolean;
+  discardMine?: boolean;
+  discardFromApi?: boolean;
+}
+
+export interface IRoutingKey {
+  channel?: string;
+  routingKey?: string;
+  topic?: string;
+  deviceId?: string;
+}
+
+export interface IAmqpPublishOptions {
+  routingKey?: string;
+  topic?: string;
+  withConfirm?: boolean
+}
+
 class AmqpClient extends SpaceBunny {
   private amqpConnection: amqp.Connection;
 
@@ -47,8 +68,7 @@ class AmqpClient extends SpaceBunny {
    * @param {Object} options - subscription options
    * @return promise containing the result of the subscription
    */
-  onReceive = async (callback: Function,
-    opts: { allUpTo?: boolean; ack?: 'auto' | 'manual' | void; requeue?: boolean; discardMine?: boolean; discardFromApi?: boolean } = {}): Promise<any[]> => {
+  public onReceive = async (callback: Function, opts: IAmqpConsumeOptions = {}): Promise<any[]> => {
     // Receive messages from imput queue
     const { ack = undefined, allUpTo = false, requeue = false } = opts;
     const noAck = isNil(ack);
@@ -74,7 +94,7 @@ class AmqpClient extends SpaceBunny {
             return;
           }
           // Call message callback
-          callback(amqpMessage);
+          callback(amqpMessage.getContent(), amqpMessage.getFields(), amqpMessage.getProperties());
           // Check if ACK is needed
           if (ackNeeded) { ch.ack(message, allUpTo); }
         }, { noAck })
@@ -91,15 +111,13 @@ class AmqpClient extends SpaceBunny {
    * @param {Object} opts - publication options
    * @return promise containing the result of the subscription
    */
-  publish = async (channel: string, message: any,
-    opts: { routingKey?: string; topic?: string; withConfirm?: boolean } = {},
-    publishOpts: amqp.Options.Publish = {}): Promise<void> => {
+  public publish = async (channel: string, message: any, opts: IAmqpPublishOptions = {}, publishOpts: amqp.Options.Publish = {}): Promise<void> => {
     const { routingKey = undefined, topic = undefined, withConfirm = false } = opts;
     const ch: amqp.Channel | amqp.ConfirmChannel | void = await this.createChannel('output', { withConfirm });
     if (ch) {
       try {
         const encapsulatedContent = encapsulateContent(message);
-        const rKey = this.routingKeyFor({ channel, routingKey, topic })
+        const rKey = this.routingKeyFor({ channel, routingKey, topic });
         const deviceId = this.getDeviceId();
         await ch.checkExchange(deviceId);
         const res = ch.publish(deviceId, rKey, Buffer.from(encapsulatedContent), publishOpts);
@@ -122,13 +140,14 @@ class AmqpClient extends SpaceBunny {
    *
    * @return a promise containing the result of the operation
    */
-  disconnect = async (): Promise<void> => {
+  public disconnect = async (): Promise<void> => {
     if (this.amqpConnection) {
-      if (this.amqpChannels.input) {
-        await this.amqpChannels.input.close();
-      }
-      if (this.amqpChannels.output) {
-        await this.amqpChannels.output.close();
+      const channels = Object.keys(this.amqpChannels);
+      for (let index = 0; index < channels.length; index += 1) {
+        const channelName = channels[index];
+        // eslint-disable-next-line no-await-in-loop
+        await this.amqpChannels[channelName].close();
+        delete this.amqpChannels[channelName];
       }
       await this.amqpConnection.close();
       this.emit('disconnect');
@@ -144,7 +163,7 @@ class AmqpClient extends SpaceBunny {
    *
    * @return a promise containing current connection
    */
-  connect = async (opts: any = {}): Promise<amqp.Connection> => {
+  public connect = async (opts: amqp.Options.Connect = {}): Promise<amqp.Connection> => {
     let connectionOpts = cloneDeep(opts);
     connectionOpts = merge(cloneDeep(this.connectionOpts), connectionOpts);
     const endpointConfigs: IEndpointConfigs = await this.getEndpointConfigs();
@@ -187,7 +206,7 @@ class AmqpClient extends SpaceBunny {
     return this.amqpConnection;
   }
 
-  isConnected = (): boolean => {
+  public isConnected = (): boolean => {
     return (this.amqpConnection !== undefined);
   }
 
@@ -201,7 +220,7 @@ class AmqpClient extends SpaceBunny {
    * @param {Object} opts - channel options
    * @return a promise containing the current channel
    */
-  createChannel = async (channel: string, opts: { withConfirm?: boolean } = {}): Promise<amqp.Channel | amqp.ConfirmChannel | void> => {
+  protected createChannel = async (channel: string, opts: { withConfirm?: boolean } = {}): Promise<amqp.Channel | amqp.ConfirmChannel | void> => {
     const { withConfirm = true } = opts;
     const channelName = `${channel}${(withConfirm === true) ? 'WithConfirm' : ''}`;
     if (this.amqpConnection) {
@@ -234,7 +253,7 @@ class AmqpClient extends SpaceBunny {
    * @param {String} channelName - indicates if the channel is input or output
    * @return a promise containing the result of the operation
    */
-  closeChannel = async (channelName: string, opts: { withConfirm?: boolean }): Promise<void> => {
+  protected closeChannel = async (channelName: string, opts: { withConfirm?: boolean }): Promise<void> => {
     try {
       const { withConfirm = true } = opts;
       const fullChannelName = `${channelName}${(withConfirm === true) ? 'WithConfirm' : ''}`;
@@ -254,11 +273,9 @@ class AmqpClient extends SpaceBunny {
    * @param {Object} params - params
    * @return a string that represents the routing key for that channel
    */
-  routingKeyFor = (params: { channel?: string; routingKey?: string; topic?: string; }): string => {
+  public routingKeyFor = (params: IRoutingKey = {}): string => {
     const { channel = undefined, routingKey = undefined, topic = undefined } = params;
-    if (routingKey) {
-      return routingKey;
-    }
+    if (routingKey) { return routingKey; }
     let messageRoutingKey = this.getDeviceId();
     if (!isEmpty(channel)) {
       messageRoutingKey += `.${channel || ''}`;
@@ -276,7 +293,7 @@ class AmqpClient extends SpaceBunny {
    * @param {String} ack - the ack type, it should be 'manual' or 'auto'
    * @return boolean - true if messages have to be autoacked, false otherwise
    */
-  autoAck = (ack: string|void): boolean => {
+  protected autoAck = (ack: string|void): boolean => {
     if (ack) {
       if (!CONSTANTS[this.protocol].ackTypes.includes(ack)) {
         this.log('error', 'Wrong acknowledge type');

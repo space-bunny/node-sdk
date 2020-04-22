@@ -4,7 +4,6 @@
  * @module StompStreamClient
  */
 
-import Promise from 'bluebird';
 import md5 from 'js-md5';
 // Import some helpers modules
 import _ from 'lodash';

@@ -174,7 +174,7 @@ class SpaceBunny extends EventEmitter {
    *
    * @return an Object containing the connection parameters
    */
-  getEndpointConfigs = async (): Promise<IEndpointConfigs> => {
+  protected getEndpointConfigs = async (): Promise<IEndpointConfigs> => {
     // Resolve with configs if already retrieved
     if (!isEmpty(this.endpointConfigs) || this.isConnected()) {
       return this.endpointConfigs;
@@ -196,7 +196,7 @@ class SpaceBunny extends EventEmitter {
               'Content-Type': 'application/json'
             }
           };
-          const response = await axios.get(options);
+          const response = await axios(options);
           this.endpointConfigs = camelizeKeys(response.data);
           this.connectionParams = this.endpointConfigs.connection;
           this.channels = this.endpointConfigs.channels || [];
@@ -259,7 +259,7 @@ class SpaceBunny extends EventEmitter {
     return {};
   }
 
-  log = (level: string, message: string|Error): void => {
+  protected log = (level: string, message: string|Error): void => {
     this.emit('log', { level, message });
     if (process.env.NODE_ENV === 'development') {
       // eslint-disable-next-line no-console
@@ -267,26 +267,33 @@ class SpaceBunny extends EventEmitter {
     }
   }
 
-  isConnected = (): boolean => { return false; }
+  public isConnected = (): boolean => { return false; }
 
   /**
    * @return all channels configured for the current device
    */
-  getChannels = (): IChannel[] => {
+  public getChannels = (): IChannel[] => {
     return this.channels || this.endpointConfigs.channels || [];
   }
 
   /**
    * @return the device ID for the current device
    */
-  getDeviceId = (): string => {
+  public getDeviceId = (): string => {
     return this.deviceId || this.connectionParams.deviceId;
   }
 
   /**
-   * @return the device ID for the current device
+   * @return the client for the current stream
    */
-  getInboxTopic = (): string => {
+  public getClient = (): string => {
+    return this.client;
+  }
+
+  /**
+   * @return the Inbox topic for the current device
+   */
+  public getInboxTopic = (): string => {
     return this.inboxTopic || CONFIG.inboxTopic;
   }
 

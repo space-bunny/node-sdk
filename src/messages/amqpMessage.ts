@@ -1,10 +1,9 @@
 import * as amqp from 'amqplib';
+
 /**
  * A wrapper for the message object
  * @module Message
  */
-import { get } from 'lodash';
-
 import CONFIG from '../config/constants';
 import { parseContent } from '../utils';
 
@@ -32,7 +31,7 @@ class AmqpMessage {
    * @param {Object} opts - subscription options
    */
   constructor(opts: {
-    message: amqp.ConsumeMessage | null; receiverId: string; channel: amqp.Channel | amqp.ConfirmChannel,
+    message: amqp.ConsumeMessage | null; receiverId: string; channel: amqp.Channel | amqp.ConfirmChannel;
     subscriptionOpts: { discardMine?: boolean; discardFromApi?: boolean }; }) {
     const { message = undefined, receiverId = '', channel = undefined, subscriptionOpts = {} } = opts;
     const { discardMine = false, discardFromApi = false } = subscriptionOpts;
@@ -84,6 +83,14 @@ class AmqpMessage {
 
   getContent = (): object => {
     return this.content;
+  }
+
+  getProperties = (): object => {
+    return this.message.properties;
+  }
+
+  getFields = (): object => {
+    return this.message.fields;
   }
 
   getChannelName = (): string => {
