@@ -4,14 +4,14 @@
  * @module MqttStreamClient
  */
 
+import Promise from 'bluebird';
 // Import some helpers modules
 import _ from 'lodash';
-import Promise from 'bluebird';
 
+import CONFIG from '../config/constants';
+import { parseContent } from '../utils';
 // Import MqttClient main module from which MqttStreamClient inherits
 import MqttClient from './mqttClient';
-import { parseContent } from '../utils';
-import CONFIG from '../../config/constants';
 
 class MqttStreamClient extends MqttClient {
 

@@ -1,4 +1,3 @@
-
 /**
  * Automatically parse message content
  *
@@ -6,12 +5,12 @@
  * @param {Object/String} message - the received message
  * @return an object containing the input message with parsed content
  */
-export function parseContent(message: any) {
+export function parseContent(message: any): object {
   let parsedMessage = message;
   if (Buffer.isBuffer(parsedMessage)) {
     parsedMessage = parsedMessage.toString('utf-8');
   }
-  let res;
+  let res: object;
   try {
     res = JSON.parse(parsedMessage);
   } catch (ex) {
@@ -28,15 +27,14 @@ export function parseContent(message: any) {
  * @param {Object} content - content to publish, could be a string or a JSON object
  * @return the content encapsulated in the proper way
  */
-export function encapsulateContent(content: any) {
-  let encapsulatedContent = content;
+export function encapsulateContent(content: object): string {
+  let encapsulatedContent: string;
   try {
     encapsulatedContent = JSON.stringify(content);
   } catch (ex) {
-    encapsulatedContent = content;
+    encapsulatedContent = content.toString();
   }
   return encapsulatedContent;
 }
 
-const utilsFunctions = { parseContent, encapsulateContent };
-export default utilsFunctions;
+export default { parseContent, encapsulateContent };

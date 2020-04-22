@@ -5,7 +5,7 @@
     "module": "commonjs",
     "pretty": true,
     "sourceMap": true,
-    "outDir": "dist",
+    "outDir": "",
     "importHelpers": true,
     "strict": true,
     "noImplicitAny": false,
@@ -23,6 +23,8 @@
     "emitDecoratorMetadata": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
+    "declaration": true,
+    "declarationDir": "lib",
     "lib": [
       "es5",
       "es6",

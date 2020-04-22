@@ -7,15 +7,14 @@
 // Import some helpers modules
 import Promise from 'bluebird';
 import _ from 'lodash';
-
 // Import stomp library
 import Stomp from 'stompjs';
 
+import CONFIG from '../config/constants';
+import StompMessage from '../messages/stompMessage';
 // Import SpaceBunny main module from which StompClient inherits
 import SpaceBunny from '../spacebunny';
-import StompMessage from '../messages/stompMessage';
 import { encapsulateContent } from '../utils';
-import CONFIG from '../../config/constants';
 
 class StompClient extends SpaceBunny {
 

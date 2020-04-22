@@ -4,15 +4,15 @@
  * @module StompStreamClient
  */
 
-// Import some helpers modules
-import _ from 'lodash';
 import Promise from 'bluebird';
 import md5 from 'js-md5';
+// Import some helpers modules
+import _ from 'lodash';
 
+import CONFIG from '../config/constants';
+import { parseContent } from '../utils';
 // Import StompClient main module from which StompStreamClient inherits
 import StompClient from './stompClient';
-import { parseContent } from '../utils';
-import CONFIG from '../../config/constants';
 
 class StompStreamClient extends StompClient {
 

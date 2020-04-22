@@ -7,14 +7,13 @@
 // Import some helpers modules
 import Promise from 'bluebird';
 import _ from 'lodash';
-
 // Import mqtt library
 import mqtt from 'mqtt';
 
+import CONFIG from '../config/constants';
 // Import SpaceBunny main module from which MqttClient inherits
 import SpaceBunny from '../spacebunny';
-import { parseContent, encapsulateContent } from '../utils';
-import CONFIG from '../../config/constants';
+import { encapsulateContent, parseContent } from '../utils';
 
 class MqttClient extends SpaceBunny {
 

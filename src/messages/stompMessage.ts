@@ -4,8 +4,8 @@
 */
 import _ from 'lodash';
 
+import CONFIG from '../config/constants';
 import { parseContent } from '../utils';
-import CONFIG from '../../config/constants';
 
 class StompMessage {
 

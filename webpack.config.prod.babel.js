@@ -8,8 +8,8 @@ const env = process.env.NODE_ENV || 'production';
 
 const argv = minimist(process.argv.slice(2));
 
-const platform = (argv.platform : any) || process.platform;
-const arch = (argv.arch : any) || process.arch;
+const platform = (argv.platform) || process.platform;
+const arch = (argv.arch) || process.arch;
 const outputPath = path.join(__dirname, 'lib');
 
 console.log(`\nCompile for ${platform}-${arch} in ${outputPath}\n`); // eslint-disable-line no-console
@@ -20,11 +20,12 @@ const GLOBALS = {
 };
 
 const baseConfig = {
+  mode: 'production',
   resolve: {
     modules: [__dirname, 'node_modules'],
-    extensions: ['.js']
+    extensions: ['.ts', '.tsx', '.js', '.json']
   },
-  entry: { 'spacebunny': './src/index.js' },
+  entry: { spacebunny: './src/index.js' },
   target: 'node',
   output: {
     path: outputPath,
@@ -38,7 +39,6 @@ const baseConfig = {
   optimization: {
     minimize: false,
   },
-  mode: 'production',
   node: {
     __dirname: false,
     __filename: true,
@@ -51,9 +51,9 @@ const baseConfig = {
     // Hash the files using MD5 so that their names change when the content changes.
     new WebpackMd5Hash(),
 
-    new (webpack: any).DefinePlugin(GLOBALS),
+    new webpack.DefinePlugin(GLOBALS),
 
-    new (webpack: any).LoaderOptionsPlugin({
+    new webpack.LoaderOptionsPlugin({
       minimize: true,
       debug: false,
       noInfo: true, // set to false to see a list of every file being bundled.
@@ -63,21 +63,24 @@ const baseConfig = {
   module: {
     rules: [
       {
-        test: /\.js$/,
-        exclude: /node_modules/,
-        use: [{ loader: 'babel-loader', options: { cacheDirectory: true } }]
+        enforce: 'pre',
+        test: /\.ts$/,
+        loader: 'eslint-loader',
+        exclude: [resolve(__dirname, 'node_modules')],
+      }, {
+        test: /\.ts$/,
+        exclude: [resolve(__dirname, 'node_modules')],
+        use: [{
+          loader: 'ts-loader'
+        }]
       },
       {
-        include: [
-          /mqtt\/bin\/sub/,
-          /mqtt\/bin\/pub/,
-          /mqtt\/mqtt/,
-        ],
+        test: /\.(js|mjs|jsx)$/,
         loader: 'string-replace-loader',
         options: {
           search: '#!/usr/bin/env node',
           replace: '',
-          flags: 'g'
+          // flags: 'g'
         }
       }
     ]
