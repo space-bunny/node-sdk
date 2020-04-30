@@ -15,7 +15,10 @@
     "clean-lib": "npm run remove-lib && mkdir lib",
     "prebuild": "npm run clean-lib",
     "build": "cross-env NODE_ENV=production babel-node tools/build.js",
-    "docs": "echo TODO gulp docs'"
+    "docs": "echo TODO gulp docs'",
+    "generate-stats": "ANALYZER=true webpack --config webpack.config.prod.babel.js --profile --json > stats.json",
+    "serve-stats": "webpack-bundle-analyzer --port 4200 stats.json",
+    "analyze-bundle": "rimraf stats.json && npm run generate-stats && npm run serve-stats"
   },
   "bin": {
     "node-dev": "./node_modules/.bin/node-dev",
@@ -68,6 +71,8 @@
     "source-map-support": "0.5.16",
     "string-replace-loader": "2.2.0",
     "webpack": "4.41.6",
+    "webpack-bundle-analyzer": "3.7.0",
+    "webpack-cli": "3.3.11",
     "webpack-md5-hash": "0.0.6"
   }
 }

@@ -8,11 +8,13 @@ const env = process.env.NODE_ENV || 'production';
 
 const argv = minimist(process.argv.slice(2));
 
-const platform = (argv.platform : any) || process.platform;
-const arch = (argv.arch : any) || process.arch;
+const platform = (argv.platform: any) || process.platform;
+const arch = (argv.arch: any) || process.arch;
 const outputPath = path.join(__dirname, 'lib');
 
-console.log(`\nCompile for ${platform}-${arch} in ${outputPath}\n`); // eslint-disable-line no-console
+if (process.env.ANALYZER !== 'true') {
+  console.log(`\nCompile for ${platform}-${arch} in ${outputPath}\n`); // eslint-disable-line no-console
+}
 
 const GLOBALS = {
   'process.env.NODE_ENV': JSON.stringify(env),
