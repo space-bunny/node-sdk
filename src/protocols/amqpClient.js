@@ -174,6 +174,9 @@ class AmqpClient extends SpaceBunny {
               + `${connectionParams.secret}@${connectionParams.host}:`
               + `${connectionParams.protocols.amqp.port}/${connectionParams.vhost.replace('/', '%2f')}`;
           }
+          if (!_.isNil(connectionOpts.heartbeat)) {
+            connectionString += `?heartbeat=${connectionOpts.heartbeat}`;
+          }
           return amqp.connect(connectionString, connectionOpts).then((conn: any) => {
             conn.on('error', (err) => {
               this._amqpConnection = undefined;
