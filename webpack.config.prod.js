@@ -1,8 +1,9 @@
-import path from 'path';
-import webpack from 'webpack';
-import WebpackMd5Hash from 'webpack-md5-hash';
-import minimist from 'minimist';
-import _ from 'lodash';
+const path = require('path');
+const webpack = require('webpack');
+const WebpackMd5Hash = require('webpack-md5-hash');
+const minimist = require('minimist');
+const _ = require('lodash');
+const { resolve } = require('path');
 
 const env = process.env.NODE_ENV || 'production';
 
@@ -12,7 +13,9 @@ const platform = (argv.platform) || process.platform;
 const arch = (argv.arch) || process.arch;
 const outputPath = path.join(__dirname, 'lib');
 
-console.log(`\nCompile for ${platform}-${arch} in ${outputPath}\n`); // eslint-disable-line no-console
+if (process.env.ANALYZER !== 'true') {
+  console.log(`\nCompile for ${platform}-${arch} in ${outputPath}\n`); // eslint-disable-line no-console
+}
 
 const GLOBALS = {
   'process.env.NODE_ENV': JSON.stringify(env),
@@ -25,7 +28,7 @@ const baseConfig = {
     modules: [__dirname, 'node_modules'],
     extensions: ['.ts', '.tsx', '.js', '.json']
   },
-  entry: { spacebunny: './src/index.js' },
+  entry: { spacebunny: './src/index.ts' },
   target: 'node',
   output: {
     path: outputPath,
@@ -95,4 +98,4 @@ const browserConfig = _.cloneDeep(baseConfig);
 browserConfig.target = 'web';
 browserConfig.output.filename = '[name].var.js';
 
-export default [nodejsConfig, browserConfig];
+module.exports = [nodejsConfig, browserConfig];
