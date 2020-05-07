@@ -7,12 +7,11 @@
 // Import amqplib
 import * as amqp from 'amqplib';
 // Import some helpers modules
-import { cloneDeep, isEmpty, isNil, merge, pick } from 'lodash';
+import { isEmpty, isNil, pick } from 'lodash';
 
-import CONSTANTS from '../config/constants';
 import AmqpMessage from '../messages/amqpMessage';
 // Import SpaceBunny main module from which AmqpClient inherits
-import SpaceBunny, { IEndpointConfigs, ISpaceBunnyParams } from '../spacebunny';
+import SpaceBunny, { ISpaceBunnyParams } from '../spacebunny';
 import { encapsulateContent } from '../utils';
 
 export interface IAmqpConsumeOptions {
@@ -41,9 +40,11 @@ class AmqpClient extends SpaceBunny {
 
   private amqpChannels: { [key: string]: amqp.Channel };
 
-  private tlsProtocol: string;
+  private defaultConnectionOpts: any;
 
-  private connectionOpts: any;
+  private ackTypes: string[];
+
+  private connected: boolean;
 
   /**
    * @constructor
@@ -54,10 +55,11 @@ class AmqpClient extends SpaceBunny {
     super(opts);
     this.amqpConnection = undefined;
     this.amqpChannels = {};
-    const amqpOptions = CONSTANTS.amqp;
-    this.protocol = amqpOptions.protocol;
-    this.tlsProtocol = amqpOptions.tls.protocol;
-    this.connectionOpts = amqpOptions.connection.opts;
+    this.protocol = 'amqp';
+    this.tlsProtocol = 'amqps';
+    this.defaultConnectionOpts = { frameMax: 32768 };
+    this.ackTypes = ['auto', 'manual'];
+    this.connected = false;
   }
 
   /**
@@ -68,16 +70,15 @@ class AmqpClient extends SpaceBunny {
    * @param {Object} options - subscription options
    * @return promise containing the result of the subscription
    */
-  public onReceive = async (callback: Function, opts: IAmqpConsumeOptions = {}): Promise<any[]> => {
-    // Receive messages from imput queue
+  public onReceive = async (callback: Function, opts: IAmqpConsumeOptions = {}): Promise<void> => {
+    // Receive messages from input queue
     const { ack = undefined, allUpTo = false, requeue = false } = opts;
     const noAck = isNil(ack);
     const ch: amqp.Channel | amqp.ConfirmChannel | void = await this.createChannel('input', { withConfirm: false });
-    let promises = [];
     if (ch) {
-      promises = [
-        ch.checkQueue(`${this.getDeviceId()}.${this.getInboxTopic()}`),
-        ch.consume(`${this.getDeviceId()}.${this.getInboxTopic()}`, (message: amqp.ConsumeMessage | null) => {
+      try {
+        await ch.checkQueue(`${this.getDeviceId()}.${this.getInboxTopic()}`);
+        await ch.consume(`${this.getDeviceId()}.${this.getInboxTopic()}`, (message: amqp.ConsumeMessage | null) => {
           if (isNil(message)) { return; }
 
           // Create message object
@@ -97,10 +98,11 @@ class AmqpClient extends SpaceBunny {
           callback(amqpMessage.getContent(), amqpMessage.getFields(), amqpMessage.getProperties());
           // Check if ACK is needed
           if (ackNeeded) { ch.ack(message, allUpTo); }
-        }, { noAck })
-      ];
+        }, { noAck });
+      } catch (error) {
+        this.log('error', error);
+      }
     }
-    return Promise.all(promises);
   }
 
   /**
@@ -140,20 +142,27 @@ class AmqpClient extends SpaceBunny {
    *
    * @return a promise containing the result of the operation
    */
-  public disconnect = async (): Promise<void> => {
+  public disconnect = async (): Promise<boolean> => {
     if (this.amqpConnection) {
-      const channels = Object.keys(this.amqpChannels);
-      for (let index = 0; index < channels.length; index += 1) {
-        const channelName = channels[index];
-        // eslint-disable-next-line no-await-in-loop
-        await this.amqpChannels[channelName].close();
-        delete this.amqpChannels[channelName];
+      try {
+        const channels = Object.keys(this.amqpChannels);
+        for (let index = 0; index < channels.length; index += 1) {
+          const channelName = channels[index];
+          // eslint-disable-next-line no-await-in-loop
+          await this.amqpChannels[channelName].close();
+          delete this.amqpChannels[channelName];
+        }
+        await this.amqpConnection.close();
+        this.emit('disconnect');
+        this.amqpConnection = undefined;
+        this.amqpChannels = {};
+        this.connected = false;
+        return true;
+      } catch (error) {
+        this.emit('error', error);
       }
-      await this.amqpConnection.close();
-      this.emit('disconnect');
-      this.amqpConnection = undefined;
-      this.amqpChannels = {};
     }
+    return false;
   }
 
   /**
@@ -164,53 +173,51 @@ class AmqpClient extends SpaceBunny {
    * @return a promise containing current connection
    */
   public connect = async (opts: amqp.Options.Connect = {}): Promise<amqp.Connection> => {
-    let connectionOpts = cloneDeep(opts);
-    connectionOpts = merge(cloneDeep(this.connectionOpts), connectionOpts);
-    const endpointConfigs: IEndpointConfigs = await this.getEndpointConfigs();
-    const connectionParams = (endpointConfigs) ? endpointConfigs.connection : {};
-    if (this.isConnected()) {
+    if (this.isConnected()) { return this.amqpConnection; }
+    if (isEmpty(this.endpointConfigs)) {
+      await this.getEndpointConfigs();
+    }
+    try {
+      this.amqpConnection = await amqp.connect({
+        protocol: (this.tls) ? this.tlsProtocol : this.protocol,
+        hostname: this.connectionParams.host,
+        port: (this.tls) ? this.connectionParams.protocols.amqp.tlsPort : this.connectionParams.protocols.amqp.port,
+        username: this.connectionParams.deviceId || this.connectionParams.client,
+        password: this.connectionParams.secret,
+        vhost: this.connectionParams.vhost.replace('/', '%2f'),
+        frameMax: opts.frameMax || this.defaultConnectionOpts.frameMax,
+        heartbeat: opts.heartbeat || SpaceBunny.DEFAULT_HEARTBEAT
+      });
+      this.amqpConnection.on('error', (err) => {
+        this.amqpConnection = undefined;
+        this.connected = false;
+        this.emit('error', err);
+        this.log('error', err);
+      });
+      this.amqpConnection.on('close', (err) => {
+        this.amqpConnection = undefined;
+        this.connected = false;
+        this.emit('close', err);
+        this.log('error', err);
+      });
+      this.amqpConnection.on('blocked', (reason) => {
+        this.emit('blocked', reason);
+        this.log('warn', reason);
+      });
+      this.amqpConnection.on('unblocked', (reason) => {
+        this.emit('unblocked', reason);
+        this.log('warn', reason);
+      });
+      this.connected = true;
+      this.emit('connect');
       return this.amqpConnection;
+    } catch (error) {
+      this.emit('error', error);
     }
-    let connectionString = '';
-    if (this.tls) {
-      connectionString = `${this.tlsProtocol}://${connectionParams.deviceId || connectionParams.client}:`
-        + `${connectionParams.secret}@${connectionParams.host}:`
-        + `${connectionParams.protocols.amqp.tlsPort}/${connectionParams.vhost.replace('/', '%2f')}`;
-      connectionOpts = merge(connectionOpts, this.tlsOpts);
-    } else {
-      connectionString = `${this.protocol}://${connectionParams.deviceId || connectionParams.client}:`
-        + `${connectionParams.secret}@${connectionParams.host}:`
-        + `${connectionParams.protocols.amqp.port}/${connectionParams.vhost.replace('/', '%2f')}`;
-    }
-    if (!isNil(connectionOpts.heartbeat)) {
-      connectionString += `?heartbeat=${connectionOpts.heartbeat}`;
-    }
-    this.amqpConnection = await amqp.connect(connectionString, connectionOpts);
-    this.amqpConnection.on('error', (err) => {
-      this.amqpConnection = undefined;
-      this.emit('error', err);
-      this.log('error', err);
-    });
-    this.amqpConnection.on('close', (err) => {
-      this.amqpConnection = undefined;
-      this.emit('close', err);
-      this.log('error', err);
-    });
-    this.amqpConnection.on('blocked', (reason) => {
-      this.emit('blocked', reason);
-      this.log('warn', reason);
-    });
-    this.amqpConnection.on('unblocked', (reason) => {
-      this.emit('unblocked', reason);
-      this.log('warn', reason);
-    });
-
-    this.emit('connect');
-    return this.amqpConnection;
   }
 
   public isConnected = (): boolean => {
-    return (this.amqpConnection !== undefined);
+    return (this.amqpConnection !== undefined) && this.connected;
   }
 
   // ------------ PRIVATE METHODS -------------------
@@ -298,7 +305,7 @@ class AmqpClient extends SpaceBunny {
    */
   protected autoAck = (ack: string|void): boolean => {
     if (ack) {
-      if (!CONSTANTS[this.protocol].ackTypes.includes(ack)) {
+      if (!this.ackTypes.includes(ack)) {
         this.log('error', 'Wrong acknowledge type');
       }
       switch (ack) {

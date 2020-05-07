@@ -4,17 +4,22 @@
  * @module MqttStreamClient
  */
 
+import { IClientSubscribeOptions, QoS } from 'async-mqtt';
 // Import some helpers modules
-import _ from 'lodash';
+import { isEmpty, isNil } from 'lodash';
 
-import CONFIG from '../config/constants';
-import { parseContent } from '../utils';
+import { ILiveStreamHook } from '../../src/spacebunny';
 // Import MqttClient main module from which MqttStreamClient inherits
 import MqttClient from './mqttClient';
 
-class MqttStreamClient extends MqttClient {
+export type IMqttCallback = (topic?: string, message?: any) => Promise<void>;
+export interface IMqttLiveStreamHook extends ILiveStreamHook {
+  callback: IMqttCallback;
+  qos?: QoS;
+}
 
-  _defaultStreamRoutingKey: string;
+class MqttStreamClient extends MqttClient {
+  private defaultStreamRoutingKey: string;
 
   /**
    * @constructor
@@ -22,9 +27,9 @@ class MqttStreamClient extends MqttClient {
    */
   constructor(opts: any = {}) {
     super(opts);
-    const mqttStreamOptions = CONFIG.mqtt.stream;
-    this._defaultStreamRoutingKey = mqttStreamOptions.defaultStreamRoutingKey;
+    this.defaultStreamRoutingKey = '#';
   }
+
   /**
    * Subscribe to multiple stream hooks
    *
@@ -33,72 +38,62 @@ class MqttStreamClient extends MqttClient {
    * @param {Object} options - subscription options
    * @return promise containing the result of multiple subscriptions
    */
-   streamFrom = (streamHooks: Array<any> = [], opts:any = {}): Promise<any> => {
-     if (streamHooks.length > 0) {
-       return Promise.mapSeries(streamHooks, (streamHook) => {
-         return this._attachStreamHook(streamHook, opts);
-       });
-     } else {
-       return Promise.reject(new Error('Missing stream hooks'));
-     }
-   }
-
-   /**
-    * Start consuming messages from a device's channel
-    * It generates an auto delete queue from which consume
-    * and binds it to the channel exchange
-    *
-    * @private
-    * @param {Object} streamHook - Object containit hook info
-    * { stream: {String}, callback: {func}}
-    * or
-    * { deviceId: {String}, channel: {String}, callback: {func}}
-    * @param {Object} opts - connection options
-    * @return a promise containing current connection
-    */
-    _attachStreamHook = (streamHook: any, opts: any = {}): Promise<any> => {
-      return new Promise((resolve, reject) => {
-        this.connect().then((mqttClient) => {
-          const {
-            stream = undefined, deviceId = undefined, channel = undefined,
-            topic = undefined, routingKey = undefined, qos = undefined
-          } = streamHook;
-          const cache = (typeof (streamHook.cache) !== 'boolean') ? true : streamHook.cache;
-          if (stream === undefined && (channel === undefined || deviceId === undefined)) {
-            reject(new Error('Missing Stream or Device ID and Channel'));
-          }
-          const emptyFunction = function () { return undefined; };
-          const callback = streamHook.callback || emptyFunction;
-
-          if (!_.isEmpty(stream)) {
-            if (!this.liveStreamExists(stream)) {
-              console.error(`Stream ${stream || ''} does not exist`); // eslint-disable-line no-console
-              resolve(false);
-            }
-            // Cached streams generate qos1 connections with persistent queues
-            // Uncached streams generate qos0 connections with auto delete queues
-            this._topics[this._streamTopicFor(stream)] = (cache) ? 1 : 0;
-          } else {
-            // streams connected directly to a specific channel generate qos0 connections with auto delete queues
-            this._topics[this._streamChannelTopicFor({ deviceId, channel, topic, routingKey })] = qos || this._connectionOpts.qos;
-          }
-          let localOpts = _.cloneDeep(opts);
-          localOpts = _.merge(_.cloneDeep(this._connectionOpts), localOpts);
-          mqttClient.subscribe(this._topics, localOpts, (err) => {
-            if (err) {
-              reject(err);
-            } else {
-              mqttClient.on('message', (messageTopic, message) => {
-                callback(messageTopic, parseContent(message));
-              });
-              resolve(true);
-            }
-          });
-        }).catch((reason) => {
-          reject(reason);
-        });
-      });
+  public streamFrom = async (streamHooks: Array<IMqttLiveStreamHook> = [], opts: IClientSubscribeOptions = { qos: 2 }): Promise<Array<string | void>> => {
+    const promises = [];
+    for (let index = 0; index < streamHooks.length; index += 1) {
+      const streamHook = streamHooks[index];
+      const promise = this.addStreamHook(streamHook, opts);
+      promises.push(promise);
     }
+    return Promise.all(promises);
+  }
+
+  /**
+  * Start consuming messages from a device's channel
+  * It generates an auto delete queue from which consume
+  * and binds it to the channel exchange
+  *
+  * @private
+  * @param {Object} streamHook - Object containit hook info
+  * { stream: {String}, callback: {func}}
+  * or
+  * { deviceId: {String}, channel: {String}, callback: {func}}
+  * @param {Object} opts - connection options
+  * @return a promise containing current connection
+  */
+  public addStreamHook = async (streamHook: IMqttLiveStreamHook, opts: IClientSubscribeOptions = { qos: 2 }): Promise<string | void> => {
+    const {
+      stream = undefined, deviceId = undefined, channel = undefined,
+      topic = undefined, routingKey = undefined, qos = undefined,
+      callback = undefined, cache = true
+    } = streamHook;
+    if (isNil(stream) && (isNil(channel) || isNil(deviceId))) {
+      this.log('error', 'Missing Stream or Device ID and Channel');
+      return;
+    }
+    if (isNil(callback)) {
+      this.log('error', 'Missing Callback');
+      return;
+    }
+    let topicName = topic;
+    let topicQOS: QoS = qos || this.connectionOpts.qos;
+    if (!isEmpty(stream)) {
+      if (!this.liveStreamExists(stream)) {
+        console.error(`Stream ${stream || ''} does not exist`); // eslint-disable-line no-console
+        return;
+      }
+      // Cached streams generate qos1 connections with persistent queues
+      // Uncached streams generate qos0 connections with auto delete queues
+      topicName = this.streamTopicFor(stream);
+      topicQOS = (cache) ? 1 : 0;
+    } else {
+      // streams connected directly to a specific channel generate qos0 connections with auto delete queues
+      topicName = this.streamChannelTopicFor({ deviceId, channel, topic, routingKey });
+    }
+
+    this.addMqttListener(topicName, callback, topicName);
+    await this.subscribe(topicName, { ...this.connectionOpts, ...opts, qos: topicQOS });
+  }
 
   // ------------ PRIVATE METHODS -------------------
 
@@ -110,22 +105,23 @@ class MqttStreamClient extends MqttClient {
    * @param {String} channel - channel name from which you want to stream
    * @return a string that represents the topic name for that channel
    */
-  _streamChannelTopicFor = (params: any = {}) => {
+  private streamChannelTopicFor = (params: any = {}) => {
     const {
-      deviceId = undefined, channel = undefined, routingKey = undefined, topic = undefined
+      deviceId = undefined, channel = undefined,
+      routingKey = undefined, topic = undefined
     } = params;
-    if (_.isEmpty(routingKey) && _.isEmpty(deviceId)) {
+    if (isEmpty(routingKey) && isEmpty(deviceId)) {
       // if both routingKey and deviceId are empty return default routingKey
-      return this._defaultStreamRoutingKey;
-    } else if (!_.isEmpty(routingKey)) {
+      return this.defaultStreamRoutingKey;
+    }
+    if (!isEmpty(routingKey)) {
       // return routing key if present
       return routingKey;
-    } else {
-      let streamRoutingKey = deviceId || this.deviceId();
-      if (channel) { streamRoutingKey += `/${channel}`; }
-      if (topic) { streamRoutingKey += `/${topic}`; }
-      return `${streamRoutingKey}`;
     }
+    let streamRoutingKey = deviceId || this.getDeviceId();
+    if (channel) { streamRoutingKey += `/${channel}`; }
+    if (topic) { streamRoutingKey += `/${topic}`; }
+    return `${streamRoutingKey}`;
   }
 
   /**
@@ -135,14 +131,14 @@ class MqttStreamClient extends MqttClient {
    * @param {String} streamName - stream name from which you want to stream
    * @return a string that represents the topic name for that stream
    */
-  _streamTopicFor = (stream: string = '') => {
-    return `${stream}/${this._liveStreamSuffix}`;
+  streamTopicFor = (stream = '') => {
+    return `${stream}/${this.liveStreamSuffix}`;
   }
 }
 
 // Remove unwnated methods inherited from MqttClient
 delete MqttStreamClient.prototype.onReceive;
 delete MqttStreamClient.prototype.publish;
-delete MqttStreamClient.prototype._topicFor;
+delete MqttStreamClient.prototype.topicFor;
 
 export default MqttStreamClient;

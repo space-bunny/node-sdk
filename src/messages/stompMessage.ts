@@ -20,6 +20,8 @@ class StompMessage {
   _discardMine: boolean;
   _discardFromApi: boolean;
 
+  private static FROM_API_HEADER = 'x-from-sb-api';
+
   /**
   * @constructor
   * @param {Object} opts - subscription options
@@ -63,7 +65,7 @@ class StompMessage {
   * @return Boolean - true if it comes from API, false otherwise
   */
   fromApi = () => {
-    return (this.headers && this.headers[CONFIG.fromApiHeader]);
+    return (this.headers && this.headers[StompMessage.FROM_API_HEADER]);
   }
 
   ack = () => {

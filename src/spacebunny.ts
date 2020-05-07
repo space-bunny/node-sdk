@@ -6,7 +6,6 @@
 // Import some helpers modules
 import axios, { AxiosRequestConfig } from 'axios';
 import { EventEmitter } from 'events';
-import fs from 'fs';
 import { camelizeKeys } from 'humps';
 import { filter, isEmpty, merge, startsWith } from 'lodash';
 import urljoin from 'url-join';
@@ -39,7 +38,7 @@ export interface ISpaceBunnyParams {
   protocols?: { [key: string]: IProtocol };
   autoReconnect?: boolean;
   reconnectTimeout?: number;
-  emitLogs?: boolean;
+  verbose?: boolean;
   caching?: boolean;
   cacheSize?: number;
 }
@@ -56,8 +55,6 @@ export interface ITlsOptions {
   passphrase?: string;
   ca?: Buffer[];
   rejectUnauthorized?: boolean;
-  secureProtocol?: string;
-  protocol?: string;
   pfx?: Buffer;
 }
 
@@ -92,6 +89,15 @@ export interface ICachedMessage {
   sent?: boolean;
 }
 
+export interface ILiveStreamHook {
+  stream?: string;
+  deviceId?: string;
+  channel?: string;
+  routingKey?: string;
+  topic?: string;
+  cache?: boolean;
+}
+
 /**
  * @constructor
  * @param {Object} opts - constructor options may contain Device-Key or connection options
@@ -121,6 +127,8 @@ class SpaceBunny extends EventEmitter {
 
   protected protocol: string;
 
+  protected tlsProtocol: string;
+
   protected inboxTopic: string;
 
   protected liveStreamSuffix: string;
@@ -137,21 +145,29 @@ class SpaceBunny extends EventEmitter {
 
   protected reconnectTimeout = 5000;
 
-  protected emitLogs = true;
+  protected verbose = true;
 
   protected caching = false;
 
-  private cachedMessages: ICachedMessage[] = [];
+  protected cachedMessages: ICachedMessage[] = [];
 
-  private cacheSize: number;
+  protected cacheSize: number;
 
-  private static CACHE_SIZE = 100;
+  protected connectionTimeout: number;
+
+  protected static CACHE_SIZE = 100;
+
+  protected static DEFAULT_CONNECTION_TIMEOUT = 5000;
+
+  protected static DEFAULT_RECONNECT_TIMEOUT = 5000;
+
+  protected static DEFAULT_HEARTBEAT = 60;
 
   constructor(opts: ISpaceBunnyParams = {}) {
     super();
     this.connectionParams = camelizeKeys(opts);
     const { endpoint, deviceKey, channels, deviceId, client, secret, host, port, vhost, inboxTopic,
-      tls, cert, key, passphrase, ca, pfx, disableCertCheck, secureProtocol, emitLogs, caching, cacheSize } = this.connectionParams;
+      tls, verbose, caching, cacheSize } = this.connectionParams;
     this.endpoint = merge(CONFIG.endpoint, endpoint);
     this.deviceKey = deviceKey;
     this.channels = channels;
@@ -161,31 +177,12 @@ class SpaceBunny extends EventEmitter {
     this.host = host;
     this.port = port;
     this.vhost = vhost;
-    this.protocol = CONFIG.protocol;
-    this.inboxTopic = inboxTopic || CONFIG.inboxTopic;
-    this.liveStreamSuffix = CONFIG.liveStreamSuffix;
-    this.tempQueueSuffix = CONFIG.tempQueueSuffix;
+    this.inboxTopic = inboxTopic || 'inbox';
+    this.liveStreamSuffix = 'live_stream';
+    this.tempQueueSuffix = 'temp';
     this.liveStreams = [];
     this.tls = (tls === true);
-    this.tlsOpts = {};
-    if (cert) { this.tlsOpts.cert = fs.readFileSync(cert); }
-    if (key) { this.tlsOpts.key = fs.readFileSync(key); }
-    if (passphrase) { this.tlsOpts.passphrase = passphrase; }
-    if (ca) {
-      if (Array.isArray(ca)) {
-        this.tlsOpts.ca = ca.map((element) => { return fs.readFileSync(element); });
-      } else {
-        this.tlsOpts.ca = [fs.readFileSync(ca)];
-      }
-    }
-    if (pfx) { this.tlsOpts.pfx = fs.readFileSync(pfx); }
-    if (disableCertCheck) {
-      this.tlsOpts.rejectUnauthorized = false;
-    } else {
-      this.tlsOpts.rejectUnauthorized = true;
-    }
-    this.tlsOpts.secureProtocol = secureProtocol || CONFIG.tls.secureProtocol;
-    this.emitLogs = emitLogs;
+    this.verbose = (verbose === true);
     this.caching = caching;
     this.cacheSize = cacheSize || SpaceBunny.CACHE_SIZE;
   }
@@ -220,7 +217,7 @@ class SpaceBunny extends EventEmitter {
             }
           };
           const response = await axios(options);
-          this.endpointConfigs = camelizeKeys(response.data);
+          this.endpointConfigs = (camelizeKeys(response.data) as IEndpointConfigs);
           this.connectionParams = this.endpointConfigs.connection;
           this.channels = this.endpointConfigs.channels || [];
           return this.endpointConfigs;
@@ -258,9 +255,9 @@ class SpaceBunny extends EventEmitter {
         // uses endpoint passed from user, default endpoint otherwise
         const hostname = this.generateHostname();
         const uri = urljoin(hostname, this.endpoint.liveStreamKeyConfigurationsPath);
-        const options = {
+        const options: AxiosRequestConfig = {
           url: uri,
-          method: 'get',
+          method: 'GET',
           responseType: 'json',
           headers: {
             'Live-Stream-Key-Client': this.client,
@@ -269,7 +266,7 @@ class SpaceBunny extends EventEmitter {
           }
         };
         const response = await axios(options);
-        this.endpointConfigs = camelizeKeys(response.data);
+        this.endpointConfigs = (camelizeKeys(response.data) as IEndpointConfigs);
         this.connectionParams = this.endpointConfigs.connection;
         this.liveStreams = this.endpointConfigs.liveStreams || [];
         return this.endpointConfigs;
@@ -283,7 +280,7 @@ class SpaceBunny extends EventEmitter {
   }
 
   protected log = (level: string, message: string|Error): void => {
-    if (this.emitLogs) {
+    if (this.verbose) {
       this.emit('log', { level, message });
     }
     if (process.env.NODE_ENV === 'development') {
@@ -319,7 +316,7 @@ class SpaceBunny extends EventEmitter {
    * @return the Inbox topic for the current device
    */
   public getInboxTopic = (): string => {
-    return this.inboxTopic || CONFIG.inboxTopic;
+    return this.inboxTopic;
   }
 
   /**

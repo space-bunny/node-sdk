@@ -1,4 +1,5 @@
 import * as amqp from 'amqplib';
+import SpaceBunny from 'src/spacebunny';
 
 /**
  * A wrapper for the message object
@@ -23,6 +24,8 @@ class AmqpMessage {
   private discardMine: boolean;
 
   private discardFromApi: boolean;
+
+  private static FROM_API_HEADER = 'x-from-sb-api';
 
   /**
    * @constructor
@@ -68,7 +71,7 @@ class AmqpMessage {
    * @return Boolean - true if it comes from API, false otherwise
    */
   fromApi = () => {
-    return (this.message.properties.headers && this.message.properties.headers[CONFIG.fromApiHeader]);
+    return (this.message.properties.headers && this.message.properties.headers[AmqpMessage.FROM_API_HEADER]);
   }
 
   ack = (opts: any = {}) => {

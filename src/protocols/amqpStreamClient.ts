@@ -7,19 +7,12 @@
 import * as amqp from 'amqplib';
 import { isEmpty, isNil, pick } from 'lodash';
 
-import CONFIG from '../config/constants';
 import AmqpMessage from '../messages/amqpMessage';
-import { ISpaceBunnyParams } from '../spacebunny';
+import { ILiveStreamHook, ISpaceBunnyParams } from '../spacebunny';
 import AmqpClient, { IAmqpConsumeOptions, IRoutingKey } from './amqpClient';
 
 export type IAmqpCallback = (message: any, fields: object, properties: object) => Promise<void>;
-export interface ILiveStreamHook {
-  stream?: string;
-  deviceId?: string;
-  channel?: string;
-  routingKey?: string;
-  topic?: string;
-  cache?: boolean;
+export interface IAmqpLiveStreamHook extends ILiveStreamHook {
   callback: IAmqpCallback;
 }
 
@@ -36,10 +29,9 @@ class AmqpStreamClient extends AmqpClient {
    */
   constructor(opts: ISpaceBunnyParams = {}) {
     super(opts);
-    const amqpStreamOptions = CONFIG.amqp.stream;
-    this.defaultStreamRoutingKey = amqpStreamOptions.defaultStreamRoutingKey;
-    this.streamQueueArguments = amqpStreamOptions.streamQueueArguments;
     this.subscriptions = {};
+    this.defaultStreamRoutingKey = '#';
+    this.streamQueueArguments = { exclusive: true, autoDelete: true, durable: false };
   }
 
   /**
@@ -50,7 +42,7 @@ class AmqpStreamClient extends AmqpClient {
    * @param {Object} options - subscription options
    * @return promise containing the result of multiple subscriptions
    */
-  public streamFrom = async (streamHooks: Array<ILiveStreamHook> = [], opts: IAmqpConsumeOptions = {}): Promise<Array<string|void>> => {
+  public streamFrom = async (streamHooks: Array<IAmqpLiveStreamHook> = [], opts: IAmqpConsumeOptions = {}): Promise<Array<string|void>> => {
     const promises = [];
     for (let index = 0; index < streamHooks.length; index += 1) {
       const streamHook = streamHooks[index];
@@ -75,7 +67,7 @@ class AmqpStreamClient extends AmqpClient {
    * @param {Object} opts - connection options
    * @return a promise containing current connection
    */
-  public addStreamHook = async (streamHook: ILiveStreamHook, opts: IAmqpConsumeOptions = {}): Promise<string|void> => {
+  public addStreamHook = async (streamHook: IAmqpLiveStreamHook, opts: IAmqpConsumeOptions = {}): Promise<string|void> => {
     // Receive messages from stream
     const {
       stream = undefined, deviceId = undefined, channel = undefined, cache = true,
@@ -93,7 +85,6 @@ class AmqpStreamClient extends AmqpClient {
     }
     const currentTime = new Date().getTime();
     let tempQueue: string;
-    let consumerTag: string;
     const ch: amqp.Channel | amqp.ConfirmChannel | void = await this.createChannel('input');
     if (ch) {
       try {
@@ -146,15 +137,16 @@ class AmqpStreamClient extends AmqpClient {
           await ch.assertQueue(tempQueue, this.streamQueueArguments);
           await ch.bindQueue(tempQueue, channelExchangeName, this.streamRoutingKeyFor({ deviceId, channel, routingKey, topic }));
         }
-        consumerTag = (await ch.consume(tempQueue, consumeCallback, { noAck })).consumerTag;
+        const { consumerTag } = await ch.consume(tempQueue, consumeCallback, { noAck });
         this.subscriptions[consumerTag] = streamHook;
         return consumerTag;
       } catch (error) {
         this.log('error', 'Error on addStreamHook');
         this.log('error', error);
       }
+    } else {
+      this.log('error', 'Trying to subscribe on an empty channel.');
     }
-    this.log('error', 'Trying to subscribe on an empty channel.');
   }
 
   /**

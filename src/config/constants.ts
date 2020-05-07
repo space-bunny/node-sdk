@@ -2,13 +2,6 @@ import { IEndpoint } from 'src/spacebunny';
 
 export interface IConstants {
   endpoint: IEndpoint;
-  tls: { secureProtocol: string };
-  fromApiHeader: string;
-  protocol: string;
-  inboxTopic: string;
-  liveStreamSuffix: string;
-  tempQueueSuffix: string;
-  amqp: IAmqpContants;
   mqtt: IMqttContants;
   stomp: IStompConstants;
   webStomp: IWebStompConstants;
@@ -84,32 +77,9 @@ const constants: IConstants = {
     deviceConfigurationsPath: 'device_configurations',
     liveStreamKeyConfigurationsPath: 'live_stream_key_configurations'
   },
-  tls: {
-    secureProtocol: 'TLSv1_2_method'
-  },
-  fromApiHeader: 'x-from-sb-api',
-  protocol: 'amqp',
-  inboxTopic: 'inbox',
-  liveStreamSuffix: 'live_stream',
-  tempQueueSuffix: 'temp',
-  amqp: {
-    ackTypes: ['auto', 'manual'],
-    protocol: 'amqp',
-    tls: {
-      protocol: 'amqps'
-    },
-    connection: {
-      opts: {}
-    },
-    deviceExchangeArgs: {},
-    subscribeArgs: { noAck: true, requeue: false, allUpTo: false },
-    publishArgs: { withConfirm: false },
-    socketOptions: { frameMax: 32768, heartbeat: 60 },
-    stream: {
-      defaultStreamRoutingKey: '#',
-      streamQueueArguments: { exclusive: true, autoDelete: true, durable: false }
-    }
-  },
+  // tls: {
+  //   secureProtocol: 'TLSv1_2_method'
+  // },
   mqtt: {
     protocol: 'mqtt',
     tls: {
@@ -117,7 +87,7 @@ const constants: IConstants = {
       rejectUnauthorized: true
     },
     connection: {
-      opts: { qos: 1, clean: true },
+      opts: { qos: 2, clean: true },
       timeout: 5000
     },
     stream: {

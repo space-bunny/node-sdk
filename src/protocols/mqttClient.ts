@@ -5,12 +5,12 @@
  */
 
 import mqtt, {
-  AsyncMqttClient, IClientOptions, IClientPublishOptions, IClientSubscribeOptions
+  AsyncMqttClient, IClientOptions, IClientPublishOptions, IClientSubscribeOptions, QoS
 } from 'async-mqtt';
-import retry from 'async-retry';
-import { isEmpty, merge, without } from 'lodash';
+import fs from 'fs';
+import { isEmpty, isNil, without } from 'lodash';
 
-import CONFIG from '../config/constants';
+// import { promisify } from 'util';
 import SpaceBunny, { ISpaceBunnyParams } from '../spacebunny';
 import { encapsulateContent } from '../utils';
 
@@ -20,16 +20,22 @@ export type IMqttListener = {
   topics?: string[];
 }
 
+export type IMqttConnectionOptions = {
+  qos?: QoS;
+  clean?: boolean;
+  reconnectPeriod?: number;
+  keepalive?: number;
+  connectTimeout?: number;
+}
+
 class MqttClient extends SpaceBunny {
-  private mqttClient: AsyncMqttClient;
+  protected mqttClient: AsyncMqttClient;
 
-  private mqttListeners: { [name: string]: IMqttListener } = {};
+  protected mqttListeners: { [name: string]: IMqttListener } = {};
 
-  private topics: string[] = [];
+  protected topics: string[] = [];
 
-  private connectionOpts: any;
-
-  private connectionTimeout: number;
+  protected connectionOpts: IMqttConnectionOptions;
 
   /**
    * @constructor
@@ -38,14 +44,29 @@ class MqttClient extends SpaceBunny {
    */
   constructor(opts: ISpaceBunnyParams = {}) {
     super(opts);
-    const mqttOptions = CONFIG.mqtt;
     this.topics = [];
     this.mqttClient = undefined;
-    this.protocol = mqttOptions.protocol;
-    this.tlsOpts.protocol = mqttOptions.tls.protocol;
-    this.tlsOpts.rejectUnauthorized = mqttOptions.tls.rejectUnauthorized;
-    this.connectionOpts = mqttOptions.connection.opts;
-    this.connectionTimeout = mqttOptions.connection.timeout;
+    this.protocol = 'mqtt';
+    this.tlsProtocol = 'mqtts';
+    this.connectionOpts = { qos: 2, clean: true };
+    const { cert, key, passphrase, ca, pfx, disableCertCheck } = opts;
+    this.tlsOpts = {};
+    if (cert) { this.tlsOpts.cert = fs.readFileSync(cert); }
+    if (key) { this.tlsOpts.key = fs.readFileSync(key); }
+    if (passphrase) { this.tlsOpts.passphrase = passphrase; }
+    if (ca) {
+      if (Array.isArray(ca)) {
+        this.tlsOpts.ca = ca.map((element) => { return fs.readFileSync(element); });
+      } else {
+        this.tlsOpts.ca = [fs.readFileSync(ca)];
+      }
+    }
+    if (pfx) { this.tlsOpts.pfx = fs.readFileSync(pfx); }
+    if (disableCertCheck) {
+      this.tlsOpts.rejectUnauthorized = false;
+    } else {
+      this.tlsOpts.rejectUnauthorized = true;
+    }
   }
 
   /**
@@ -144,63 +165,58 @@ class MqttClient extends SpaceBunny {
    * @return a promise containing current connection
    */
   public connect = async (opts: IClientOptions = {}): Promise<AsyncMqttClient|void> => {
-    if (this.isConnected()) {
-      return this.mqttClient;
+    if (this.isConnected()) { return this.mqttClient; }
+    if (isEmpty(this.endpointConfigs)) {
+      await this.getEndpointConfigs();
     }
-    const localOpts = { ...this.connectionOpts, ...opts };
-    const endpointConfigs = await this.getEndpointConfigs();
-    const connectionParams = endpointConfigs.connection;
     try {
-      let mqttConnectionParams = {
-        host: connectionParams.host,
-        port: (this.tls) ? connectionParams.protocols.mqtt.tlsPort : connectionParams.protocols.mqtt.port,
-        username: `${connectionParams.vhost}:${connectionParams.deviceId || connectionParams.client}`,
-        password: connectionParams.secret,
-        clientId: connectionParams.deviceId || connectionParams.client,
-        connectionTimeout: localOpts.connectionTimeout || this.connectionTimeout,
-        clean: localOpts.clean,
-        keepalive: 5,
-        ...opts
+      let mqttConnectionParams: IClientOptions = {
+        host: this.connectionParams.host,
+        protocol: (this.tls) ? 'mqtts' : 'mqtt',
+        port: (this.tls) ? this.connectionParams.protocols.mqtt.tlsPort : this.connectionParams.protocols.mqtt.port,
+        username: `${this.connectionParams.vhost}:${this.connectionParams.deviceId || this.connectionParams.client}`,
+        password: this.connectionParams.secret,
+        clientId: this.connectionParams.deviceId || this.connectionParams.client,
+        connectTimeout: opts.connectTimeout || SpaceBunny.DEFAULT_CONNECTION_TIMEOUT,
+        reconnectPeriod: (this.autoReconnect) ? (opts.reconnectPeriod || SpaceBunny.DEFAULT_RECONNECT_TIMEOUT) : 0, // disable autoreconnect ??
+        clean: (isNil(opts.clean)) ? true : opts.clean,
+        keepalive: opts.keepalive || SpaceBunny.DEFAULT_HEARTBEAT,
+        // ...opts
       };
-      if (this.tls) {
-        mqttConnectionParams = merge(mqttConnectionParams, this.tlsOpts);
-      }
-      await retry(async () => {
-        this.mqttClient = await mqtt.connectAsync(mqttConnectionParams);
-        this.mqttClient.on('error', (reason) => {
-          this.mqttClient = undefined;
-          this.emit('error', reason);
-        });
-        this.mqttClient.on('close', (reason) => {
-          this.mqttClient = undefined;
-          this.emit('close', reason);
-        });
-        this.mqttClient.on('message', (msgTopic: string, message: Buffer) => {
-          let msg: any = {};
-          try {
-            msg = JSON.parse(message.toString());
-          } catch (e) {
-            msg = message.toString();
-          }
-          Object.entries(this.mqttListeners).forEach(([, listener]) => {
-            const { callback, topics } = listener;
-            if (isEmpty(topics) || topics.includes(msgTopic)) {
-              this.log('debug', `Received message for topic ${msgTopic}: ${msg.toString()}`);
-              callback(msgTopic, msg);
-            } else {
-              this.log('silly', `Received unlistened message for topic ${msgTopic}: ${msg.toString()}`);
-            }
-          });
-        });
-        return this.mqttClient;
-      }, {
-        minTimeout: this.reconnectTimeout,
-        maxTimeout: this.reconnectTimeout,
-        forever: true,
-        onRetry: (e: Error) => { this.log('error', e.message); }
+      if (this.tls) { mqttConnectionParams = { ...mqttConnectionParams, ...this.tlsOpts }; }
+      this.mqttClient = await mqtt.connectAsync(mqttConnectionParams);
+      this.mqttClient.on('error', (reason) => {
+        this.mqttClient = undefined;
+        this.emit('error', reason);
       });
+      this.mqttClient.on('close', (reason) => {
+        this.mqttClient = undefined;
+        this.emit('close', reason);
+      });
+      this.mqttClient.on('message', (msgTopic: string, message: Buffer) => {
+        let msg: any = {};
+        try {
+          msg = JSON.parse(message.toString());
+        } catch (e) {
+          msg = message.toString();
+        }
+        Object.entries(this.mqttListeners).forEach(([, listener]) => {
+          const { callback, topics } = listener;
+          if (isEmpty(topics) || topics.includes(msgTopic)) {
+            this.log('debug', `Received message for topic ${msgTopic}: ${msg.toString()}`);
+            callback(msgTopic, msg);
+          } else {
+            this.log('silly', `Received unlistened message for topic ${msgTopic}: ${msg.toString()}`);
+          }
+        });
+      });
+      return this.mqttClient;
     } catch (error) {
       this.log('error', error);
+      // do not overide handlers
+      // const timeout = promisify(setTimeout);
+      // await timeout(SpaceBunny.DEFAULT_RECONNECT_TIMEOUT);
+      // this.connect(mqttConnectionParams);
     }
   }
 
@@ -218,7 +234,7 @@ class MqttClient extends SpaceBunny {
    * @param {String} channel - channel name on which you want to publish a message
    * @return a string that represents the topic name for that channel
    */
-  protected topicFor = (deviceId: string|void|null, channel: string) => {
+  public topicFor = (deviceId: string|void|null, channel: string) => {
     return `${deviceId || this.getDeviceId()}/${channel}`;
   }
 }
