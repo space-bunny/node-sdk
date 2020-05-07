@@ -1,11 +1,10 @@
 import * as amqp from 'amqplib';
-import SpaceBunny from 'src/spacebunny';
 
+import { ISpaceBunnySubscribeOptions } from '../spacebunny';
 /**
  * A wrapper for the message object
  * @module Message
  */
-import CONFIG from '../config/constants';
 import { parseContent } from '../utils';
 
 class AmqpMessage {
@@ -35,7 +34,7 @@ class AmqpMessage {
    */
   constructor(opts: {
     message: amqp.ConsumeMessage | null; receiverId: string; channel: amqp.Channel | amqp.ConfirmChannel;
-    subscriptionOpts: { discardMine?: boolean; discardFromApi?: boolean }; }) {
+    subscriptionOpts: ISpaceBunnySubscribeOptions; }) {
     const { message = undefined, receiverId = '', channel = undefined, subscriptionOpts = {} } = opts;
     const { discardMine = false, discardFromApi = false } = subscriptionOpts;
     this.message = message;

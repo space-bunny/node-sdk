@@ -7,13 +7,9 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { EventEmitter } from 'events';
 import { camelizeKeys } from 'humps';
-import { filter, isEmpty, merge, startsWith } from 'lodash';
+import { filter, isEmpty, startsWith } from 'lodash';
 import urljoin from 'url-join';
 import uuid from 'uuid-v4';
-
-// TODO validate enpointConfig object format with Joi
-// import Joi from 'joi';
-import CONFIG from './config/constants';
 
 export interface ISpaceBunnyParams {
   endpoint?: any;
@@ -79,6 +75,7 @@ export interface IEndpoint {
   securePort: number;
   deviceConfigurationsPath: string;
   liveStreamKeyConfigurationsPath: string;
+  url?: string;
 }
 
 export interface ICachedMessage {
@@ -98,6 +95,11 @@ export interface ILiveStreamHook {
   cache?: boolean;
 }
 
+export interface ISpaceBunnySubscribeOptions {
+  discardMine?: boolean;
+  discardFromApi?: boolean;
+}
+
 /**
  * @constructor
  * @param {Object} opts - constructor options may contain Device-Key or connection options
@@ -107,7 +109,7 @@ class SpaceBunny extends EventEmitter {
 
   protected endpointConfigs: IEndpointConfigs;
 
-  protected endpoint: any;
+  protected endpoint: IEndpoint;
 
   protected deviceKey: string;
 
@@ -168,7 +170,16 @@ class SpaceBunny extends EventEmitter {
     this.connectionParams = camelizeKeys(opts);
     const { endpoint, deviceKey, channels, deviceId, client, secret, host, port, vhost, inboxTopic,
       tls, verbose, caching, cacheSize } = this.connectionParams;
-    this.endpoint = merge(CONFIG.endpoint, endpoint);
+    const defaultEndpoint: IEndpoint = {
+      protocol: 'http',
+      secureProtocol: 'https',
+      host: 'api.spacebunny.io',
+      port: 80,
+      securePort: 443,
+      deviceConfigurationsPath: 'device_configurations',
+      liveStreamKeyConfigurationsPath: 'live_stream_key_configurations'
+    };
+    this.endpoint = { ...defaultEndpoint, ...endpoint };
     this.deviceKey = deviceKey;
     this.channels = channels;
     this.deviceId = deviceId;

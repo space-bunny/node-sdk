@@ -5,26 +5,42 @@
  */
 
 // Import some helpers modules
-import _ from 'lodash';
-// Import stomp library
-import Stomp from 'stompjs';
+import { isEmpty } from 'lodash';
 
-import CONFIG from '../config/constants';
+// Import stomp library
+import Stomp, { IMessage, StompHeaders } from '@stomp/stompjs';
+
 import StompMessage from '../messages/stompMessage';
 // Import SpaceBunny main module from which StompClient inherits
-import SpaceBunny from '../spacebunny';
+import SpaceBunny, { ISpaceBunnySubscribeOptions } from '../spacebunny';
 import { encapsulateContent } from '../utils';
 
-class StompClient extends SpaceBunny {
+export interface IStompPublishOptions {
+  routingKey?: string;
+  topic?: string;
+}
 
-  _stompConnection: any;
-  _subscription: any;
-  _protocol: string;
-  _webSocketOpts: any;
-  _connectionHeaders: any;
-  _connectionOpts: any;
-  _existingQueuePrefix: string;
-  _defaultResource: string;
+export interface IStompConsumeOptions extends ISpaceBunnySubscribeOptions {
+  ack?: 'client';
+}
+
+
+class StompClient extends SpaceBunny {
+  protected stompClient: Stomp.Client;
+
+  protected subscription: Stomp.StompSubscription;
+
+  protected connectionHeaders: StompHeaders;
+
+  protected connectionOpts: any;
+
+  protected existingQueuePrefix: string;
+
+  protected defaultResource: string;
+
+  protected ackTypes: string[];
+
+  protected wsEndpoint: string;
 
   /**
    * @constructor
@@ -33,20 +49,20 @@ class StompClient extends SpaceBunny {
    */
   constructor(opts: any = {}) {
     super(opts);
-    this._stompConnection = undefined;
-    this._subscription = undefined;
-    if (typeof process === 'object' && `${process.toString()}` === '[object process]') {
-      this._protocol = 'stomp';
-    } else {
-      this._protocol = 'webStomp';
-    }
-    const stompOpts = CONFIG.stomp;
-    const webStompOpts = CONFIG.webStomp;
-    this._webSocketOpts = webStompOpts.webSocket;
-    this._connectionHeaders = stompOpts.connection.headers;
-    this._connectionOpts = stompOpts.connection.opts;
-    this._existingQueuePrefix = stompOpts.existingQueuePrefix;
-    this._defaultResource = stompOpts.defaultResource;
+    this.subscription = undefined;
+    this.protocol = 'ws';
+    this.tlsProtocol = 'wss';
+    this.wsEndpoint = 'ws';
+    this.connectionHeaders = {
+      // eslint-disable-next-line @typescript-eslint/camelcase
+      max_hbrlck_fails: '10',
+      'accept-version': '1.0,1.1,1.2',
+      'heart-beat': '10000,10000'
+    };
+    this.connectionOpts = {};
+    this.existingQueuePrefix = 'amq/queue';
+    this.defaultResource = 'exchange';
+    this.ackTypes = ['client'];
   }
 
   /**
@@ -57,17 +73,15 @@ class StompClient extends SpaceBunny {
    * @param {Object} options - subscription options
    * @return promise containing the result of the subscription
    */
-  onReceive = (callback: Function, opts: any = {}): Promise<any> => {
-    // subscribe for input messages
+  public onReceive = (callback: Function, opts: IStompConsumeOptions = {}): Promise<void> => {
     return new Promise((resolve, reject) => {
-      let localOpts = _.cloneDeep(opts);
-      localOpts = _.merge({}, localOpts);
-      this.connect().then((client) => {
-        const topic = this._subcriptionFor(this._existingQueuePrefix, this._inboxTopic);
-        const subscriptionCallback = (message) => {
+      try {
+        // subscribe for input messages
+        const topic = this.subcriptionFor(this.existingQueuePrefix, this.inboxTopic);
+        const subscriptionCallback = (message: IMessage) => {
           // Create message object
-          const stompMessage = new StompMessage({ message, receiverId: this._deviceId, subscriptionOpts: localOpts });
-          const ackNeeded = this._autoAck(localOpts.ack);
+          const stompMessage = new StompMessage({ message, receiverId: this.getDeviceId(), subscriptionOpts: opts });
+          const ackNeeded = this.autoAck(opts.ack);
           // Check if should be accepted or not
           if (stompMessage.blackListed()) {
             if (ackNeeded) { message.nack(); }
@@ -78,11 +92,12 @@ class StompClient extends SpaceBunny {
           // Check if ACK is needed
           if (ackNeeded) { message.ack(); }
         };
-        this._subscription = client.subscribe(topic, subscriptionCallback);
-        resolve(true);
-      }).catch((reason) => {
-        reject(reason);
-      });
+        this.subscription = this.stompClient.subscribe(topic, subscriptionCallback);
+        resolve();
+      } catch (error) {
+        this.log('error', error);
+        reject(error);
+      }
     });
   }
 
@@ -94,19 +109,22 @@ class StompClient extends SpaceBunny {
    * @param {Object} opts - publication options
    * @return a promise containing the result of the operation
    */
-  publish = (channel: string, message: any, opts: any = {}): Promise<any> => {
-    // Publish message
+  publish = (channel: string, message: any, opts: IStompPublishOptions = {}): Promise<boolean> => {
     return new Promise((resolve, reject) => {
-      let localOpts = _.cloneDeep(opts);
-      localOpts = _.merge({}, localOpts);
-      this.connect().then((client) => {
-        const { routingKey = undefined, topic = undefined } = localOpts;
-        const destination = this._destinationFor({ channel, routingKey, topic });
-        client.send(destination, this._connectionHeaders, encapsulateContent(message));
+      try {
+        // Publish message
+        const { routingKey = undefined, topic = undefined } = opts;
+        const destination = this.destinationFor({ channel, routingKey, topic });
+        this.stompClient.publish({
+          destination,
+          headers: {},
+          body: encapsulateContent(message),
+        });
         resolve(true);
-      }).catch((reason) => {
-        reject(reason);
-      });
+      } catch (error) {
+        this.log('error', error);
+        reject(error);
+      }
     });
   }
 
@@ -115,22 +133,22 @@ class StompClient extends SpaceBunny {
    *
    * @return a promise containing the result of the operation
    */
-  disconnect = (): Promise<any> => {
+  disconnect = (): Promise<boolean> => {
     return new Promise((resolve, reject) => {
       if (!this.isConnected()) {
-        reject(new Error('Invalid connection'));
+        resolve(true);
       } else {
-        if (this._subscription !== undefined) {
-          this._subscription.unsubscribe();
-        }
-        this._stompConnection.disconnect(() => {
+        try {
+          if (this.subscription !== undefined) {
+            this.subscription.unsubscribe();
+          }
+          this.stompClient.deactivate();
+          this.stompClient = undefined;
           this.emit('disconnect');
-          this._stompConnection = undefined;
           resolve(true);
-        }).catch((reason) => {
-          this._stompConnection = undefined;
-          reject(reason);
-        });
+        } catch (error) {
+          reject(error);
+        }
       }
     });
   }
@@ -142,66 +160,56 @@ class StompClient extends SpaceBunny {
    * @param {Object} opts - connection options
    * @return a promise containing current connection
    */
-  connect = (opts: any = {}): Promise<any> => {
-    return new Promise((resolve, reject) => {
-      // let localOpts = _.cloneDeep(opts);
-      // localOpts = _.merge(_.cloneDeep(this._connectionOpts), localOpts);
-      this.getEndpointConfigs().then((endpointConfigs) => {
-        const connectionParams = endpointConfigs.connection;
-        if (this.isConnected()) {
-          resolve(this._stompConnection);
-        } else {
-          try {
-            let client;
-            if (typeof process === 'object' && `${process.toString()}` === '[object process]') {
-              // code is runnning in nodejs: STOMP uses TCP sockets
-              if (this._tls) {
-                client = Stomp.overTCP(connectionParams.host, connectionParams.protocols.stomp.tlsPort, this._tlsOpts);
-              } else {
-                client = Stomp.overTCP(connectionParams.host, connectionParams.protocols.stomp.port);
-              }
-            } else {
-              // code is runnning in a browser: web STOMP uses Web sockets
-              const protocol = (this._tls) ? this._webSocketOpts.tls.protocol : this._webSocketOpts.protocol;
-              const port = (this._tls)
-                ? connectionParams.protocols.webStomp.tlsPort : connectionParams.protocols.webStomp.port;
-              const connectionString = `${protocol}://${connectionParams.host}:${port}/${this._webSocketOpts.endpoint}`;
-              const ws = new WebSocket(connectionString);
-              client = Stomp.over(ws);
-              client.heartbeat.outgoing = 10000;
-              client.heartbeat.incoming = 10000;
-              client.debug = null;
-            }
-            const headers = _.merge(_.cloneDeep(this._connectionHeaders), {
-              login: connectionParams.deviceId || connectionParams.client,
-              passcode: connectionParams.secret,
-              host: connectionParams.vhost
-            });
-            client.connect(headers, () => {
-              this._stompConnection = client;
-              this.emit('connect');
-              resolve(this._stompConnection);
-            }, (err) => {
-              this.emit('error', err.body);
-              // this._stompConnection = undefined;
-              // reject(err.body);
-            });
-            client.debug = (str) => {
-              this.emit('debug', str);
-            };
-            this.on('error', () => {});
-          } catch (reason) {
-            reject(reason);
-          }
-        }
-      }).catch((reason) => {
-        reject(reason);
-      });
-    });
+  public connect = async (opts: Stomp.StompConfig = {}): Promise<Stomp.Client> => {
+    if (this.isConnected()) { return this.stompClient; }
+    if (isEmpty(this.endpointConfigs)) {
+      await this.getEndpointConfigs();
+    }
+    // code is runnning in a browser: web STOMP uses Web sockets
+    const protocol = (this.tls) ? this.tlsProtocol : this.protocol;
+    const port = (this.tls)
+      ? this.connectionParams.protocols.webStomp.tlsPort : this.connectionParams.protocols.webStomp.port;
+    const connectionString = `${protocol}://${this.connectionParams.host}:${port}/ws}`;
+    const stompConfig: Stomp.StompConfig = {
+      // Typically login, passcode and vhost
+      // Adjust these for your broker
+      connectHeaders: {
+        ...this.connectionHeaders,
+        login: this.connectionParams.deviceId || this.connectionParams.client,
+        passcode: this.connectionParams.secret,
+        host: this.connectionParams.vhost
+      },
+
+      // Broker URL, should start with ws:// or wss:// - adjust for your broker setup
+      brokerURL: connectionString,
+
+      // Keep it off for production, it can be quit verbose
+      // Skip this key to disable
+      // debug: function (str) {
+      //   console.log('STOMP: ' + str);
+      // },
+
+      // If disconnected, it will retry after reconnectDelay ms
+      reconnectDelay: (this.autoReconnect) ? opts.reconnectDelay || SpaceBunny.DEFAULT_RECONNECT_TIMEOUT : 0,
+
+      heartbeatIncoming: opts.heartbeatIncoming || SpaceBunny.DEFAULT_HEARTBEAT,
+
+      heartbeatOutgoing: opts.heartbeatOutgoing || SpaceBunny.DEFAULT_HEARTBEAT,
+
+      // Subscriptions should be done inside onConnect as those need to reinstated when the broker reconnects
+      onConnect: () => { this.emit('connect'); },
+
+      // onStompError: (frame) => {}
+    };
+    this.stompClient = new Stomp.Client(stompConfig);
+
+    this.stompClient.activate();
+
+    return this.stompClient;
   }
 
-  isConnected = () => {
-    return (this._stompConnection !== undefined && this._stompConnection.connected);
+  public isConnected = () => {
+    return (this.stompClient !== undefined && this.stompClient.connected);
   }
 
   // ------------ PRIVATE METHODS -------------------
@@ -214,8 +222,8 @@ class StompClient extends SpaceBunny {
    * @param {String} channel - channel name on which you want to publish a message
    * @return a string that represents the topic name for that channel
    */
-  _subcriptionFor = (type: string, channel: string) => {
-    return `/${type}/${this.deviceId()}.${channel}`;
+  public subcriptionFor = (type: string, channel: string) => {
+    return `/${type}/${this.getDeviceId()}.${channel}`;
   }
 
   /**
@@ -226,23 +234,24 @@ class StompClient extends SpaceBunny {
    * @param {String} channel - channel name on which you want to publish a message
    * @return a string that represents the topic name for that channel
    */
-  _destinationFor = (params: any = {}) => {
+  public destinationFor = (params: any = {}) => {
     const {
-      type = this._defaultResource, channel = undefined, topic = undefined, routingKey = undefined
+      type = this.defaultResource, channel = undefined,
+      topic = undefined, routingKey = undefined
     } = params;
     let messageRoutingKey;
     if (routingKey) {
       messageRoutingKey = routingKey;
     } else {
-      messageRoutingKey = this.deviceId();
-      if (!_.isEmpty(channel)) {
+      messageRoutingKey = this.getDeviceId();
+      if (!isEmpty(channel)) {
         messageRoutingKey += `.${channel || ''}`;
       }
-      if (!_.isEmpty(topic)) {
+      if (!isEmpty(topic)) {
         messageRoutingKey += `.${topic || ''}`;
       }
     }
-    return `/${type}/${this.deviceId()}/${messageRoutingKey}`;
+    return `/${type}/${this.getDeviceId()}/${messageRoutingKey}`;
   }
 
   /**
@@ -254,10 +263,10 @@ class StompClient extends SpaceBunny {
    * @param {String} ack - the ack type, it should be 'client' or null
    * @return boolean - true if messages have to be autoacked, false otherwise
    */
-  _autoAck = (ack: string) => {
+  protected autoAck = (ack: string) => {
     if (ack) {
-      if (!_.includes(CONFIG[this._protocol].ackTypes, ack)) {
-        console.error('Wrong acknowledge type'); // eslint-disable-line no-console
+      if (!this.ackTypes.includes(ack)) {
+        this.emit('error', 'Wrong acknowledge type'); // eslint-disable-line no-console
       }
       switch (ack) {
         case 'client':

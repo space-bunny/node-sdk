@@ -8,7 +8,7 @@ import { IClientSubscribeOptions, QoS } from 'async-mqtt';
 // Import some helpers modules
 import { isEmpty, isNil } from 'lodash';
 
-import { ILiveStreamHook } from '../../src/spacebunny';
+import { ILiveStreamHook } from '../spacebunny';
 // Import MqttClient main module from which MqttStreamClient inherits
 import MqttClient from './mqttClient';
 

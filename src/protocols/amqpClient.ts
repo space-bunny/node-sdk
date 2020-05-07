@@ -11,15 +11,13 @@ import { isEmpty, isNil, pick } from 'lodash';
 
 import AmqpMessage from '../messages/amqpMessage';
 // Import SpaceBunny main module from which AmqpClient inherits
-import SpaceBunny, { ISpaceBunnyParams } from '../spacebunny';
+import SpaceBunny, { ISpaceBunnyParams, ISpaceBunnySubscribeOptions } from '../spacebunny';
 import { encapsulateContent } from '../utils';
 
-export interface IAmqpConsumeOptions {
+export interface IAmqpConsumeOptions extends ISpaceBunnySubscribeOptions {
   allUpTo?: boolean;
   ack?: 'auto' | 'manual' | void;
   requeue?: boolean;
-  discardMine?: boolean;
-  discardFromApi?: boolean;
 }
 
 export interface IRoutingKey {
@@ -172,7 +170,7 @@ class AmqpClient extends SpaceBunny {
    *
    * @return a promise containing current connection
    */
-  public connect = async (opts: amqp.Options.Connect = {}): Promise<amqp.Connection> => {
+  public connect = async (opts: amqp.Options.Connect = {}): Promise<amqp.Connection|void> => {
     if (this.isConnected()) { return this.amqpConnection; }
     if (isEmpty(this.endpointConfigs)) {
       await this.getEndpointConfigs();

@@ -97,5 +97,6 @@ nodejsConfig.output.filename = '[name].js';
 const browserConfig = _.cloneDeep(baseConfig);
 browserConfig.target = 'web';
 browserConfig.output.filename = '[name].var.js';
+browserConfig.entry.spacebunny = './src/indexWeb.ts';
 
 module.exports = [nodejsConfig, browserConfig];
