@@ -6,7 +6,7 @@
 
 import md5 from 'js-md5';
 // Import some helpers modules
-import { isEmpty, isNil } from 'lodash';
+import { isNullOrUndefined } from 'util';
 
 import Stomp, { IMessage } from '@stomp/stompjs';
 
@@ -67,7 +67,7 @@ class StompStreamClient extends StompClient {
         reject(new Error('Invalid connection'));
       } else {
         const subscription = this.subscriptions[subscriptionId];
-        if (!isEmpty(subscription)) {
+        if (!isNullOrUndefined(subscription)) {
           subscription.unsubscribe();
           delete this.subscriptions[subscriptionId];
           resolve(true);
@@ -126,11 +126,11 @@ class StompStreamClient extends StompClient {
           channel = undefined, routingKey = undefined,
           topic = undefined, cache = true, callback = undefined
         } = streamHook;
-        if (isNil(stream) && (isNil(channel) || isNil(deviceId))) {
+        if (isNullOrUndefined(stream) && (isNullOrUndefined(channel) || isNullOrUndefined(deviceId))) {
           this.log('error', 'Missing Stream or Device ID and Channel');
           return;
         }
-        if (isNil(callback)) {
+        if (isNullOrUndefined(callback)) {
           this.log('error', 'Missing Callback');
           return;
         }

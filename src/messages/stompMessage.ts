@@ -2,8 +2,6 @@
 * A wrapper for the message object
 * @module Message
 */
-import { get } from 'lodash';
-
 import { IMessage, StompHeaders } from '@stomp/stompjs';
 
 import { ISpaceBunnySubscribeOptions } from '../spacebunny';
@@ -37,9 +35,9 @@ class StompMessage {
     const { message = undefined, receiverId = '', subscriptionOpts = {} } = opts;
     const { discardMine = false, discardFromApi = false } = subscriptionOpts;
     this.message = message;
-    const body: string = get(message, 'body', '{}');
+    const body: string = message.body || '{}';
     this.content = parseContent(body);
-    this.headers = get(message, 'headers', {});
+    this.headers = message.headers || {};
     const destination = this.headers.destination.split('/');
     const [senderId, channelName] = destination[destination.length - 1].split('.');
     this.senderId = senderId;

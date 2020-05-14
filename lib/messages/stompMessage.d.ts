@@ -1,3 +1,7 @@
+/**
+* A wrapper for the message object
+* @module Message
+*/
 import { IMessage } from '@stomp/stompjs';
 import { ISpaceBunnySubscribeOptions } from '../spacebunny';
 declare class StompMessage {

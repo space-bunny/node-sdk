@@ -7,7 +7,7 @@
 // Import amqplib
 import * as amqp from 'amqplib';
 // Import some helpers modules
-import { isEmpty, isNil, pick } from 'lodash';
+import { isNullOrUndefined } from 'util';
 
 import AmqpMessage from '../messages/amqpMessage';
 // Import SpaceBunny main module from which AmqpClient inherits
@@ -72,7 +72,7 @@ class AmqpClient extends SpaceBunny {
    */
   public onReceive = async (callback: IAmqpCallback, opts: IAmqpConsumeOptions = {}): Promise<void> => {
     // Receive messages from input queue
-    const noAck = isNil(opts.ack);
+    const noAck = isNullOrUndefined(opts.ack);
     const name = 'input';
     const ch: amqp.Channel | amqp.ConfirmChannel = await this.createChannel(name, { withConfirm: false });
     try {
@@ -242,7 +242,7 @@ class AmqpClient extends SpaceBunny {
     const channelName = `${channel}${(withConfirm === true) ? 'WithConfirm' : ''}`;
     if (this.isConnected()) {
       try {
-        if (isNil(this.amqpChannels[channelName])) {
+        if (isNullOrUndefined(this.amqpChannels[channelName])) {
           this.amqpChannels[channelName] = (withConfirm === true) ? await this.amqpConnection.createConfirmChannel()
             : await this.amqpConnection.createChannel();
           this.emit('channelOpen', channelName);
@@ -288,13 +288,14 @@ class AmqpClient extends SpaceBunny {
   protected consumeCallback = (ch: amqp.Channel | amqp.ConfirmChannel, callback: IAmqpCallback, opts: IAmqpConsumeOptions, message: amqp.ConsumeMessage): void => {
     try {
       const { ack = undefined, allUpTo = false, requeue = false } = opts;
-      if (isNil(message)) { return; }
+      if (isNullOrUndefined(message)) { return; }
       // Create message object
+      const { discardMine, discardFromApi } = opts;
       const amqpMessage = new AmqpMessage({
         message,
         receiverId: this.getClient(),
         channel: ch,
-        subscriptionOpts: pick(opts, ['discardMine', 'discardFromApi'])
+        subscriptionOpts: { discardMine, discardFromApi }
       });
       const ackNeeded = this.autoAck(ack);
       // Check if should be accepted or not
@@ -323,10 +324,10 @@ class AmqpClient extends SpaceBunny {
     const { channel = undefined, routingKey = undefined, topic = undefined } = params;
     if (routingKey) { return routingKey; }
     let messageRoutingKey = this.getDeviceId();
-    if (!isEmpty(channel)) {
+    if (!isNullOrUndefined(channel) && channel.length > 0) {
       messageRoutingKey += `.${channel || ''}`;
     }
-    if (!isEmpty(topic)) {
+    if (!isNullOrUndefined(topic) && topic.length > 0) {
       messageRoutingKey += `.${topic || ''}`;
     }
     return messageRoutingKey;

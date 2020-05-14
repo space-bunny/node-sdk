@@ -8,7 +8,7 @@ import mqtt, {
   AsyncMqttClient, IClientOptions, IClientPublishOptions, IClientSubscribeOptions, QoS
 } from 'async-mqtt';
 import fs from 'fs';
-import { isEmpty, isNil, without } from 'lodash';
+import { isNullOrUndefined } from 'util';
 
 // import { promisify } from 'util';
 import SpaceBunny, { ISpaceBunnyParams } from '../spacebunny';
@@ -131,7 +131,13 @@ class MqttClient extends SpaceBunny {
       let topicsToUnsubscribe = [];
       if (topics) {
         await this.mqttClient.unsubscribe(topics);
-        this.topics = without(this.topics, ...(Array.isArray(topicsToUnsubscribe) ? topicsToUnsubscribe : [topicsToUnsubscribe]));
+        topicsToUnsubscribe = (Array.isArray(topicsToUnsubscribe)) ? topicsToUnsubscribe : [topicsToUnsubscribe];
+        for (let index = 0; index < topicsToUnsubscribe.length; index += 1) {
+          const topic = topicsToUnsubscribe[index];
+          for (let idx = 0; idx < this.topics.length; idx += 1) {
+            if (this.topics[idx] === topic) { this.topics.splice(idx, 1); }
+          }
+        }
       } else {
         topicsToUnsubscribe = this.topics;
         if (Object.keys(this.topics).length > 0) await this.mqttClient.unsubscribe(Object.keys(this.topics));
@@ -176,7 +182,7 @@ class MqttClient extends SpaceBunny {
         clientId: this.connectionParams.deviceId || this.connectionParams.client,
         connectTimeout: opts.connectTimeout || SpaceBunny.DEFAULT_CONNECTION_TIMEOUT,
         reconnectPeriod: (this.autoReconnect) ? (opts.reconnectPeriod || SpaceBunny.DEFAULT_RECONNECT_TIMEOUT) : 0, // disable autoreconnect ??
-        clean: (isNil(opts.clean)) ? true : opts.clean,
+        clean: (isNullOrUndefined(opts.clean)) ? true : opts.clean,
         keepalive: opts.keepalive || SpaceBunny.DEFAULT_HEARTBEAT,
         // ...opts
       };
@@ -199,7 +205,7 @@ class MqttClient extends SpaceBunny {
         }
         Object.entries(this.mqttListeners).forEach(([, listener]) => {
           const { callback, topics } = listener;
-          if (isEmpty(topics) || topics.includes(msgTopic)) {
+          if (topics.length === 0 || topics.includes(msgTopic)) {
             this.log('debug', `Received message for topic ${msgTopic}: ${msg.toString()}`);
             callback(msgTopic, msg);
           } else {

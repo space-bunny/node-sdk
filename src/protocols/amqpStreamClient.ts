@@ -5,7 +5,7 @@
  */
 
 import * as amqp from 'amqplib';
-import { isEmpty, isNil } from 'lodash';
+import { isNullOrUndefined } from 'util';
 
 import { ILiveStreamHook, ISpaceBunnyParams } from '../spacebunny';
 import AmqpClient, { IAmqpCallback, IAmqpConsumeOptions, IRoutingKey } from './amqpClient';
@@ -72,11 +72,11 @@ class AmqpStreamClient extends AmqpClient {
       stream = undefined, deviceId = undefined, channel = undefined, cache = true,
       topic = undefined, routingKey = undefined, callback = undefined
     } = streamHook;
-    const noAck = isNil(opts.ack);
-    if (isNil(stream) && (isNil(channel) || isNil(deviceId))) {
+    const noAck = isNullOrUndefined(opts.ack);
+    if (isNullOrUndefined(stream) && (isNullOrUndefined(channel) || isNullOrUndefined(deviceId))) {
       throw new Error(`${this.getClassName()} - Missing Stream or Device ID and Channel`);
     }
-    if (isNil(callback)) {
+    if (isNullOrUndefined(callback)) {
       throw new Error(`${this.getClassName()} - Missing Callback`);
     }
     const currentTime = new Date().getTime();
@@ -169,12 +169,12 @@ class AmqpStreamClient extends AmqpClient {
    * @return a string that represents the rounting key
    */
   private streamRoutingKeyFor = (opts: IRoutingKey = {}) => {
-    const { deviceId = undefined, channel = undefined, routingKey = undefined, topic = undefined } = opts;
-    if (isEmpty(routingKey) && isEmpty(deviceId)) {
+    const { deviceId = '', channel = '', routingKey = '', topic = '' } = opts;
+    if (routingKey.length === 0 && deviceId.length === 0) {
       // if both routingKey and deviceId are empty return default routingKey
       return this.defaultStreamRoutingKey;
     }
-    if (!isEmpty(routingKey)) {
+    if (routingKey.length > 0) {
       return routingKey; // return routing key if present
     }
     let streamRoutingKey = deviceId || '';

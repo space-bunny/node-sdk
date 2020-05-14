@@ -5,7 +5,7 @@
  */
 
 // Import some helpers modules
-import { isEmpty } from 'lodash';
+import { isNullOrUndefined } from 'util';
 
 // Import stomp library
 import Stomp, { IMessage, StompHeaders } from '@stomp/stompjs';
@@ -234,18 +234,18 @@ class StompClient extends SpaceBunny {
    */
   public destinationFor = (params: any = {}) => {
     const {
-      type = this.defaultResource, channel = undefined,
-      topic = undefined, routingKey = undefined
+      type = this.defaultResource, channel = '',
+      topic = '', routingKey = ''
     } = params;
-    let messageRoutingKey;
-    if (routingKey) {
+    let messageRoutingKey: string;
+    if (routingKey.length > 0) {
       messageRoutingKey = routingKey;
     } else {
       messageRoutingKey = this.getDeviceId();
-      if (!isEmpty(channel)) {
+      if (!isNullOrUndefined(channel) && channel.length > 0) {
         messageRoutingKey += `.${channel || ''}`;
       }
-      if (!isEmpty(topic)) {
+      if (!isNullOrUndefined(topic) && topic.length > 0) {
         messageRoutingKey += `.${topic || ''}`;
       }
     }

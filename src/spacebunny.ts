@@ -7,8 +7,8 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { EventEmitter } from 'events';
 import { camelizeKeys } from 'humps';
-import { filter, isEmpty, startsWith } from 'lodash';
 import urljoin from 'url-join';
+import { isNullOrUndefined } from 'util';
 import uuid from 'uuid-v4';
 
 export interface ISpaceBunnyParams {
@@ -191,6 +191,7 @@ class SpaceBunny extends EventEmitter {
     this.verbose = (verbose === true);
     this.heartbeat = heartbeat || SpaceBunny.DEFAULT_HEARTBEAT;
     this.connectionTimeout = connectionTimeout || SpaceBunny.DEFAULT_CONNECTION_TIMEOUT;
+    this.endpointConfigs = {};
   }
 
   /**
@@ -202,7 +203,7 @@ class SpaceBunny extends EventEmitter {
    */
   protected getEndpointConfigs = async (): Promise<IEndpointConfigs> => {
     // Resolve with configs if already retrieved
-    if (!isEmpty(this.endpointConfigs)) {
+    if (Object.keys(this.endpointConfigs).length > 0) {
       return this.endpointConfigs;
     }
     try {
@@ -340,7 +341,7 @@ class SpaceBunny extends EventEmitter {
    * @return the stream ID which corresponds to the input stream name
    */
   protected liveStreamByName = (streamName: string): string => {
-    const liveStreams = filter(this.liveStreams, (stream) => { return stream.name === streamName; });
+    const liveStreams = this.liveStreams.filter((stream) => { return stream.name === streamName; });
     if (liveStreams.length > 0) {
       return liveStreams[0].name || streamName;
     }
@@ -356,10 +357,10 @@ class SpaceBunny extends EventEmitter {
   protected liveStreamExists = (streamName: string): boolean => {
     // skip this check for manual configuration
     if (this.manualConfigurations) { return true; }
-    if (isEmpty(streamName)) {
+    if (isNullOrUndefined(streamName) || streamName.length === 0) {
       return false;
     }
-    const liveStreams = filter(this.liveStreams, (stream) => { return stream.name === streamName; });
+    const liveStreams = this.liveStreams.filter((stream) => { return stream.name === streamName; });
     return (liveStreams.length > 0);
   }
 
@@ -389,7 +390,7 @@ class SpaceBunny extends EventEmitter {
    * @return a string that represents the complete exchange name
    */
   protected exchangeName = (prefix: string, suffix: string): string => {
-    return (!isEmpty(prefix) && !isEmpty(suffix)) ? `${this.liveStreamByName(prefix)}.${suffix}` : `${suffix}`;
+    return (prefix.length > 0 && suffix.length > 0) ? `${this.liveStreamByName(prefix)}.${suffix}` : `${suffix}`;
   }
 
   // ------------ PRIVATE METHODS -------------------
@@ -407,7 +408,7 @@ class SpaceBunny extends EventEmitter {
     const port = (this.tls) ? this.endpoint.securePort : this.endpoint.port;
     let hostname = `${this.endpoint.host}:${port}`;
     const protocol = (this.tls) ? this.endpoint.secureProtocol : this.endpoint.protocol;
-    if (!startsWith(hostname, protocol)) {
+    if (!hostname.startsWith(protocol)) {
       hostname = `${protocol}://${hostname}`;
     }
     return hostname;

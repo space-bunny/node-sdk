@@ -6,7 +6,7 @@
 
 import { IClientSubscribeOptions, QoS } from 'async-mqtt';
 // Import some helpers modules
-import { isEmpty, isNil } from 'lodash';
+import { isNullOrUndefined } from 'util';
 
 import { ILiveStreamHook } from '../spacebunny';
 // Import MqttClient main module from which MqttStreamClient inherits
@@ -67,17 +67,17 @@ class MqttStreamClient extends MqttClient {
       topic = undefined, routingKey = undefined, qos = undefined,
       callback = undefined, cache = true
     } = streamHook;
-    if (isNil(stream) && (isNil(channel) || isNil(deviceId))) {
+    if (isNullOrUndefined(stream) && (isNullOrUndefined(channel) || isNullOrUndefined(deviceId))) {
       this.log('error', 'Missing Stream or Device ID and Channel');
       return;
     }
-    if (isNil(callback)) {
+    if (isNullOrUndefined(callback)) {
       this.log('error', 'Missing Callback');
       return;
     }
     let topicName = topic;
     let topicQOS: QoS = qos || this.connectionOpts.qos;
-    if (!isEmpty(stream)) {
+    if (!isNullOrUndefined(stream) && stream.length > 0) {
       if (!this.liveStreamExists(stream)) {
         console.error(`Stream ${stream || ''} does not exist`); // eslint-disable-line no-console
         return;
@@ -107,20 +107,20 @@ class MqttStreamClient extends MqttClient {
    */
   private streamChannelTopicFor = (params: any = {}) => {
     const {
-      deviceId = undefined, channel = undefined,
-      routingKey = undefined, topic = undefined
+      deviceId = '', channel = '',
+      routingKey = '', topic = ''
     } = params;
-    if (isEmpty(routingKey) && isEmpty(deviceId)) {
+    if (routingKey.length === 0 && deviceId.length === 0) {
       // if both routingKey and deviceId are empty return default routingKey
       return this.defaultStreamRoutingKey;
     }
-    if (!isEmpty(routingKey)) {
+    if (routingKey.length > 0) {
       // return routing key if present
       return routingKey;
     }
     let streamRoutingKey = deviceId || this.getDeviceId();
-    if (channel) { streamRoutingKey += `/${channel}`; }
-    if (topic) { streamRoutingKey += `/${topic}`; }
+    if (channel.length > 0) { streamRoutingKey += `/${channel}`; }
+    if (topic.length > 0) { streamRoutingKey += `/${topic}`; }
     return `${streamRoutingKey}`;
   }
 
