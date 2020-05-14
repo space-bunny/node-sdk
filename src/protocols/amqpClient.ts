@@ -264,7 +264,7 @@ class AmqpClient extends SpaceBunny {
     if (this.isConnected()) {
       try {
         if (isNullOrUndefined(this.amqpChannels[channelName])) {
-          this.amqpChannels[channelName] = (withConfirm === true || channel.endsWith('WithConfirm')) ? await this.amqpConnection.createConfirmChannel()
+          this.amqpChannels[channelName] = (withConfirm === true || channelName.endsWith('WithConfirm')) ? await this.amqpConnection.createConfirmChannel()
             : await this.amqpConnection.createChannel();
           this.emit('channelOpen', channelName);
           const errorCallback = (err: Error) => {
