@@ -23,7 +23,7 @@ const args = minimist(process.argv.slice(2));
     // copy the Device-Key and substitute it here:
     const deviceKey = args.deviceKey || args['device-key'] || args.device_key || process.env.DEVICE_KEY;
     const tls = (args.tls !== 'false');
-    let connectionParams: ISpaceBunnyParams = { tls, autoReconnect: false, heartbeat: 10, connectionTimeout: 5000 };
+    let connectionParams: ISpaceBunnyParams = { tls, heartbeat: 10, connectionTimeout: 5000 };
 
     if (deviceKey !== undefined) {
       connectionParams = { ...connectionParams, deviceKey };

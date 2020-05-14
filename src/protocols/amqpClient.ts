@@ -35,6 +35,11 @@ export interface IAmqpPublishOptions {
 
 export type IAmqpCallback = (message: any, fields?: object, properties?: object) => Promise<void>|void;
 
+export type IAmqpListener = {
+  callback: IAmqpCallback;
+  opts?: IAmqpConsumeOptions;
+}
+
 class AmqpClient extends SpaceBunny {
   private amqpConnection: amqp.Connection;
 
@@ -45,6 +50,8 @@ class AmqpClient extends SpaceBunny {
   private ackTypes: string[];
 
   private connected: boolean;
+
+  private amqpListeners: IAmqpListener[];
 
   /**
    * @constructor
@@ -60,6 +67,7 @@ class AmqpClient extends SpaceBunny {
     this.defaultConnectionOpts = { frameMax: 32768 };
     this.ackTypes = ['auto', 'manual'];
     this.connected = false;
+    this.amqpListeners = [];
   }
 
   /**
@@ -71,19 +79,8 @@ class AmqpClient extends SpaceBunny {
    * @return promise containing the result of the subscription
    */
   public onReceive = async (callback: IAmqpCallback, opts: IAmqpConsumeOptions = {}): Promise<void> => {
-    // Receive messages from input queue
-    const noAck = isNullOrUndefined(opts.ack);
-    const name = 'input';
-    const ch: amqp.Channel | amqp.ConfirmChannel = await this.createChannel(name, { withConfirm: false });
-    try {
-      await ch.checkQueue(`${this.getDeviceId()}.${this.getInboxTopic()}`);
-      await ch.consume(`${this.getDeviceId()}.${this.getInboxTopic()}`,
-        this.consumeCallback.bind(this, ch, callback, opts),
-        { noAck });
-    } catch (error) {
-      this.log('error', `Error consuming from ${name} channel.`);
-      throw error;
-    }
+    this.addAmqpListener(callback, opts);
+    await this.bindAmqpListeners();
   }
 
   /**
@@ -150,6 +147,7 @@ class AmqpClient extends SpaceBunny {
     this.emit('disconnect');
     this.amqpConnection = undefined;
     this.amqpChannels = {};
+    this.amqpListeners = [];
     this.connected = false;
     return true;
   }
@@ -179,44 +177,41 @@ class AmqpClient extends SpaceBunny {
         timeout: this.connectionTimeout,
         ...socketOptions
       });
-      this.amqpConnection.on('error', (err) => {
-        this.amqpConnection = undefined;
-        this.connected = false;
+      const onError = (err) => {
         if (err) {
           this.emit('close', err);
           this.log('error', err);
         }
-      });
-      this.amqpConnection.on('close', (err) => {
+        this.amqpConnection.removeAllListeners();
         this.amqpConnection = undefined;
         this.connected = false;
-        if (err) {
-          this.emit('close', err);
-          this.log('error', err);
-        }
-      });
-      this.amqpConnection.on('blocked', (reason) => {
+        this.connect(opts);
+      };
+      const onBlock = (reason) => {
         if (reason) {
           this.emit('blocked', reason);
           this.log('warn', reason);
         }
-      });
-      this.amqpConnection.on('unblocked', (reason) => {
-        if (reason) {
-          this.emit('blocked', reason);
-          this.log('warn', reason);
-        }
-      });
+      };
+      this.amqpConnection.on('error', onError);
+      this.amqpConnection.on('close', onError);
+      this.amqpConnection.on('blocked', onBlock);
+      this.amqpConnection.on('unblocked', onBlock);
       this.connected = true;
       this.emit('connect');
       this.log('debug', 'Client connected!');
+      await this.bindAmqpListeners();
       return this.amqpConnection;
     } catch (error) {
+      if (!isNullOrUndefined(this.amqpConnection)) {
+        this.amqpConnection.removeAllListeners();
+        this.amqpConnection = undefined;
+      }
       this.connected = false;
       this.log('error', 'Error during connection');
       if (this.autoReconnect) {
         this.log('error', error.message);
-        // TODO handle automatic reconnection
+        this.connect(opts);
       } else {
         throw error;
       }
@@ -228,6 +223,32 @@ class AmqpClient extends SpaceBunny {
   }
 
   // ------------ PRIVATE METHODS -------------------
+
+  protected addAmqpListener = (callback: IAmqpCallback, opts: IAmqpConsumeOptions = {}): void => {
+    this.amqpListeners.push({ callback, opts });
+  }
+
+  protected bindAmqpListeners = async (): Promise<void> => {
+    for (let index = 0; index < this.amqpListeners.length; index += 1) {
+      const { callback, opts } = this.amqpListeners[index];
+      // Receive messages from input queue
+      const noAck = isNullOrUndefined(opts.ack);
+      const name = 'input';
+      // eslint-disable-next-line no-await-in-loop
+      const ch: amqp.Channel | amqp.ConfirmChannel = await this.createChannel(name, { withConfirm: false });
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        await ch.checkQueue(`${this.getDeviceId()}.${this.getInboxTopic()}`);
+        // eslint-disable-next-line no-await-in-loop
+        await ch.consume(`${this.getDeviceId()}.${this.getInboxTopic()}`,
+          this.consumeCallback.bind(this, ch, callback, opts),
+          { noAck });
+      } catch (error) {
+        this.log('error', `Error consuming from ${name} channel.`);
+        throw error;
+      }
+    }
+  }
 
   /**
    * Creates a channel on current connection
@@ -243,12 +264,13 @@ class AmqpClient extends SpaceBunny {
     if (this.isConnected()) {
       try {
         if (isNullOrUndefined(this.amqpChannels[channelName])) {
-          this.amqpChannels[channelName] = (withConfirm === true) ? await this.amqpConnection.createConfirmChannel()
+          this.amqpChannels[channelName] = (withConfirm === true || channel.endsWith('WithConfirm')) ? await this.amqpConnection.createConfirmChannel()
             : await this.amqpConnection.createChannel();
           this.emit('channelOpen', channelName);
           const errorCallback = (err: Error) => {
             if (err) { this.log('error', err); }
             // TODO close channel in function of error type??
+            this.amqpChannels[channelName].removeAllListeners();
             this.amqpChannels[channelName] = undefined;
           };
           this.amqpChannels[channelName].on('error', errorCallback);
@@ -271,7 +293,7 @@ class AmqpClient extends SpaceBunny {
    * @param {String} channelName - indicates if the channel is input or output
    * @return a promise containing the result of the operation
    */
-  protected closeChannel = async (channelName: string, opts: { withConfirm?: boolean }): Promise<void> => {
+  protected closeChannel = async (channelName: string, opts: { withConfirm?: boolean } = {}): Promise<void> => {
     try {
       const { withConfirm = true } = opts;
       const fullChannelName = `${channelName}${(withConfirm === true) ? 'WithConfirm' : ''}`;
