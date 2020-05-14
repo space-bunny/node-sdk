@@ -99,8 +99,7 @@ class MqttClient extends SpaceBunny {
       const bufferedMessage = Buffer.from(encapsulateContent(message));
       await this.mqttClient.publish(topic, bufferedMessage, opts);
     } else {
-      this.log('debug', 'Caching message');
-      this.cacheMessage(channel, message, opts);
+      throw new Error(`MqttClient: sending message on channel ${channel} when client is not connected`);
     }
   }
 
@@ -166,9 +165,7 @@ class MqttClient extends SpaceBunny {
    */
   public connect = async (opts: IClientOptions = {}): Promise<AsyncMqttClient|void> => {
     if (this.isConnected()) { return this.mqttClient; }
-    if (isEmpty(this.endpointConfigs)) {
-      await this.getEndpointConfigs();
-    }
+    await this.getEndpointConfigs();
     try {
       let mqttConnectionParams: IClientOptions = {
         host: this.connectionParams.host,

@@ -3,7 +3,7 @@
  * which inherits from the SpaceBunny base client
  * @module MqttClient
  */
-import mqtt, { AsyncMqttClient, QoS } from 'async-mqtt';
+import { AsyncMqttClient, IClientOptions, IClientPublishOptions, IClientSubscribeOptions, QoS } from 'async-mqtt';
 import SpaceBunny, { ISpaceBunnyParams } from '../spacebunny';
 export declare type IMqttCallback = (topic?: string, message?: any) => Promise<void>;
 export declare type IMqttListener = {
@@ -38,7 +38,7 @@ declare class MqttClient extends SpaceBunny {
      * @param {Object} options - subscription options
      * @return promise containing the result of the subscription
      */
-    onReceive: (callback: IMqttCallback, opts?: mqtt.IClientSubscribeOptions) => Promise<string | void>;
+    onReceive: (callback: IMqttCallback, opts?: IClientSubscribeOptions) => Promise<string | void>;
     /**
      * Publish a message on a specific channel
      *
@@ -47,10 +47,10 @@ declare class MqttClient extends SpaceBunny {
      * @param {Object} opts - publication options
      * @return a promise containing the result of the operation
      */
-    publish: (channel: string, message: any, opts?: mqtt.IClientPublishOptions) => Promise<any>;
+    publish: (channel: string, message: any, opts?: IClientPublishOptions) => Promise<any>;
     addMqttListener: (name: string, callback: IMqttCallback, topics?: string | string[]) => void;
     removeMqttListener: (name: string) => void;
-    subscribe: (topics: string | string[], opts?: mqtt.IClientSubscribeOptions) => Promise<void>;
+    subscribe: (topics: string | string[], opts?: IClientSubscribeOptions) => Promise<void>;
     /**
      * Unsubscribe client from a list of topics
      *
@@ -72,7 +72,7 @@ declare class MqttClient extends SpaceBunny {
      * @param {Object} opts - connection options
      * @return a promise containing current connection
      */
-    connect: (opts?: mqtt.IClientOptions) => Promise<void | mqtt.AsyncMqttClient>;
+    connect: (opts?: IClientOptions) => Promise<AsyncMqttClient | void>;
     isConnected: () => boolean;
     /**
      * Generate the topic for a specific channel
@@ -82,6 +82,6 @@ declare class MqttClient extends SpaceBunny {
      * @param {String} channel - channel name on which you want to publish a message
      * @return a string that represents the topic name for that channel
      */
-    topicFor: (deviceId: string | void, channel: string) => string;
+    topicFor: (deviceId: string | void | null, channel: string) => string;
 }
 export default MqttClient;

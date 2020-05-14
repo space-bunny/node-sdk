@@ -35,8 +35,13 @@ declare class AmqpMessage {
      * @return Boolean - true if it comes from API, false otherwise
      */
     fromApi: () => any;
-    ack: (opts?: any) => void;
-    nack: (opts?: any) => void;
+    ack: (opts?: {
+        allUpTo?: boolean;
+    }) => void;
+    nack: (opts?: {
+        allUpTo?: boolean;
+        requeue?: boolean;
+    }) => void;
     getContent: () => object;
     getProperties: () => object;
     getFields: () => object;

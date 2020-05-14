@@ -32,6 +32,8 @@ export interface ISpaceBunnyParams {
     verbose?: boolean;
     caching?: boolean;
     cacheSize?: number;
+    heartbeat?: number;
+    connectionTimeout?: number;
 }
 export interface IEndpointConfigs {
     connection?: ISpaceBunnyParams;
@@ -65,13 +67,6 @@ export interface IEndpoint {
     deviceConfigurationsPath: string;
     liveStreamKeyConfigurationsPath: string;
     url?: string;
-}
-export interface ICachedMessage {
-    timestamp: number;
-    channel: string;
-    message: any;
-    opts: any;
-    sent?: boolean;
 }
 export interface ILiveStreamHook {
     stream?: string;
@@ -112,11 +107,10 @@ declare class SpaceBunny extends EventEmitter {
     protected autoReconnect: boolean;
     protected reconnectTimeout: number;
     protected verbose: boolean;
-    protected caching: boolean;
-    protected cachedMessages: ICachedMessage[];
     protected cacheSize: number;
     protected connectionTimeout: number;
-    protected static CACHE_SIZE: number;
+    protected heartbeat: number;
+    protected manualConfigurations: boolean;
     protected static DEFAULT_CONNECTION_TIMEOUT: number;
     protected static DEFAULT_RECONNECT_TIMEOUT: number;
     protected static DEFAULT_HEARTBEAT: number;
@@ -129,7 +123,8 @@ declare class SpaceBunny extends EventEmitter {
      * @return an Object containing the connection parameters
      */
     protected getEndpointConfigs: () => Promise<IEndpointConfigs>;
-    protected log: (level: string, message: string | Error) => void;
+    protected getClassName: () => string;
+    protected log: (level: string, message: string | Error, ...meta: any) => void;
     isConnected: () => boolean;
     /**
      * @return all channels configured for the current device
@@ -180,7 +175,6 @@ declare class SpaceBunny extends EventEmitter {
      * @return a string that represents the complete exchange name
      */
     protected exchangeName: (prefix: string, suffix: string) => string;
-    cacheMessage: (channel: string, message: any, opts?: any) => void;
     /**
      * Generate the complete hostname string for an endpoint
      *

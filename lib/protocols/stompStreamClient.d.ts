@@ -31,7 +31,7 @@ declare class StompStreamClient extends StompClient {
      * @param {Object} options - subscription options
      * @return promise containing the result of multiple subscriptions
      */
-    streamFrom: (streamHooks?: IStompLiveStreamHook[], opts?: any) => Promise<(string | void)[]>;
+    streamFrom: (streamHooks?: Array<IStompLiveStreamHook>, opts?: any) => Promise<Array<string | void>>;
     /**
      * Unsubscribe client from a topic
      *

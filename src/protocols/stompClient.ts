@@ -162,9 +162,7 @@ class StompClient extends SpaceBunny {
    */
   public connect = async (opts: Stomp.StompConfig = {}): Promise<Stomp.Client> => {
     if (this.isConnected()) { return this.stompClient; }
-    if (isEmpty(this.endpointConfigs)) {
-      await this.getEndpointConfigs();
-    }
+    await this.getEndpointConfigs();
     // code is runnning in a browser: web STOMP uses Web sockets
     const protocol = (this.tls) ? this.tlsProtocol : this.protocol;
     const port = (this.tls)

@@ -21,6 +21,7 @@ export interface IAmqpPublishOptions {
     topic?: string;
     withConfirm?: boolean;
 }
+export declare type IAmqpCallback = (message: any, fields?: object, properties?: object) => Promise<void> | void;
 declare class AmqpClient extends SpaceBunny {
     private amqpConnection;
     private amqpChannels;
@@ -41,7 +42,7 @@ declare class AmqpClient extends SpaceBunny {
      * @param {Object} options - subscription options
      * @return promise containing the result of the subscription
      */
-    onReceive: (callback: Function, opts?: IAmqpConsumeOptions) => Promise<void>;
+    onReceive: (callback: IAmqpCallback, opts?: IAmqpConsumeOptions) => Promise<void>;
     /**
      * Publish a message on a specific channel
      *
@@ -50,7 +51,7 @@ declare class AmqpClient extends SpaceBunny {
      * @param {Object} opts - publication options
      * @return promise containing the result of the subscription
      */
-    publish: (channel: string, message: any, opts?: IAmqpPublishOptions, publishOpts?: amqp.Options.Publish) => Promise<void>;
+    publish: (channel: string, message: any, opts?: IAmqpPublishOptions, publishOpts?: amqp.Options.Publish) => Promise<boolean>;
     /**
      * Destroy the connection between the amqp client and broker
      *
@@ -64,7 +65,7 @@ declare class AmqpClient extends SpaceBunny {
      *
      * @return a promise containing current connection
      */
-    connect: (opts?: amqp.Options.Connect) => Promise<void | amqp.Connection>;
+    connect: (opts?: amqp.Options.Connect, socketOptions?: object) => Promise<amqp.Connection | void>;
     isConnected: () => boolean;
     /**
      * Creates a channel on current connection
@@ -76,7 +77,7 @@ declare class AmqpClient extends SpaceBunny {
      */
     protected createChannel: (channel: string, opts?: {
         withConfirm?: boolean;
-    }) => Promise<void | amqp.Channel | amqp.ConfirmChannel>;
+    }) => Promise<amqp.Channel | amqp.ConfirmChannel>;
     /**
      * Close a channel on current connection
      *
@@ -87,6 +88,7 @@ declare class AmqpClient extends SpaceBunny {
     protected closeChannel: (channelName: string, opts: {
         withConfirm?: boolean;
     }) => Promise<void>;
+    protected consumeCallback: (ch: amqp.Channel | amqp.ConfirmChannel, callback: IAmqpCallback, opts: IAmqpConsumeOptions, message: amqp.ConsumeMessage) => void;
     /**
      * Generate the routing key for a specific channel
      *

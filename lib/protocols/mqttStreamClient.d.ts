@@ -26,7 +26,7 @@ declare class MqttStreamClient extends MqttClient {
      * @param {Object} options - subscription options
      * @return promise containing the result of multiple subscriptions
      */
-    streamFrom: (streamHooks?: IMqttLiveStreamHook[], opts?: IClientSubscribeOptions) => Promise<(string | void)[]>;
+    streamFrom: (streamHooks?: Array<IMqttLiveStreamHook>, opts?: IClientSubscribeOptions) => Promise<Array<string | void>>;
     /**
     * Start consuming messages from a device's channel
     * It generates an auto delete queue from which consume

@@ -5,13 +5,11 @@
  */
 
 import * as amqp from 'amqplib';
-import { isEmpty, isNil, pick } from 'lodash';
+import { isEmpty, isNil } from 'lodash';
 
-import AmqpMessage from '../messages/amqpMessage';
 import { ILiveStreamHook, ISpaceBunnyParams } from '../spacebunny';
-import AmqpClient, { IAmqpConsumeOptions, IRoutingKey } from './amqpClient';
+import AmqpClient, { IAmqpCallback, IAmqpConsumeOptions, IRoutingKey } from './amqpClient';
 
-export type IAmqpCallback = (message: any, fields: object, properties: object) => Promise<void>;
 export interface IAmqpLiveStreamHook extends ILiveStreamHook {
   callback: IAmqpCallback;
 }
@@ -44,8 +42,9 @@ class AmqpStreamClient extends AmqpClient {
    */
   public streamFrom = async (streamHooks: Array<IAmqpLiveStreamHook> = [], opts: IAmqpConsumeOptions = {}): Promise<Array<string|void>> => {
     const promises = [];
-    for (let index = 0; index < streamHooks.length; index += 1) {
-      const streamHook = streamHooks[index];
+    const hooks: Array<IAmqpLiveStreamHook> = Array.isArray(streamHooks) ? streamHooks : [streamHooks];
+    for (let index = 0; index < hooks.length; index += 1) {
+      const streamHook = hooks[index];
       const promise = this.addStreamHook(streamHook, opts);
       promises.push(promise);
     }
@@ -67,85 +66,63 @@ class AmqpStreamClient extends AmqpClient {
    * @param {Object} opts - connection options
    * @return a promise containing current connection
    */
-  public addStreamHook = async (streamHook: IAmqpLiveStreamHook, opts: IAmqpConsumeOptions = {}): Promise<string|void> => {
+  public addStreamHook = async (streamHook: IAmqpLiveStreamHook, opts: IAmqpConsumeOptions = {}): Promise<string> => {
     // Receive messages from stream
     const {
       stream = undefined, deviceId = undefined, channel = undefined, cache = true,
       topic = undefined, routingKey = undefined, callback = undefined
     } = streamHook;
-    const { ack = undefined, allUpTo = false, requeue = false } = opts;
-    const noAck = isNil(ack);
+    const noAck = isNil(opts.ack);
     if (isNil(stream) && (isNil(channel) || isNil(deviceId))) {
-      this.log('error', 'Missing Stream or Device ID and Channel');
-      return;
+      throw new Error(`${this.getClassName()} - Missing Stream or Device ID and Channel`);
     }
     if (isNil(callback)) {
-      this.log('error', 'Missing Callback');
-      return;
+      throw new Error(`${this.getClassName()} - Missing Callback`);
     }
     const currentTime = new Date().getTime();
     let tempQueue: string;
-    const ch: amqp.Channel | amqp.ConfirmChannel | void = await this.createChannel('input');
-    if (ch) {
-      try {
-        const consumeCallback = (message: amqp.ConsumeMessage | null) => {
-          if (isNil(message)) { return; }
-
-          // Create message object
-          const amqpMessage = new AmqpMessage({
-            message,
-            receiverId: this.getClient(),
-            channel: ch,
-            subscriptionOpts: pick(opts, ['discardMine', 'discardFromApi'])
-          });
-          const ackNeeded = this.autoAck(ack);
-          // Check if should be accepted or not
-          if (amqpMessage.blackListed()) {
-            if (ackNeeded) { ch.nack(message, allUpTo, requeue); }
-            return;
-          }
-          // Call message callback
-          callback(amqpMessage.getContent(), amqpMessage.getFields(), amqpMessage.getProperties());
-          // Check if ACK is needed
-          if (ackNeeded) { ch.ack(message, allUpTo); }
-        };
-        // if current hook is a stream
-        // checks the existence of the stream queue and starts consuming
-        if (stream) {
-          if (!this.liveStreamExists(stream)) {
-            this.log('error', `Stream ${stream} does not exist`); // eslint-disable-line no-console
-            return;
-          }
-          if (cache) {
-            // Cached streams are connected to the existing live stream queue
-            tempQueue = this.cachedStreamQueue(stream);
-            await ch.checkQueue(tempQueue);
-          } else {
-            // Uncached streams are connected to the stream exchange and create a temp queue
-            const streamExchange = this.exchangeName(stream, this.liveStreamSuffix);
-            tempQueue = this.tempQueue(stream, this.liveStreamSuffix, currentTime);
-            await ch.checkExchange(streamExchange);
-            await ch.assertQueue(tempQueue, this.streamQueueArguments);
-            await ch.bindQueue(tempQueue, streamExchange, routingKey);
-          }
-        } else {
-          // else if current hook is channel (or a couple deviceId, channel)
-          // creates a temp queue, binds to channel exchange and starts consuming
-          const channelExchangeName = this.exchangeName(deviceId, channel);
-          tempQueue = this.tempQueue(deviceId, channel, currentTime);
-          await ch.checkExchange(channelExchangeName);
-          await ch.assertQueue(tempQueue, this.streamQueueArguments);
-          await ch.bindQueue(tempQueue, channelExchangeName, this.streamRoutingKeyFor({ deviceId, channel, routingKey, topic }));
+    let streamName: string;
+    const ch: amqp.Channel | amqp.ConfirmChannel = await this.createChannel('input');
+    try {
+      // if current hook is a stream
+      // checks the existence of the stream queue and starts consuming
+      if (stream) {
+        if (!this.liveStreamExists(stream)) {
+          throw new Error(`${this.getClassName()} - Stream ${stream} does not exist`);
         }
-        const { consumerTag } = await ch.consume(tempQueue, consumeCallback, { noAck });
-        this.subscriptions[consumerTag] = streamHook;
-        return consumerTag;
-      } catch (error) {
-        this.log('error', 'Error on addStreamHook');
-        this.log('error', error);
+        if (cache) {
+          // Cached streams are connected to the existing live stream queue
+          tempQueue = this.cachedStreamQueue(stream);
+          streamName = tempQueue;
+          await ch.checkQueue(tempQueue);
+        } else {
+          // Uncached streams are connected to the stream exchange and create a temp queue
+          const streamExchange = this.exchangeName(stream, this.liveStreamSuffix);
+          streamName = streamExchange;
+          tempQueue = this.tempQueue(stream, this.liveStreamSuffix, currentTime);
+          await ch.checkExchange(streamExchange);
+          await ch.assertQueue(tempQueue, this.streamQueueArguments);
+          await ch.bindQueue(tempQueue, streamExchange, routingKey);
+        }
+      } else {
+        // else if current hook is channel (or a couple deviceId, channel)
+        // creates a temp queue, binds to channel exchange and starts consuming
+        const channelExchangeName = this.exchangeName(deviceId, channel);
+        streamName = channelExchangeName;
+        tempQueue = this.tempQueue(deviceId, channel, currentTime);
+        await ch.checkExchange(channelExchangeName);
+        await ch.assertQueue(tempQueue, this.streamQueueArguments);
+        await ch.bindQueue(tempQueue, channelExchangeName, this.streamRoutingKeyFor({ deviceId, channel, routingKey, topic }));
       }
-    } else {
-      this.log('error', 'Trying to subscribe on an empty channel.');
+      const { consumerTag } = await ch.consume(tempQueue,
+        this.consumeCallback.bind(this, ch, callback, opts),
+        { noAck });
+      this.subscriptions[consumerTag] = streamHook;
+      this.log('debug', `Streaming from ${streamName}..`);
+      return consumerTag;
+    } catch (error) {
+      this.log('error', 'Error adding stream hook', streamHook);
+      throw error;
     }
   }
 
@@ -157,7 +134,7 @@ class AmqpStreamClient extends AmqpClient {
    */
   public unsubscribe = async (consumerTag: string): Promise<void> => {
     if (!this.isConnected()) {
-      this.log('error', `Error trying to unsucscribe from ${consumerTag} on an invalid connection`);
+      throw new Error(`${this.getClassName()} - Error trying to unsucscribe from ${consumerTag} on an invalid connection`);
     } else {
       try {
         const ch: amqp.Channel | amqp.ConfirmChannel | void = await this.createChannel('input');
@@ -165,9 +142,10 @@ class AmqpStreamClient extends AmqpClient {
           await ch.cancel(consumerTag);
         }
         delete this.subscriptions[consumerTag];
+        this.log('debug', `Unsubscrbed ${consumerTag}`);
       } catch (error) {
         this.log('error', `Error unsubscribing from ${consumerTag}`);
-        this.log('error', error);
+        throw error;
       }
     }
   }

@@ -73,12 +73,12 @@ class AmqpMessage {
     return (this.message.properties.headers && this.message.properties.headers[AmqpMessage.FROM_API_HEADER]);
   }
 
-  ack = (opts: any = {}) => {
+  ack = (opts: { allUpTo?: boolean } = {}) => {
     const { allUpTo = false } = opts;
-    this.channel.nack(this.message, allUpTo);
+    this.channel.ack(this.message, allUpTo);
   }
 
-  nack = (opts: any = {}) => {
+  nack = (opts: { allUpTo?: boolean; requeue?: boolean } = {}) => {
     const { allUpTo = false, requeue = true } = opts;
     this.channel.nack(this.message, allUpTo, requeue);
   }

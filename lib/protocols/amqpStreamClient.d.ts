@@ -4,8 +4,7 @@
  * @module AmqpStreamClient
  */
 import { ILiveStreamHook, ISpaceBunnyParams } from '../spacebunny';
-import AmqpClient, { IAmqpConsumeOptions } from './amqpClient';
-export declare type IAmqpCallback = (message: any, fields: object, properties: object) => Promise<void>;
+import AmqpClient, { IAmqpCallback, IAmqpConsumeOptions } from './amqpClient';
 export interface IAmqpLiveStreamHook extends ILiveStreamHook {
     callback: IAmqpCallback;
 }
@@ -26,7 +25,7 @@ declare class AmqpStreamClient extends AmqpClient {
      * @param {Object} options - subscription options
      * @return promise containing the result of multiple subscriptions
      */
-    streamFrom: (streamHooks?: IAmqpLiveStreamHook[], opts?: IAmqpConsumeOptions) => Promise<(string | void)[]>;
+    streamFrom: (streamHooks?: Array<IAmqpLiveStreamHook>, opts?: IAmqpConsumeOptions) => Promise<Array<string | void>>;
     /**
      * Start consuming messages from a device's channel
      * It generates an auto delete queue from which consume
@@ -40,7 +39,7 @@ declare class AmqpStreamClient extends AmqpClient {
      * @param {Object} opts - connection options
      * @return a promise containing current connection
      */
-    addStreamHook: (streamHook: IAmqpLiveStreamHook, opts?: IAmqpConsumeOptions) => Promise<string | void>;
+    addStreamHook: (streamHook: IAmqpLiveStreamHook, opts?: IAmqpConsumeOptions) => Promise<string>;
     /**
      * Unsubscribe client from a topic
      *

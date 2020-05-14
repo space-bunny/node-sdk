@@ -37,6 +37,8 @@ export interface ISpaceBunnyParams {
   verbose?: boolean;
   caching?: boolean;
   cacheSize?: number;
+  heartbeat?: number;
+  connectionTimeout?: number;
 }
 
 export interface IEndpointConfigs {
@@ -76,14 +78,6 @@ export interface IEndpoint {
   deviceConfigurationsPath: string;
   liveStreamKeyConfigurationsPath: string;
   url?: string;
-}
-
-export interface ICachedMessage {
-  timestamp: number;
-  channel: string;
-  message: any;
-  opts: any;
-  sent?: boolean;
 }
 
 export interface ILiveStreamHook {
@@ -149,15 +143,13 @@ class SpaceBunny extends EventEmitter {
 
   protected verbose = true;
 
-  protected caching = false;
-
-  protected cachedMessages: ICachedMessage[] = [];
-
   protected cacheSize: number;
 
   protected connectionTimeout: number;
 
-  protected static CACHE_SIZE = 100;
+  protected heartbeat: number;
+
+  protected manualConfigurations: boolean;
 
   protected static DEFAULT_CONNECTION_TIMEOUT = 5000;
 
@@ -169,7 +161,7 @@ class SpaceBunny extends EventEmitter {
     super();
     this.connectionParams = camelizeKeys(opts);
     const { endpoint, deviceKey, channels, deviceId, client, secret, host, port, vhost, inboxTopic,
-      tls, verbose, caching, cacheSize } = this.connectionParams;
+      tls, verbose, autoReconnect, heartbeat, connectionTimeout } = this.connectionParams;
     const defaultEndpoint: IEndpoint = {
       protocol: 'http',
       secureProtocol: 'https',
@@ -180,6 +172,8 @@ class SpaceBunny extends EventEmitter {
       liveStreamKeyConfigurationsPath: 'live_stream_key_configurations'
     };
     this.endpoint = { ...defaultEndpoint, ...endpoint };
+    // becomes true when no configs are pulled from endpoint
+    this.manualConfigurations = false;
     this.deviceKey = deviceKey;
     this.channels = channels;
     this.deviceId = deviceId;
@@ -192,10 +186,11 @@ class SpaceBunny extends EventEmitter {
     this.liveStreamSuffix = 'live_stream';
     this.tempQueueSuffix = 'temp';
     this.liveStreams = [];
-    this.tls = (tls === true);
+    this.tls = !(tls === false);
+    this.autoReconnect = !(autoReconnect === false);
     this.verbose = (verbose === true);
-    this.caching = caching;
-    this.cacheSize = cacheSize || SpaceBunny.CACHE_SIZE;
+    this.heartbeat = heartbeat || SpaceBunny.DEFAULT_HEARTBEAT;
+    this.connectionTimeout = connectionTimeout || SpaceBunny.DEFAULT_CONNECTION_TIMEOUT;
   }
 
   /**
@@ -207,7 +202,7 @@ class SpaceBunny extends EventEmitter {
    */
   protected getEndpointConfigs = async (): Promise<IEndpointConfigs> => {
     // Resolve with configs if already retrieved
-    if (!isEmpty(this.endpointConfigs) || this.isConnected()) {
+    if (!isEmpty(this.endpointConfigs)) {
       return this.endpointConfigs;
     }
     try {
@@ -229,7 +224,7 @@ class SpaceBunny extends EventEmitter {
           };
           const response = await axios(options);
           this.endpointConfigs = (camelizeKeys(response.data) as IEndpointConfigs);
-          this.connectionParams = this.endpointConfigs.connection;
+          this.connectionParams = this.endpointConfigs.connection || {};
           this.channels = this.endpointConfigs.channels || [];
           return this.endpointConfigs;
         }
@@ -245,6 +240,7 @@ class SpaceBunny extends EventEmitter {
             connection: this.connectionParams,
             channels: [],
           };
+          this.manualConfigurations = true;
           return this.endpointConfigs;
         }
       } else if (this.client && this.secret) { // Access key credentials
@@ -260,6 +256,7 @@ class SpaceBunny extends EventEmitter {
             connection: this.connectionParams,
             liveStreams: [],
           };
+          this.manualConfigurations = true;
           return this.endpointConfigs;
         }
         // Get configs from endpoint
@@ -278,25 +275,31 @@ class SpaceBunny extends EventEmitter {
         };
         const response = await axios(options);
         this.endpointConfigs = (camelizeKeys(response.data) as IEndpointConfigs);
-        this.connectionParams = this.endpointConfigs.connection;
+        this.connectionParams = this.endpointConfigs.connection || {};
         this.liveStreams = this.endpointConfigs.liveStreams || [];
         return this.endpointConfigs;
       } else { // No configs or missing some info
         throw new Error('Missing Device Key or wrong connection parameters');
       }
     } catch (error) {
-      this.log('error', error);
+      this.log('error', 'Error getting endpoint configurations.');
+      throw new Error(error.message);
     }
     return {};
   }
 
-  protected log = (level: string, message: string|Error): void => {
+  protected getClassName = (): string => {
+    return this.constructor.name;
+  }
+
+  protected log = (level: string, message: string|Error, ...meta: any): void => {
+    const prefixedMessage = `${this.getClassName()} - ${message}`;
     if (this.verbose) {
-      this.emit('log', { level, message });
+      this.emit('log', { level, message: prefixedMessage, ...meta });
     }
     if (process.env.NODE_ENV === 'development') {
       // eslint-disable-next-line no-console
-      console.log(message);
+      console.log(new Date().toISOString(), prefixedMessage, ...meta);
     }
   }
 
@@ -351,6 +354,8 @@ class SpaceBunny extends EventEmitter {
    * @return true if stream exists, false otherwise
    */
   protected liveStreamExists = (streamName: string): boolean => {
+    // skip this check for manual configuration
+    if (this.manualConfigurations) { return true; }
     if (isEmpty(streamName)) {
       return false;
     }
@@ -385,21 +390,6 @@ class SpaceBunny extends EventEmitter {
    */
   protected exchangeName = (prefix: string, suffix: string): string => {
     return (!isEmpty(prefix) && !isEmpty(suffix)) ? `${this.liveStreamByName(prefix)}.${suffix}` : `${suffix}`;
-  }
-
-  public cacheMessage = (channel: string, message: any, opts: any = {}): void => {
-    if (this.caching !== true) { return; }
-    if (this.cachedMessages.length >= this.cacheSize) {
-      // remove eldest message
-      this.cachedMessages.shift();
-    }
-    this.cachedMessages.push({
-      timestamp: new Date().getTime(),
-      channel,
-      message,
-      opts,
-      sent: false
-    });
   }
 
   // ------------ PRIVATE METHODS -------------------
