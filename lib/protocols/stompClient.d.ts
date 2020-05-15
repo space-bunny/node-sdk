@@ -35,7 +35,7 @@ declare class StompClient extends SpaceBunny {
      * @param {Object} options - subscription options
      * @return promise containing the result of the subscription
      */
-    onReceive: (callback: Function, opts?: IStompConsumeOptions) => Promise<void>;
+    onMessage: (callback: Function, opts?: IStompConsumeOptions) => Promise<void>;
     /**
      * Publish a message on a specific channel
      *

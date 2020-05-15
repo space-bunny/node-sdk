@@ -38,7 +38,7 @@ declare class MqttClient extends SpaceBunny {
      * @param {Object} options - subscription options
      * @return promise containing the result of the subscription
      */
-    onReceive: (callback: IMqttCallback, opts?: IClientSubscribeOptions) => Promise<string | void>;
+    onMessage: (callback: IMqttCallback, opts?: IClientSubscribeOptions) => Promise<string | void>;
     /**
      * Publish a message on a specific channel
      *

@@ -78,13 +78,6 @@ const args = minimist(process.argv.slice(2));
       streamHooks.push({ stream: streamName, callback: messageCallback, cache: false });
     }
 
-    // Custome stream hook, connect directly to a device channel
-    // streamHooks.push({
-    //   deviceId: args.deviceId || process.env.DEVICE_ID,
-    //   channel: args.channel || process.env.CHANNEL,
-    //   callback: messageCallback,
-    // });
-
     // Let's instantiate a Space Bunny AMQP client, providing the Device-Key, that's the fastest and simplest method
     // to create a new client.
     const streamClient = new AmqpStreamClient(connectionParams);
@@ -105,6 +98,13 @@ const args = minimist(process.argv.slice(2));
 
     // Attach multiple hooks
     await streamClient.streamFrom(streamHooks);
+
+    // Custome stream hook, connect directly to a device channel
+    await streamClient.streamFrom({
+      deviceId: args.deviceId || process.env.DEVICE_ID,
+      channel: args.channel || process.env.CHANNEL,
+      callback: messageCallback,
+    });
 
     // Attach single hooks
     // const tag1 = await streamClient.addStreamHook(streamHooks[0]);

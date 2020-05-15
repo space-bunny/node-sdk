@@ -99,7 +99,7 @@ const args = minimist(process.argv.slice(2));
     await amqpClient.connect();
 
     // When a message is sent on the inbox channel of the current device, the callback function will bel called
-    await amqpClient.onReceive(messageCallback, subscriptionOpts);
+    await amqpClient.onMessage(messageCallback, subscriptionOpts);
     console.log('Start receiving..'); // eslint-disable-line no-console
   } catch (error) {
     console.error(error); // eslint-disable-line no-console

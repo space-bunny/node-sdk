@@ -137,7 +137,7 @@ class MqttStreamClient extends MqttClient {
 }
 
 // Remove unwnated methods inherited from MqttClient
-delete MqttStreamClient.prototype.onReceive;
+delete MqttStreamClient.prototype.onMessage;
 delete MqttStreamClient.prototype.publish;
 delete MqttStreamClient.prototype.topicFor;
 

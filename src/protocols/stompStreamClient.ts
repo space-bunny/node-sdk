@@ -250,7 +250,7 @@ class StompStreamClient extends StompClient {
 }
 
 // Remove unwnated methods inherited from StompClient
-delete StompStreamClient.prototype.onReceive;
+delete StompStreamClient.prototype.onMessage;
 delete StompStreamClient.prototype.publish;
 delete StompStreamClient.prototype.subcriptionFor;
 delete StompStreamClient.prototype.destinationFor;

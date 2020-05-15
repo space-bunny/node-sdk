@@ -77,7 +77,7 @@ class MqttClient extends SpaceBunny {
    * @param {Object} options - subscription options
    * @return promise containing the result of the subscription
    */
-  public onReceive = async (callback: IMqttCallback, opts: IClientSubscribeOptions = { qos: 2 }): Promise<string|void> => {
+  public onMessage = async (callback: IMqttCallback, opts: IClientSubscribeOptions = { qos: 2 }): Promise<string|void> => {
     // subscribe for inbox messages
     const topic = this.topicFor(null, this.inboxTopic);
     this.addMqttListener(topic, callback, topic);

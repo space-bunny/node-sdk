@@ -14,12 +14,18 @@ export interface IAmqpLiveStreamHook extends ILiveStreamHook {
   callback: IAmqpCallback;
 }
 
+export type IAmqpStreamListener = {
+  streamHook: IAmqpLiveStreamHook;
+  opts?: IAmqpConsumeOptions;
+  consumerTag?: string;
+}
+
 class AmqpStreamClient extends AmqpClient {
   private defaultStreamRoutingKey: string;
 
   private streamQueueArguments: amqp.Options.AssertQueue;
 
-  private subscriptions: { [tag: string]: ILiveStreamHook };
+  private amqpStreamListeners: { [name: string]: IAmqpStreamListener };
 
   /**
    * @constructor
@@ -27,9 +33,12 @@ class AmqpStreamClient extends AmqpClient {
    */
   constructor(opts: ISpaceBunnyParams = {}) {
     super(opts);
-    this.subscriptions = {};
     this.defaultStreamRoutingKey = '#';
     this.streamQueueArguments = { exclusive: true, autoDelete: true, durable: false };
+    this.amqpStreamListeners = {};
+    this.on('connect', () => { this.bindAmqpStreamListeners(); });
+    this.on('disconnect', () => { this.amqpStreamListeners = {}; });
+    this.on('channelClose', () => { this.clearStreamConsumers(); });
   }
 
   /**
@@ -40,18 +49,53 @@ class AmqpStreamClient extends AmqpClient {
    * @param {Object} options - subscription options
    * @return promise containing the result of multiple subscriptions
    */
-  public streamFrom = async (streamHooks: Array<IAmqpLiveStreamHook> = [], opts: IAmqpConsumeOptions = {}): Promise<Array<string|void>> => {
-    const promises = [];
+  public streamFrom = async (streamHooks: IAmqpLiveStreamHook | Array<IAmqpLiveStreamHook> = [], opts: IAmqpConsumeOptions = {}): Promise<Array<string|void>> => {
     const hooks: Array<IAmqpLiveStreamHook> = Array.isArray(streamHooks) ? streamHooks : [streamHooks];
+    const names = [];
     for (let index = 0; index < hooks.length; index += 1) {
       const streamHook = hooks[index];
-      const promise = this.addStreamHook(streamHook, opts);
-      promises.push(promise);
+      const name = this.addAmqpStreamListener(streamHook, opts);
+      // eslint-disable-next-line no-await-in-loop
+      await this.bindAmqpStreamListener(name);
+      names.push(name);
     }
-    return Promise.all(promises);
+    return names;
+  }
+
+  public removeAmqpStreamListener = async (name: string): Promise<void> => {
+    if (isNullOrUndefined(this.amqpStreamListeners[name])) {
+      this.log('error', `AMQP listener ${name} does not exist.`);
+      return;
+    }
+    await this.unsubscribe(this.amqpStreamListeners[name].consumerTag);
+    delete this.amqpStreamListeners[name];
   }
 
   // ------------ PRIVATE METHODS -------------------
+
+  private clearStreamConsumers = (): void => {
+    const names = Object.keys(this.amqpStreamListeners);
+    for (let index = 0; index < names.length; index += 1) {
+      const name = names[index];
+      const listener = this.amqpStreamListeners[name];
+      delete listener.consumerTag;
+    }
+  }
+
+  private addAmqpStreamListener = (streamHook: IAmqpLiveStreamHook, opts: IAmqpConsumeOptions = {}): string => {
+    const name = `subscription-${new Date().getTime()}`;
+    this.amqpStreamListeners[name] = { streamHook, opts };
+    return name;
+  }
+
+  private bindAmqpStreamListeners = async (): Promise<void> => {
+    const names = Object.keys(this.amqpStreamListeners);
+    for (let index = 0; index < names.length; index += 1) {
+      const name = names[index];
+      // eslint-disable-next-line no-await-in-loop
+      await this.bindAmqpStreamListener(name);
+    }
+  }
 
   /**
    * Start consuming messages from a device's channel
@@ -66,7 +110,16 @@ class AmqpStreamClient extends AmqpClient {
    * @param {Object} opts - connection options
    * @return a promise containing current connection
    */
-  public addStreamHook = async (streamHook: IAmqpLiveStreamHook, opts: IAmqpConsumeOptions = {}): Promise<string> => {
+  private bindAmqpStreamListener = async (name: string): Promise<void> => {
+    if (isNullOrUndefined(this.amqpStreamListeners[name])) {
+      this.log('error', `Listner ${name} does not exist.`);
+      return;
+    }
+    if (!isNullOrUndefined(this.amqpStreamListeners[name].consumerTag)) {
+      this.log('warn', `Listner ${name} already bound to a consumer.`);
+      return;
+    }
+    const { streamHook, opts } = this.amqpStreamListeners[name];
     // Receive messages from stream
     const {
       stream = undefined, deviceId = undefined, channel = undefined, cache = true,
@@ -117,36 +170,11 @@ class AmqpStreamClient extends AmqpClient {
       const { consumerTag } = await ch.consume(tempQueue,
         this.consumeCallback.bind(this, ch, callback, opts),
         { noAck });
-      this.subscriptions[consumerTag] = streamHook;
       this.log('debug', `Streaming from ${streamName}..`);
-      return consumerTag;
+      this.amqpStreamListeners[name].consumerTag = consumerTag;
     } catch (error) {
       this.log('error', 'Error adding stream hook', streamHook);
       throw error;
-    }
-  }
-
-  /**
-   * Unsubscribe client from a topic
-   *
-   * @param {String} consumerTag - Consumer Tag
-   * @return a promise containing the result of the operation
-   */
-  public unsubscribe = async (consumerTag: string): Promise<void> => {
-    if (!this.isConnected()) {
-      throw new Error(`${this.getClassName()} - Error trying to unsucscribe from ${consumerTag} on an invalid connection`);
-    } else {
-      try {
-        const ch: amqp.Channel | amqp.ConfirmChannel | void = await this.createChannel('input');
-        if (ch) {
-          await ch.cancel(consumerTag);
-        }
-        delete this.subscriptions[consumerTag];
-        this.log('debug', `Unsubscrbed ${consumerTag}`);
-      } catch (error) {
-        this.log('error', `Error unsubscribing from ${consumerTag}`);
-        throw error;
-      }
     }
   }
 
@@ -185,8 +213,7 @@ class AmqpStreamClient extends AmqpClient {
 }
 
 // Remove unwanted methods inherited from AmqpClient
-delete AmqpStreamClient.prototype.onReceive;
+delete AmqpStreamClient.prototype.onMessage;
 delete AmqpStreamClient.prototype.publish;
-delete AmqpStreamClient.prototype.routingKeyFor;
 
 export default AmqpStreamClient;

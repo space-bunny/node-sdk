@@ -1,6 +1,7 @@
 const path = require('path');
 const webpack = require('webpack');
 const WebpackMd5Hash = require('webpack-md5-hash');
+const TerserPlugin = require('terser-webpack-plugin');
 const minimist = require('minimist');
 const _ = require('lodash');
 const { resolve } = require('path');
@@ -40,7 +41,17 @@ const baseConfig = {
   devtool: 'source-map',
   // devtool: 'nosources-source-map',
   optimization: {
-    minimize: false,
+    minimize: true,
+    minimizer: [
+      new TerserPlugin({
+        extractComments: false,
+        terserOptions: {
+          mangle: false,
+          sourceMap: true,
+          minify: true,
+        }
+      })
+    ],
   },
   node: {
     __dirname: false,
@@ -51,6 +62,9 @@ const baseConfig = {
     module: 'empty'
   },
   plugins: [
+    // Optimize the order that items are bundled. This assures the hash is deterministic.
+    new webpack.optimize.OccurrenceOrderPlugin(),
+
     // Hash the files using MD5 so that their names change when the content changes.
     new WebpackMd5Hash(),
 

@@ -8,10 +8,15 @@ import AmqpClient, { IAmqpCallback, IAmqpConsumeOptions } from './amqpClient';
 export interface IAmqpLiveStreamHook extends ILiveStreamHook {
     callback: IAmqpCallback;
 }
+export declare type IAmqpStreamListener = {
+    streamHook: IAmqpLiveStreamHook;
+    opts?: IAmqpConsumeOptions;
+    consumerTag?: string;
+};
 declare class AmqpStreamClient extends AmqpClient {
     private defaultStreamRoutingKey;
     private streamQueueArguments;
-    private subscriptions;
+    private amqpStreamListeners;
     /**
      * @constructor
      * @param {ISpaceBunnyParams} opts - options must contain client and secret for access keys
@@ -25,7 +30,11 @@ declare class AmqpStreamClient extends AmqpClient {
      * @param {Object} options - subscription options
      * @return promise containing the result of multiple subscriptions
      */
-    streamFrom: (streamHooks?: Array<IAmqpLiveStreamHook>, opts?: IAmqpConsumeOptions) => Promise<Array<string | void>>;
+    streamFrom: (streamHooks?: IAmqpLiveStreamHook | Array<IAmqpLiveStreamHook>, opts?: IAmqpConsumeOptions) => Promise<Array<string | void>>;
+    removeAmqpStreamListener: (name: string) => Promise<void>;
+    private clearStreamConsumers;
+    private addAmqpStreamListener;
+    private bindAmqpStreamListeners;
     /**
      * Start consuming messages from a device's channel
      * It generates an auto delete queue from which consume
@@ -39,14 +48,7 @@ declare class AmqpStreamClient extends AmqpClient {
      * @param {Object} opts - connection options
      * @return a promise containing current connection
      */
-    addStreamHook: (streamHook: IAmqpLiveStreamHook, opts?: IAmqpConsumeOptions) => Promise<string>;
-    /**
-     * Unsubscribe client from a topic
-     *
-     * @param {String} consumerTag - Consumer Tag
-     * @return a promise containing the result of the operation
-     */
-    unsubscribe: (consumerTag: string) => Promise<void>;
+    private bindAmqpStreamListener;
     /**
      * Generate the exchange name for a device's channel
      *

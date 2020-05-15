@@ -73,7 +73,7 @@ class StompClient extends SpaceBunny {
    * @param {Object} options - subscription options
    * @return promise containing the result of the subscription
    */
-  public onReceive = (callback: Function, opts: IStompConsumeOptions = {}): Promise<void> => {
+  public onMessage = (callback: Function, opts: IStompConsumeOptions = {}): Promise<void> => {
     return new Promise((resolve, reject) => {
       try {
         // subscribe for input messages

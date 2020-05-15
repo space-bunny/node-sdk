@@ -38,6 +38,7 @@ export type IAmqpCallback = (message: any, fields?: object, properties?: object)
 export type IAmqpListener = {
   callback: IAmqpCallback;
   opts?: IAmqpConsumeOptions;
+  consumerTag?: string;
 }
 
 class AmqpClient extends SpaceBunny {
@@ -51,7 +52,7 @@ class AmqpClient extends SpaceBunny {
 
   private connected: boolean;
 
-  private amqpListeners: IAmqpListener[];
+  private amqpListeners: { [name: string]: IAmqpListener };
 
   /**
    * @constructor
@@ -67,7 +68,10 @@ class AmqpClient extends SpaceBunny {
     this.defaultConnectionOpts = { frameMax: 32768 };
     this.ackTypes = ['auto', 'manual'];
     this.connected = false;
-    this.amqpListeners = [];
+    this.amqpListeners = {};
+    this.on('connect', () => { this.bindAmqpListeners(); });
+    this.on('disconnect', () => { this.amqpListeners = {}; });
+    this.on('channelClose', () => { this.clearConsumers(); });
   }
 
   /**
@@ -78,9 +82,10 @@ class AmqpClient extends SpaceBunny {
    * @param {Object} options - subscription options
    * @return promise containing the result of the subscription
    */
-  public onReceive = async (callback: IAmqpCallback, opts: IAmqpConsumeOptions = {}): Promise<void> => {
-    this.addAmqpListener(callback, opts);
-    await this.bindAmqpListeners();
+  public onMessage = async (callback: IAmqpCallback, opts: IAmqpConsumeOptions = {}): Promise<string> => {
+    const name = this.addAmqpListener(callback, opts);
+    await this.bindAmqpListener(name);
+    return name;
   }
 
   /**
@@ -144,11 +149,10 @@ class AmqpClient extends SpaceBunny {
     } else {
       this.log('info', 'Client already disconnected.');
     }
-    this.emit('disconnect');
     this.amqpConnection = undefined;
     this.amqpChannels = {};
-    this.amqpListeners = [];
     this.connected = false;
+    this.emit('disconnect');
     return true;
   }
 
@@ -200,7 +204,6 @@ class AmqpClient extends SpaceBunny {
       this.connected = true;
       this.emit('connect');
       this.log('debug', 'Client connected!');
-      await this.bindAmqpListeners();
       return this.amqpConnection;
     } catch (error) {
       if (!isNullOrUndefined(this.amqpConnection)) {
@@ -222,29 +225,35 @@ class AmqpClient extends SpaceBunny {
     return (this.amqpConnection !== undefined) && this.connected;
   }
 
-  // ------------ PRIVATE METHODS -------------------
-
-  protected addAmqpListener = (callback: IAmqpCallback, opts: IAmqpConsumeOptions = {}): void => {
-    this.amqpListeners.push({ callback, opts });
+  public removeAmqpListener = async (name: string): Promise<void> => {
+    if (isNullOrUndefined(this.amqpListeners[name])) {
+      this.log('error', `AMQP listener ${name} does not exist.`);
+      return;
+    }
+    await this.unsubscribe(this.amqpListeners[name].consumerTag);
+    delete this.amqpListeners[name];
   }
 
-  protected bindAmqpListeners = async (): Promise<void> => {
-    for (let index = 0; index < this.amqpListeners.length; index += 1) {
-      const { callback, opts } = this.amqpListeners[index];
-      // Receive messages from input queue
-      const noAck = isNullOrUndefined(opts.ack);
-      const name = 'input';
-      // eslint-disable-next-line no-await-in-loop
-      const ch: amqp.Channel | amqp.ConfirmChannel = await this.createChannel(name, { withConfirm: false });
+  // ------------ PROTECTED METHODS -------------------
+
+  /**
+  * Unsubscribe client from a topic
+  *
+  * @param {String} consumerTag - Consumer Tag
+  * @return a promise containing the result of the operation
+  */
+  protected unsubscribe = async (consumerTag: string): Promise<void> => {
+    if (!this.isConnected()) {
+      throw new Error(`${this.getClassName()} - Error trying to unsucscribe from ${consumerTag} on an invalid connection`);
+    } else {
       try {
-        // eslint-disable-next-line no-await-in-loop
-        await ch.checkQueue(`${this.getDeviceId()}.${this.getInboxTopic()}`);
-        // eslint-disable-next-line no-await-in-loop
-        await ch.consume(`${this.getDeviceId()}.${this.getInboxTopic()}`,
-          this.consumeCallback.bind(this, ch, callback, opts),
-          { noAck });
+        const ch: amqp.Channel | amqp.ConfirmChannel | void = await this.createChannel('input');
+        if (ch) {
+          await ch.cancel(consumerTag);
+        }
+        this.log('debug', `Unsubscrbed ${consumerTag}`);
       } catch (error) {
-        this.log('error', `Error consuming from ${name} channel.`);
+        this.log('error', `Error unsubscribing from ${consumerTag}`);
         throw error;
       }
     }
@@ -272,6 +281,10 @@ class AmqpClient extends SpaceBunny {
             // TODO close channel in function of error type??
             this.amqpChannels[channelName].removeAllListeners();
             this.amqpChannels[channelName] = undefined;
+            // emit channelClose to clear consumers
+            if (channel.startsWith('input')) {
+              this.emit('channelClose', channelName);
+            }
           };
           this.amqpChannels[channelName].on('error', errorCallback);
           this.amqpChannels[channelName].on('close', errorCallback);
@@ -335,6 +348,61 @@ class AmqpClient extends SpaceBunny {
     }
   }
 
+  // ------------ PRIVATE METHODS -------------------
+
+  private clearConsumers = (): void => {
+    const names = Object.keys(this.amqpListeners);
+    for (let index = 0; index < names.length; index += 1) {
+      const name = names[index];
+      const listener = this.amqpListeners[name];
+      delete listener.consumerTag;
+    }
+  }
+
+  private addAmqpListener = (callback: IAmqpCallback, opts: IAmqpConsumeOptions = {}): string => {
+    const name = `subscription-${new Date().getTime()}`;
+    this.amqpListeners[name] = { callback, opts };
+    return name;
+  }
+
+  private bindAmqpListeners = async (): Promise<void> => {
+    const names = Object.keys(this.amqpListeners);
+    for (let index = 0; index < names.length; index += 1) {
+      const name = names[index];
+      // eslint-disable-next-line no-await-in-loop
+      await this.bindAmqpListener(name);
+    }
+  }
+
+  private bindAmqpListener = async (name: string): Promise<void> => {
+    if (isNullOrUndefined(this.amqpListeners[name])) {
+      this.log('error', `Listner ${name} does not exist.`);
+      return;
+    }
+    if (!isNullOrUndefined(this.amqpListeners[name].consumerTag)) {
+      this.log('warn', `Listner ${name} already bound to a consumer.`);
+      return;
+    }
+    const { callback, opts } = this.amqpListeners[name];
+    // Receive messages from input queue
+    const noAck = isNullOrUndefined(opts.ack);
+    const channelName = 'input';
+    // eslint-disable-next-line no-await-in-loop
+    const ch: amqp.Channel | amqp.ConfirmChannel = await this.createChannel(channelName, { withConfirm: false });
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      await ch.checkQueue(`${this.getDeviceId()}.${this.getInboxTopic()}`);
+      // eslint-disable-next-line no-await-in-loop
+      const { consumerTag } = await ch.consume(`${this.getDeviceId()}.${this.getInboxTopic()}`,
+        this.consumeCallback.bind(this, ch, callback, opts),
+        { noAck });
+      this.amqpListeners[channelName].consumerTag = consumerTag;
+    } catch (error) {
+      this.log('error', `Error consuming from ${channelName} channel.`);
+      throw error;
+    }
+  }
+
   /**
    * Generate the routing key for a specific channel
    *
@@ -342,7 +410,7 @@ class AmqpClient extends SpaceBunny {
    * @param {Object} params - params
    * @return a string that represents the routing key for that channel
    */
-  public routingKeyFor = (params: IRoutingKey = {}): string => {
+  private routingKeyFor = (params: IRoutingKey = {}): string => {
     const { channel = undefined, routingKey = undefined, topic = undefined } = params;
     if (routingKey) { return routingKey; }
     let messageRoutingKey = this.getDeviceId();
