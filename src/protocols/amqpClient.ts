@@ -181,15 +181,17 @@ class AmqpClient extends SpaceBunny {
         timeout: this.connectionTimeout,
         ...socketOptions
       });
-      const onError = (err) => {
+      const onError = (err: Error) => {
         if (err) {
-          this.emit('close', err);
+          this.emit('error', err);
           this.log('error', err);
         }
         this.amqpConnection.removeAllListeners();
         this.amqpConnection = undefined;
         this.connected = false;
-        this.connect(opts);
+        if (this.autoReconnect) {
+          this.connect(opts);
+        }
       };
       const onBlock = (reason) => {
         if (reason) {
@@ -243,9 +245,7 @@ class AmqpClient extends SpaceBunny {
   * @return a promise containing the result of the operation
   */
   protected unsubscribe = async (consumerTag: string): Promise<void> => {
-    if (!this.isConnected()) {
-      throw new Error(`${this.getClassName()} - Error trying to unsucscribe from ${consumerTag} on an invalid connection`);
-    } else {
+    if (this.isConnected()) {
       try {
         const ch: amqp.Channel | amqp.ConfirmChannel | void = await this.createChannel('input');
         if (ch) {
@@ -256,6 +256,8 @@ class AmqpClient extends SpaceBunny {
         this.log('error', `Error unsubscribing from ${consumerTag}`);
         throw error;
       }
+    } else {
+      throw new Error(`${this.getClassName()} - Error trying to unsucscribe from ${consumerTag} on an invalid connection`);
     }
   }
 
@@ -396,7 +398,7 @@ class AmqpClient extends SpaceBunny {
       const { consumerTag } = await ch.consume(`${this.getDeviceId()}.${this.getInboxTopic()}`,
         this.consumeCallback.bind(this, ch, callback, opts),
         { noAck });
-      this.amqpListeners[channelName].consumerTag = consumerTag;
+      this.amqpListeners[name].consumerTag = consumerTag;
     } catch (error) {
       this.log('error', `Error consuming from ${channelName} channel.`);
       throw error;

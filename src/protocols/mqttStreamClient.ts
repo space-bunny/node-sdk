@@ -38,7 +38,7 @@ class MqttStreamClient extends MqttClient {
    * @param {Object} options - subscription options
    * @return promise containing the result of multiple subscriptions
    */
-  public streamFrom = async (streamHooks: Array<IMqttLiveStreamHook> = [], opts: IClientSubscribeOptions = { qos: 2 }): Promise<Array<string | void>> => {
+  public streamFrom = async (streamHooks: Array<IMqttLiveStreamHook> = [], opts: IClientSubscribeOptions = { qos: 1 }): Promise<Array<string | void>> => {
     const promises = [];
     for (let index = 0; index < streamHooks.length; index += 1) {
       const streamHook = streamHooks[index];
@@ -61,7 +61,7 @@ class MqttStreamClient extends MqttClient {
   * @param {Object} opts - connection options
   * @return a promise containing current connection
   */
-  public addStreamHook = async (streamHook: IMqttLiveStreamHook, opts: IClientSubscribeOptions = { qos: 2 }): Promise<string | void> => {
+  public addStreamHook = async (streamHook: IMqttLiveStreamHook, opts: IClientSubscribeOptions = { qos: 1 }): Promise<string | void> => {
     const {
       stream = undefined, deviceId = undefined, channel = undefined,
       topic = undefined, routingKey = undefined, qos = undefined,
@@ -139,6 +139,5 @@ class MqttStreamClient extends MqttClient {
 // Remove unwnated methods inherited from MqttClient
 delete MqttStreamClient.prototype.onMessage;
 delete MqttStreamClient.prototype.publish;
-delete MqttStreamClient.prototype.topicFor;
 
 export default MqttStreamClient;
