@@ -12,7 +12,7 @@ import { ILiveStreamHook } from '../spacebunny';
 // Import MqttClient main module from which MqttStreamClient inherits
 import MqttClient from './mqttClient';
 
-export type IMqttCallback = (topic?: string, message?: any) => Promise<void>;
+export type IMqttCallback = (topic?: string, message?: any) => Promise<void>|void;
 export interface IMqttLiveStreamHook extends ILiveStreamHook {
   callback: IMqttCallback;
   qos?: QoS;
@@ -38,10 +38,11 @@ class MqttStreamClient extends MqttClient {
    * @param {Object} options - subscription options
    * @return promise containing the result of multiple subscriptions
    */
-  public streamFrom = async (streamHooks: Array<IMqttLiveStreamHook> = [], opts: IClientSubscribeOptions = { qos: 1 }): Promise<Array<string | void>> => {
+  public streamFrom = async (streamHooks: IMqttLiveStreamHook | Array<IMqttLiveStreamHook> = [], opts: IClientSubscribeOptions = { qos: 1 }): Promise<Array<string | void>> => {
+    const hooks: Array<IMqttLiveStreamHook> = Array.isArray(streamHooks) ? streamHooks : [streamHooks];
     const promises = [];
-    for (let index = 0; index < streamHooks.length; index += 1) {
-      const streamHook = streamHooks[index];
+    for (let index = 0; index < hooks.length; index += 1) {
+      const streamHook = hooks[index];
       const promise = this.addStreamHook(streamHook, opts);
       promises.push(promise);
     }

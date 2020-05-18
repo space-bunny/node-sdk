@@ -7,7 +7,7 @@
 // Import amqplib
 import * as amqp from 'amqplib';
 // Import some helpers modules
-import { isNullOrUndefined } from 'util';
+import { isNullOrUndefined, promisify } from 'util';
 
 import AmqpMessage from '../messages/amqpMessage';
 // Import SpaceBunny main module from which AmqpClient inherits
@@ -216,6 +216,8 @@ class AmqpClient extends SpaceBunny {
       this.log('error', 'Error during connection');
       if (this.autoReconnect) {
         this.log('error', error.message);
+        const timeout = promisify(setTimeout);
+        await timeout(this.reconnectTimeout);
         this.connect(opts);
       } else {
         throw error;

@@ -8,7 +8,7 @@ import mqtt, {
   AsyncMqttClient, IClientOptions, IClientPublishOptions, IClientSubscribeOptions, QoS
 } from 'async-mqtt';
 import fs from 'fs';
-import { isNullOrUndefined } from 'util';
+import { isNullOrUndefined, promisify } from 'util';
 
 // import { promisify } from 'util';
 import SpaceBunny, { ISpaceBunnyParams } from '../spacebunny';
@@ -143,17 +143,19 @@ class MqttClient extends SpaceBunny {
     if (this.isConnected()) { return this.mqttClient; }
     await this.getEndpointConfigs();
     try {
+      const clientId = this.connectionParams.deviceId || this.connectionParams.client;
       let mqttConnectionParams: IClientOptions = {
         host: this.connectionParams.host,
         protocol: (this.tls) ? 'mqtts' : 'mqtt',
         port: (this.tls) ? this.connectionParams.protocols.mqtt.tlsPort : this.connectionParams.protocols.mqtt.port,
-        username: `${this.connectionParams.vhost}:${this.connectionParams.deviceId || this.connectionParams.client}`,
+        username: `${this.connectionParams.vhost}:${clientId}`,
         password: this.connectionParams.secret,
-        clientId: this.connectionParams.deviceId || this.connectionParams.client,
-        connectTimeout: opts.connectTimeout || SpaceBunny.DEFAULT_CONNECTION_TIMEOUT,
-        reconnectPeriod: (this.autoReconnect) ? (opts.reconnectPeriod || SpaceBunny.DEFAULT_RECONNECT_TIMEOUT) : 0, // disable autoreconnect ??
+        // Client id is used for resource authorization, multiple clients with the same clientId are not allowed
+        clientId,
+        connectTimeout: opts.connectTimeout || this.connectionTimeout,
+        reconnectPeriod: (this.autoReconnect) ? (opts.reconnectPeriod || this.reconnectTimeout) : 0, // disable autoreconnect ??
         clean: (isNullOrUndefined(opts.clean)) ? true : opts.clean,
-        keepalive: opts.keepalive || SpaceBunny.DEFAULT_HEARTBEAT,
+        keepalive: opts.keepalive || this.heartbeat,
         // ...opts
       };
       if (this.tls) { mqttConnectionParams = { ...mqttConnectionParams, ...this.tlsOpts }; }
@@ -162,9 +164,9 @@ class MqttClient extends SpaceBunny {
         if (err) {
           this.emit('error', err);
           this.log('error', err);
-          this.mqttClient.removeAllListeners();
-          this.mqttClient = undefined;
         }
+        this.mqttClient.removeAllListeners();
+        this.mqttClient = undefined;
         // Already done by mqttjs??
         // if (this.autoReconnect) {
         //   this.connect(opts);
@@ -205,6 +207,8 @@ class MqttClient extends SpaceBunny {
       this.log('error', 'Error during connection');
       if (this.autoReconnect) {
         this.log('error', error.message);
+        const timeout = promisify(setTimeout);
+        await timeout(this.reconnectTimeout);
         this.connect(opts);
       } else {
         throw error;
@@ -245,8 +249,10 @@ class MqttClient extends SpaceBunny {
    * @return a promise containing the result of the operation
    */
   protected async unsubscribe(topics: string | string[] = []): Promise<void> {
-    let topicsToUnsubscribe = (this.topics.length > 0 && !isNullOrUndefined(this.topics)) ? this.topics : topics;
+    let topicsToUnsubscribe = (this.topics.length > 0 && topics.length === 0) ? this.topics : topics;
     topicsToUnsubscribe = (Array.isArray(topicsToUnsubscribe)) ? topicsToUnsubscribe : [topicsToUnsubscribe];
+    console.log('topicsToUnsubscribe', topicsToUnsubscribe);
+
     if (this.isConnected()) {
       if (topicsToUnsubscribe.length > 0) {
         await this.mqttClient.unsubscribe(topicsToUnsubscribe);
