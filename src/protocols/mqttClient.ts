@@ -251,8 +251,6 @@ class MqttClient extends SpaceBunny {
   protected async unsubscribe(topics: string | string[] = []): Promise<void> {
     let topicsToUnsubscribe = (this.topics.length > 0 && topics.length === 0) ? this.topics : topics;
     topicsToUnsubscribe = (Array.isArray(topicsToUnsubscribe)) ? topicsToUnsubscribe : [topicsToUnsubscribe];
-    console.log('topicsToUnsubscribe', topicsToUnsubscribe);
-
     if (this.isConnected()) {
       if (topicsToUnsubscribe.length > 0) {
         await this.mqttClient.unsubscribe(topicsToUnsubscribe);

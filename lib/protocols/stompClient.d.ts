@@ -3,7 +3,8 @@
  * which inherits from the SpaceBunny base client
  * @module StompClient
  */
-import Stomp, { StompHeaders } from '@stomp/stompjs';
+import Stomp, { Client, IMessage, StompHeaders } from '@stomp/stompjs';
+import StompMessage from '../messages/stompMessage';
 import SpaceBunny, { ISpaceBunnySubscribeOptions } from '../spacebunny';
 export interface IStompPublishOptions {
     routingKey?: string;
@@ -12,15 +13,25 @@ export interface IStompPublishOptions {
 export interface IStompConsumeOptions extends ISpaceBunnySubscribeOptions {
     ack?: 'client';
 }
+export declare type IStompCallback = (message: StompMessage) => Promise<void> | void;
+export declare type IStompListener = {
+    callback: IStompCallback;
+    topic: string;
+    opts?: IStompConsumeOptions;
+    subscription?: Stomp.StompSubscription;
+};
 declare class StompClient extends SpaceBunny {
     protected stompClient: Stomp.Client;
-    protected subscription: Stomp.StompSubscription;
+    protected stompListeners: {
+        [name: string]: IStompListener;
+    };
     protected connectionHeaders: StompHeaders;
     protected connectionOpts: any;
     protected existingQueuePrefix: string;
     protected defaultResource: string;
     protected ackTypes: string[];
     protected wsEndpoint: string;
+    protected topics: string[];
     /**
      * @constructor
      * @param {Object} opts - options must contain Device-Key or connection options
@@ -35,7 +46,7 @@ declare class StompClient extends SpaceBunny {
      * @param {Object} options - subscription options
      * @return promise containing the result of the subscription
      */
-    onMessage: (callback: Function, opts?: IStompConsumeOptions) => Promise<void>;
+    onMessage: (callback: IStompCallback, opts?: IStompConsumeOptions) => Promise<void>;
     /**
      * Publish a message on a specific channel
      *
@@ -60,6 +71,11 @@ declare class StompClient extends SpaceBunny {
      */
     connect: (opts?: Stomp.StompConfig) => Promise<Stomp.Client>;
     isConnected: () => boolean;
+    removeStompListener: (name: string) => void;
+    protected consumeCallback: (callback: IStompCallback, opts: IStompConsumeOptions, message: IMessage) => void;
+    private addStompListener;
+    private bindStompListners;
+    private bindStompListner;
     /**
      * Generate the subscription string for a specific channel
      *

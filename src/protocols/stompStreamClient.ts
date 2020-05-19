@@ -8,12 +8,12 @@ import md5 from 'js-md5';
 // Import some helpers modules
 import { isNullOrUndefined } from 'util';
 
-import Stomp, { IMessage } from '@stomp/stompjs';
+import Stomp from '@stomp/stompjs';
 
 import StompMessage from '../messages/stompMessage';
 import { ILiveStreamHook } from '../spacebunny';
 // Import StompClient main module from which StompStreamClient inherits
-import StompClient from './stompClient';
+import StompClient, { IStompConsumeOptions } from './stompClient';
 
 export type IStompCallback = (message: StompMessage) => Promise<void>;
 export interface IStompLiveStreamHook extends ILiveStreamHook {
@@ -21,12 +21,16 @@ export interface IStompLiveStreamHook extends ILiveStreamHook {
   ack?: 'client';
 }
 
+export type IStompStreamListener = {
+  streamHook: IStompLiveStreamHook;
+  opts?: IStompConsumeOptions;
+  subscription?: Stomp.StompSubscription;
+}
+
 class StompStreamClient extends StompClient {
-  protected subscriptions: { [key: string]: Stomp.StompSubscription };
+  private defaultPattern: string;
 
-  protected defaultResource: string;
-
-  protected defaultPattern: string;
+  private stompStreamListeners: { [name: string]: IStompStreamListener } = {};
 
   /**
    * @constructor
@@ -34,7 +38,10 @@ class StompStreamClient extends StompClient {
    */
   constructor(opts: any = {}) {
     super(opts);
-    this.subscriptions = {};
+    this.defaultPattern = '#';
+    this.stompStreamListeners = {};
+    this.on('connect', () => { this.bindStompStreamListeners(); });
+    this.on('disconnect', () => { this.stompStreamListeners = {}; });
   }
 
   /**
@@ -45,56 +52,50 @@ class StompStreamClient extends StompClient {
    * @param {Object} options - subscription options
    * @return promise containing the result of multiple subscriptions
    */
-  public streamFrom = async (streamHooks: Array<IStompLiveStreamHook> = [], opts: any = {}): Promise<Array<string | void>> => {
-    const promises = [];
-    for (let index = 0; index < streamHooks.length; index += 1) {
-      const streamHook = streamHooks[index];
-      const promise = this.addStreamHook(streamHook, opts);
-      promises.push(promise);
-    }
-    return Promise.all(promises);
-  }
-
-  /**
-   * Unsubscribe client from a topic
-   *
-   * @param {String} subscriptionId - subscription ID
-   * @return a promise containing the result of the operation
-   */
-  unsubscribe = (subscriptionId: string): Promise<any> => {
-    return new Promise((resolve, reject) => {
-      if (!this.isConnected()) {
-        reject(new Error('Invalid connection'));
-      } else {
-        const subscription = this.subscriptions[subscriptionId];
-        if (!isNullOrUndefined(subscription)) {
-          subscription.unsubscribe();
-          delete this.subscriptions[subscriptionId];
-          resolve(true);
-        } else {
-          reject(new Error('Subscription not found'));
-        }
+  public streamFrom = async (streamHooks: IStompLiveStreamHook | Array<IStompLiveStreamHook> = [], opts: any = {}): Promise<Array<string | void>> => {
+    const hooks: Array<IStompLiveStreamHook> = Array.isArray(streamHooks) ? streamHooks : [streamHooks];
+    const names = [];
+    for (let index = 0; index < hooks.length; index += 1) {
+      const streamHook = hooks[index];
+      const name = this.addStompStreamListener(streamHook, opts);
+      if (this.isConnected()) {
+        // eslint-disable-next-line no-await-in-loop
+        await this.bindStompStreamListener(name);
       }
-    });
+      names.push(name);
+    }
+    return names;
+  }
+
+  public removeStompStreamListener = async (name: string): Promise<void> => {
+    if (isNullOrUndefined(this.stompStreamListeners[name])) {
+      this.log('error', `STOMP listener ${name} does not exist.`);
+      return;
+    }
+    await this.unsubscribe(name);
+    delete this.stompStreamListeners[name];
   }
 
   /**
-   * Destroy the connection between the stomp client and broker
-   *
-   * @return a promise containing the result of the operation
-   */
-  disconnect = (): Promise<any> => {
+ * Destroy the connection between the stomp client and broker
+ *
+ * @return a promise containing the result of the operation
+ */
+  public disconnect = (): Promise<any> => {
     return new Promise((resolve, reject) => {
       if (!this.isConnected()) {
         resolve(true);
       } else {
         try {
-          const subscriptions = Object.keys(this.subscriptions);
+          const subscriptions = Object.keys(this.stompStreamListeners);
           for (let index = 0; index < subscriptions.length; index += 1) {
-            const subscription = this.subscriptions[index];
-            subscription.unsubscribe();
+            const name = subscriptions[index];
+            const { subscription } = this.stompStreamListeners[name];
+            if (!isNullOrUndefined(subscription)) {
+              subscription.unsubscribe();
+            }
+            delete this.stompStreamListeners[name];
           }
-          this.subscriptions = {};
           this.stompClient.deactivate();
           this.stompClient = undefined;
           this.emit('disconnect');
@@ -108,6 +109,44 @@ class StompStreamClient extends StompClient {
   // ------------ PRIVATE METHODS -------------------
 
   /**
+   * Unsubscribe client from a topic
+   *
+   * @param {String} subscriptionId - subscription ID
+   * @return a promise containing the result of the operation
+   */
+  private unsubscribe = (name: string): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      if (!this.isConnected()) {
+        reject(new Error('Invalid connection'));
+      } else {
+        const { subscription } = this.stompStreamListeners[name];
+        if (!isNullOrUndefined(subscription)) {
+          subscription.unsubscribe();
+          delete this.stompStreamListeners[name].subscription;
+          resolve(true);
+        } else {
+          reject(new Error('Subscription not found'));
+        }
+      }
+    });
+  }
+
+  private addStompStreamListener = (streamHook: IStompLiveStreamHook, opts: IStompConsumeOptions = {}): string => {
+    const name = `subscription-${new Date().getTime()}`;
+    this.stompStreamListeners[name] = { streamHook, opts };
+    return name;
+  }
+
+  private bindStompStreamListeners = async (): Promise<void> => {
+    const names = Object.keys(this.stompStreamListeners);
+    for (let index = 0; index < names.length; index += 1) {
+      const name = names[index];
+      // eslint-disable-next-line no-await-in-loop
+      await this.bindStompStreamListener(name);
+    }
+  }
+
+  /**
    * Start consuming messages from a device's channel
    * It generates an auto delete queue from which consume
    * and binds it to the channel exchange
@@ -118,9 +157,18 @@ class StompStreamClient extends StompClient {
    * @param {Object} opts - connection options
    * @return a promise containing current connection
    */
-  public addStreamHook = async (streamHook: IStompLiveStreamHook, opts: any = { }): Promise<string | void> => {
+  public bindStompStreamListener = async (name: string): Promise<string | void> => {
+    if (isNullOrUndefined(this.stompStreamListeners[name])) {
+      this.log('error', `Listner ${name} does not exist.`);
+      return;
+    }
+    if (!isNullOrUndefined(this.stompStreamListeners[name].subscription)) {
+      this.log('warn', `Listner ${name} already bound to a consumer.`);
+      return;
+    }
     return new Promise((resolve, reject) => {
       try {
+        const { streamHook, opts } = this.stompStreamListeners[name];
         const {
           stream = undefined, deviceId = undefined,
           channel = undefined, routingKey = undefined,
@@ -159,26 +207,14 @@ class StompStreamClient extends StompClient {
         }
         const subscriptionHeaders = {};
         if (tempQueue) { subscriptionHeaders['x-queue-name'] = tempQueue; }
-        const messageCallback = (message: IMessage) => {
-          // Create message object
-          const stompMessage = new StompMessage({ message, receiverId: this.client, subscriptionOpts: opts });
-          const ackNeeded = this.autoAck(opts.ack);
-          // Check if should be accepted or not
-          if (stompMessage.blackListed()) {
-            if (ackNeeded) { message.nack(); }
-            return;
-          }
-          // Call message callback
-          callback(stompMessage);
-          // Check if ACK is needed
-          if (ackNeeded) { message.ack(); }
-        };
         const subscriptionId = md5(`${tempQueue}-${streamTopic}`);
-        const subscription = this.stompClient.subscribe(streamTopic, messageCallback, {
-          ...subscriptionHeaders,
-          id: subscriptionId
-        });
-        this.subscriptions[subscriptionId] = subscription;
+        const subscription = this.stompClient.subscribe(streamTopic,
+          this.consumeCallback.bind(this, callback, opts), {
+            ...subscriptionHeaders,
+            id: subscriptionId
+          });
+        this.stompStreamListeners[name].subscription = subscription;
+        this.log('info', `Client subscribed to topic ${streamTopic}`);
         resolve(subscriptionId);
       } catch (error) {
         this.log('error', error);

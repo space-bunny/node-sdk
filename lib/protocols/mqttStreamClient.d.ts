@@ -6,7 +6,7 @@
 import { IClientSubscribeOptions, QoS } from 'async-mqtt';
 import { ILiveStreamHook } from '../spacebunny';
 import MqttClient from './mqttClient';
-export declare type IMqttCallback = (topic?: string, message?: any) => Promise<void>;
+export declare type IMqttCallback = (topic?: string, message?: any) => Promise<void> | void;
 export interface IMqttLiveStreamHook extends ILiveStreamHook {
     callback: IMqttCallback;
     qos?: QoS;
@@ -26,7 +26,7 @@ declare class MqttStreamClient extends MqttClient {
      * @param {Object} options - subscription options
      * @return promise containing the result of multiple subscriptions
      */
-    streamFrom: (streamHooks?: Array<IMqttLiveStreamHook>, opts?: IClientSubscribeOptions) => Promise<Array<string | void>>;
+    streamFrom: (streamHooks?: IMqttLiveStreamHook | Array<IMqttLiveStreamHook>, opts?: IClientSubscribeOptions) => Promise<Array<string | void>>;
     /**
     * Start consuming messages from a device's channel
     * It generates an auto delete queue from which consume

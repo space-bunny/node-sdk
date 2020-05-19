@@ -6,18 +6,20 @@
 import Stomp from '@stomp/stompjs';
 import StompMessage from '../messages/stompMessage';
 import { ILiveStreamHook } from '../spacebunny';
-import StompClient from './stompClient';
+import StompClient, { IStompConsumeOptions } from './stompClient';
 export declare type IStompCallback = (message: StompMessage) => Promise<void>;
 export interface IStompLiveStreamHook extends ILiveStreamHook {
     callback: IStompCallback;
     ack?: 'client';
 }
+export declare type IStompStreamListener = {
+    streamHook: IStompLiveStreamHook;
+    opts?: IStompConsumeOptions;
+    subscription?: Stomp.StompSubscription;
+};
 declare class StompStreamClient extends StompClient {
-    protected subscriptions: {
-        [key: string]: Stomp.StompSubscription;
-    };
-    protected defaultResource: string;
-    protected defaultPattern: string;
+    private defaultPattern;
+    private stompStreamListeners;
     /**
      * @constructor
      * @param {Object} opts - options must contain client and secret for access keys
@@ -31,20 +33,23 @@ declare class StompStreamClient extends StompClient {
      * @param {Object} options - subscription options
      * @return promise containing the result of multiple subscriptions
      */
-    streamFrom: (streamHooks?: Array<IStompLiveStreamHook>, opts?: any) => Promise<Array<string | void>>;
+    streamFrom: (streamHooks?: IStompLiveStreamHook | Array<IStompLiveStreamHook>, opts?: any) => Promise<Array<string | void>>;
+    removeStompStreamListener: (name: string) => Promise<void>;
+    /**
+   * Destroy the connection between the stomp client and broker
+   *
+   * @return a promise containing the result of the operation
+   */
+    disconnect: () => Promise<any>;
     /**
      * Unsubscribe client from a topic
      *
      * @param {String} subscriptionId - subscription ID
      * @return a promise containing the result of the operation
      */
-    unsubscribe: (subscriptionId: string) => Promise<any>;
-    /**
-     * Destroy the connection between the stomp client and broker
-     *
-     * @return a promise containing the result of the operation
-     */
-    disconnect: () => Promise<any>;
+    private unsubscribe;
+    private addStompStreamListener;
+    private bindStompStreamListeners;
     /**
      * Start consuming messages from a device's channel
      * It generates an auto delete queue from which consume
@@ -56,7 +61,7 @@ declare class StompStreamClient extends StompClient {
      * @param {Object} opts - connection options
      * @return a promise containing current connection
      */
-    addStreamHook: (streamHook: IStompLiveStreamHook, opts?: any) => Promise<string | void>;
+    bindStompStreamListener: (name: string) => Promise<string | void>;
     /**
      * Generate the subscription string for a specific channel
      *

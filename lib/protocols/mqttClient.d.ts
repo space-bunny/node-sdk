@@ -5,7 +5,7 @@
  */
 import { AsyncMqttClient, IClientOptions, IClientPublishOptions, IClientSubscribeOptions, QoS } from 'async-mqtt';
 import SpaceBunny, { ISpaceBunnyParams } from '../spacebunny';
-export declare type IMqttCallback = (topic?: string, message?: any) => Promise<void>;
+export declare type IMqttCallback = (topic?: string, message?: any) => Promise<void> | void;
 export declare type IMqttListener = {
     callback: IMqttCallback;
     topics?: string[];
@@ -48,23 +48,12 @@ declare class MqttClient extends SpaceBunny {
      * @return a promise containing the result of the operation
      */
     publish: (channel: string, message: any, opts?: IClientPublishOptions) => Promise<any>;
-    addMqttListener: (name: string, callback: IMqttCallback, topics?: string | string[]) => void;
-    removeMqttListener: (name: string) => void;
-    subscribe: (topics: string | string[], opts?: IClientSubscribeOptions) => Promise<void>;
-    /**
-     * Unsubscribe client from a list of topics
-     *
-     * @param {Object} topics - list of topics { topic: qos, ... }
-     * e.g. { topic_1: 1, topic_2: 0 }
-     * @return a promise containing the result of the operation
-     */
-    unsubscribe(topics?: string | string[]): Promise<void>;
     /**
      * Destroy the connection between the mqtt client and broker
      *
      * @return a promise containing the result of the operation
      */
-    disconnect(): Promise<void>;
+    disconnect(): Promise<boolean>;
     /**
      * Establish an mqtt connection with the broker.
      * If a connection already exists, returns the current connection
@@ -74,6 +63,17 @@ declare class MqttClient extends SpaceBunny {
      */
     connect: (opts?: IClientOptions) => Promise<AsyncMqttClient | void>;
     isConnected: () => boolean;
+    protected addMqttListener: (name: string, callback: IMqttCallback, topics?: string | string[]) => void;
+    protected removeMqttListener: (name: string) => void;
+    protected subscribe: (topics: string | string[], opts?: IClientSubscribeOptions) => Promise<void>;
+    /**
+     * Unsubscribe client from a list of topics
+     *
+     * @param {Object} topics - list of topics { topic: qos, ... }
+     * e.g. { topic_1: 1, topic_2: 0 }
+     * @return a promise containing the result of the operation
+     */
+    protected unsubscribe(topics?: string | string[]): Promise<void>;
     /**
      * Generate the topic for a specific channel
      *
@@ -82,6 +82,6 @@ declare class MqttClient extends SpaceBunny {
      * @param {String} channel - channel name on which you want to publish a message
      * @return a string that represents the topic name for that channel
      */
-    topicFor: (deviceId: string | void | null, channel: string) => string;
+    private topicFor;
 }
 export default MqttClient;
