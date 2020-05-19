@@ -113,4 +113,8 @@ browserConfig.target = 'web';
 browserConfig.output.filename = '[name].var.js';
 browserConfig.entry.spacebunny = './src/indexWeb.ts';
 
-module.exports = [nodejsConfig, browserConfig];
+const webConfig = _.cloneDeep(browserConfig);
+webConfig.output.libraryTarget = 'commonjs2';
+webConfig.output.filename = '[name].web.js';
+
+module.exports = [nodejsConfig, browserConfig, webConfig];

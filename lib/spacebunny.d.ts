@@ -34,6 +34,7 @@ export interface ISpaceBunnyParams {
     cacheSize?: number;
     heartbeat?: number;
     connectionTimeout?: number;
+    messagesCachePath?: string;
 }
 export interface IEndpointConfigs {
     connection?: ISpaceBunnyParams;
@@ -111,9 +112,12 @@ declare class SpaceBunny extends EventEmitter {
     protected connectionTimeout: number;
     protected heartbeat: number;
     protected manualConfigurations: boolean;
+    protected caching: boolean;
+    protected messagesCachePath: string;
     protected static DEFAULT_CONNECTION_TIMEOUT: number;
     protected static DEFAULT_RECONNECT_TIMEOUT: number;
     protected static DEFAULT_HEARTBEAT: number;
+    protected static DEFAULT_CACHE_SIZE: number;
     constructor(opts?: ISpaceBunnyParams);
     /**
      * Check if Device-Key or connection parameters have already been passed
