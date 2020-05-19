@@ -6,6 +6,7 @@
 
 // Import amqplib
 import * as amqp from 'amqplib';
+import cloneDeep from 'lodash.clonedeep';
 // Import some helpers modules
 import { isNullOrUndefined, promisify } from 'util';
 
@@ -69,7 +70,10 @@ class AmqpClient extends SpaceBunny {
     this.ackTypes = ['auto', 'manual'];
     this.connected = false;
     this.amqpListeners = {};
-    this.on('connect', () => { this.bindAmqpListeners(); });
+    this.on('connect', () => {
+      this.bindAmqpListeners();
+      this.publishCachedMessages();
+    });
     this.on('disconnect', () => { this.amqpListeners = {}; });
     this.on('channelClose', () => { this.clearConsumers(); });
   }
@@ -447,6 +451,26 @@ class AmqpClient extends SpaceBunny {
       }
     }
     return false;
+  }
+
+  private publishCachedMessages = async () => {
+    if (this.isConnected() && this.cachedMessages.length > 0) {
+      const cachedMessagesToSend = cloneDeep(this.cachedMessages);
+      this.log('debug', `Publishing ${cachedMessagesToSend.length} cached messages...`);
+      for (let index = 0; index < cachedMessagesToSend.length; index += 1) {
+        const cachedMessage = cachedMessagesToSend[index];
+        this.log('silly', `Sending message ${index + 1} from cache`);
+        const { message, channel, options } = cachedMessage;
+        // eslint-disable-next-line no-await-in-loop
+        const res: boolean = await this.publish(channel, message, options);
+        if (res) {
+          // remove message from cache when successful send
+          const itemToRemove = this.cachedMessages.findIndex(message);
+          this.cachedMessages.splice(itemToRemove, 1);
+        }
+      }
+      this.writeCachedMessagesFile();
+    }
   }
 }
 

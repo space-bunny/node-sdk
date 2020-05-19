@@ -34,7 +34,7 @@ export interface ISpaceBunnyParams {
     cacheSize?: number;
     heartbeat?: number;
     connectionTimeout?: number;
-    messagesCachePath?: string;
+    cachedMessagesPath?: string;
 }
 export interface IEndpointConfigs {
     connection?: ISpaceBunnyParams;
@@ -81,6 +81,11 @@ export interface ISpaceBunnySubscribeOptions {
     discardMine?: boolean;
     discardFromApi?: boolean;
 }
+export interface ICachedMessage {
+    message: any;
+    channel: string;
+    options?: object;
+}
 /**
  * @constructor
  * @param {Object} opts - constructor options may contain Device-Key or connection options
@@ -113,7 +118,8 @@ declare class SpaceBunny extends EventEmitter {
     protected heartbeat: number;
     protected manualConfigurations: boolean;
     protected caching: boolean;
-    protected messagesCachePath: string;
+    protected cachedMessagesPath: string;
+    protected cachedMessages: ICachedMessage[];
     protected static DEFAULT_CONNECTION_TIMEOUT: number;
     protected static DEFAULT_RECONNECT_TIMEOUT: number;
     protected static DEFAULT_HEARTBEAT: number;
@@ -186,5 +192,8 @@ declare class SpaceBunny extends EventEmitter {
      * @return the string representing the endpoint url
      */
     private generateHostname;
+    private loadCachedMessages;
+    protected writeCachedMessagesFile: () => void;
+    protected cacheMessage: (channel: string, message: any, options: any) => void;
 }
 export default SpaceBunny;

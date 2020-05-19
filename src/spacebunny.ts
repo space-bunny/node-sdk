@@ -6,6 +6,7 @@
 // Import some helpers modules
 import axios, { AxiosRequestConfig } from 'axios';
 import { EventEmitter } from 'events';
+import fs from 'fs';
 import { camelizeKeys } from 'humps';
 import urljoin from 'url-join';
 import { isNullOrUndefined } from 'util';
@@ -39,6 +40,7 @@ export interface ISpaceBunnyParams {
   cacheSize?: number;
   heartbeat?: number;
   connectionTimeout?: number;
+  cachedMessagesPath?: string;
 }
 
 export interface IEndpointConfigs {
@@ -92,6 +94,12 @@ export interface ILiveStreamHook {
 export interface ISpaceBunnySubscribeOptions {
   discardMine?: boolean;
   discardFromApi?: boolean;
+}
+
+export interface ICachedMessage {
+  message: any;
+  channel: string;
+  options?: object;
 }
 
 /**
@@ -151,17 +159,25 @@ class SpaceBunny extends EventEmitter {
 
   protected manualConfigurations: boolean;
 
+  protected caching: boolean;
+
+  protected cachedMessagesPath: string;
+
+  protected cachedMessages: ICachedMessage[];
+
   protected static DEFAULT_CONNECTION_TIMEOUT = 5000;
 
   protected static DEFAULT_RECONNECT_TIMEOUT = 5000;
 
   protected static DEFAULT_HEARTBEAT = 60;
 
+  protected static DEFAULT_CACHE_SIZE = 100;
+
   constructor(opts: ISpaceBunnyParams = {}) {
     super();
     this.connectionParams = camelizeKeys(opts);
     const { endpoint, deviceKey, channels, deviceId, client, secret, host, port, vhost, inboxTopic,
-      tls, verbose, autoReconnect, heartbeat, connectionTimeout } = this.connectionParams;
+      tls, verbose, autoReconnect, heartbeat, connectionTimeout, caching, cacheSize, cachedMessagesPath } = this.connectionParams;
     const defaultEndpoint: IEndpoint = {
       protocol: 'http',
       secureProtocol: 'https',
@@ -192,6 +208,10 @@ class SpaceBunny extends EventEmitter {
     this.heartbeat = heartbeat || SpaceBunny.DEFAULT_HEARTBEAT;
     this.connectionTimeout = connectionTimeout || SpaceBunny.DEFAULT_CONNECTION_TIMEOUT;
     this.endpointConfigs = {};
+    this.caching = (caching === true);
+    this.cacheSize = cacheSize || SpaceBunny.DEFAULT_CACHE_SIZE;
+    this.cachedMessagesPath = cachedMessagesPath;
+    this.loadCachedMessages();
   }
 
   /**
@@ -412,6 +432,41 @@ class SpaceBunny extends EventEmitter {
       hostname = `${protocol}://${hostname}`;
     }
     return hostname;
+  }
+
+  // TODO Load from LocalStorage if in browser
+  private loadCachedMessages = () => {
+    let cachedMessages = [];
+    if (this.cachedMessagesPath && fs.existsSync(this.cachedMessagesPath)) {
+      cachedMessages = JSON.parse(fs.readFileSync(this.cachedMessagesPath, { encoding: 'utf-8' }));
+    }
+    this.cachedMessages = cachedMessages || [];
+  }
+
+  // TODO Save to LocalStorage if in browser
+  protected writeCachedMessagesFile = () => {
+    try {
+      fs.writeFileSync(this.cachedMessagesPath, JSON.stringify(this.cachedMessages, null, 2));
+      this.log('silly', `Cached messages written to: ${this.cachedMessagesPath}`);
+    } catch (error) {
+      this.log('error', 'Error writing cached messages');
+      this.log('error', error);
+    }
+  }
+
+  protected cacheMessage = (channel: string, message: any, options: any) => {
+    const messageToCache = { channel, message, options };
+    if (!this.cachedMessages.includes(messageToCache)) {
+      if (this.cachedMessages.length >= this.cacheSize) {
+        // remove eldest message
+        this.log('debug', 'Message cache full, removing eldest message');
+        this.cachedMessages.shift();
+      }
+      this.log('warn', 'Caching message..');
+      this.log('silly', 'Message cached:', messageToCache);
+      this.cachedMessages.push(messageToCache);
+      this.writeCachedMessagesFile();
+    }
   }
 }
 

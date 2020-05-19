@@ -123,5 +123,6 @@ declare class AmqpClient extends SpaceBunny {
      * @return boolean - true if messages have to be autoacked, false otherwise
      */
     protected autoAck: (ack: string | void) => boolean;
+    private publishCachedMessages;
 }
 export default AmqpClient;

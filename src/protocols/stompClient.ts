@@ -4,6 +4,7 @@
  * @module StompClient
  */
 
+import cloneDeep from 'lodash.clonedeep';
 // Import some helpers modules
 import { isNullOrUndefined } from 'util';
 
@@ -72,7 +73,10 @@ class StompClient extends SpaceBunny {
     this.existingQueuePrefix = 'amq/queue';
     this.defaultResource = 'exchange';
     this.ackTypes = ['client'];
-    this.on('connect', () => { this.bindStompListners(); });
+    this.on('connect', () => {
+      this.bindStompListners();
+      this.publishCachedMessages();
+    });
     this.on('disconnect', () => { this.stompListeners = {}; });
   }
 
@@ -362,6 +366,26 @@ class StompClient extends SpaceBunny {
       }
     }
     return false;
+  }
+
+  private publishCachedMessages = async () => {
+    if (this.isConnected() && this.cachedMessages.length > 0) {
+      const cachedMessagesToSend = cloneDeep(this.cachedMessages);
+      this.log('debug', `Publishing ${cachedMessagesToSend.length} cached messages...`);
+      for (let index = 0; index < cachedMessagesToSend.length; index += 1) {
+        const cachedMessage = cachedMessagesToSend[index];
+        this.log('silly', `Sending message ${index + 1} from cache`);
+        const { message, channel, options } = cachedMessage;
+        // eslint-disable-next-line no-await-in-loop
+        const res: boolean = await this.publish(channel, message, options);
+        if (res) {
+          // remove message from cache when successful send
+          const itemToRemove = this.cachedMessages.findIndex(message);
+          this.cachedMessages.splice(itemToRemove, 1);
+        }
+      }
+      this.writeCachedMessagesFile();
+    }
   }
 }
 

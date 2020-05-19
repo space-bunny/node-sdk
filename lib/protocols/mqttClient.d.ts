@@ -83,5 +83,6 @@ declare class MqttClient extends SpaceBunny {
      * @return a string that represents the topic name for that channel
      */
     private topicFor;
+    private publishCachedMessages;
 }
 export default MqttClient;

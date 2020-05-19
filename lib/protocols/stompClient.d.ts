@@ -104,5 +104,6 @@ declare class StompClient extends SpaceBunny {
      * @return boolean - true if messages have to be autoacked, false otherwise
      */
     protected autoAck: (ack: string) => boolean;
+    private publishCachedMessages;
 }
 export default StompClient;

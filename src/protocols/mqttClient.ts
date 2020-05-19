@@ -8,6 +8,7 @@ import mqtt, {
   AsyncMqttClient, IClientOptions, IClientPublishOptions, IClientSubscribeOptions, QoS
 } from 'async-mqtt';
 import fs from 'fs';
+import cloneDeep from 'lodash.clonedeep';
 import { isNullOrUndefined, promisify } from 'util';
 
 // import { promisify } from 'util';
@@ -67,6 +68,7 @@ class MqttClient extends SpaceBunny {
     } else {
       this.tlsOpts.rejectUnauthorized = true;
     }
+    this.on('connect', () => { this.publishCachedMessages(); });
   }
 
   /**
@@ -279,6 +281,26 @@ class MqttClient extends SpaceBunny {
    */
   private topicFor = (deviceId: string|void|null, channel: string) => {
     return `${deviceId || this.getDeviceId()}/${channel}`;
+  }
+
+  private publishCachedMessages = async () => {
+    if (this.isConnected() && this.cachedMessages.length > 0) {
+      const cachedMessagesToSend = cloneDeep(this.cachedMessages);
+      this.log('debug', `Publishing ${cachedMessagesToSend.length} cached messages...`);
+      for (let index = 0; index < cachedMessagesToSend.length; index += 1) {
+        const cachedMessage = cachedMessagesToSend[index];
+        this.log('silly', `Sending message ${index + 1} from cache`);
+        const { message, channel, options } = cachedMessage;
+        // eslint-disable-next-line no-await-in-loop
+        const res: boolean = await this.publish(channel, message, { qos: 1, ...options });
+        if (res) {
+          // remove message from cache when successful send
+          const itemToRemove = this.cachedMessages.findIndex(message);
+          this.cachedMessages.splice(itemToRemove, 1);
+        }
+      }
+      this.writeCachedMessagesFile();
+    }
   }
 }
 
