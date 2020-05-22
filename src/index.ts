@@ -5,6 +5,7 @@ import MqttClient from './protocols/mqttClient';
 import MqttStreamClient from './protocols/mqttStreamClient';
 import StompClient from './protocols/stompClient';
 import StompStreamClient from './protocols/stompStreamClient';
+import { ISpaceBunnyParams } from './spacebunny';
 
 export {
   AmqpClient as Client,
@@ -14,5 +15,6 @@ export {
   AmqpStreamClient,
   AmqpStreamClient as StreamClient,
   MqttStreamClient,
-  StompStreamClient
+  StompStreamClient,
+  ISpaceBunnyParams
 };

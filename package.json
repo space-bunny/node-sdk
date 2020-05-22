@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "NodeJS client library for Space Bunny IoT platform",
   "main": "lib/spacebunny.js",
-  "types": "lib/spacebunny.d.ts",
+  "types": "lib/index.d.ts",
   "scripts": {
     "start:dev": "cross-env NODE_ENV=development nodemon --watch src",
     "start:dev:inspect": "npm run start:dev -- --inspect",
