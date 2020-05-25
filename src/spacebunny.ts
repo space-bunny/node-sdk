@@ -326,6 +326,8 @@ class SpaceBunny extends EventEmitter {
 
   public isConnected = (): boolean => { return false; }
 
+  public isStreamClient = (): boolean => { return this.getClassName().includes('Stream'); }
+
   /**
    * @return all channels configured for the current device
    */

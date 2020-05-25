@@ -136,6 +136,7 @@ declare class SpaceBunny extends EventEmitter {
     protected getClassName: () => string;
     protected log: (level: string, message: string | Error, ...meta: any) => void;
     isConnected: () => boolean;
+    isStreamClient: () => boolean;
     /**
      * @return all channels configured for the current device
      */
