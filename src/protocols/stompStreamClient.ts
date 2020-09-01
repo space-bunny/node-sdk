@@ -4,7 +4,7 @@
  * @module StompStreamClient
  */
 
-import md5 from 'js-md5';
+import md5 from 'md5';
 // Import some helpers modules
 import { isNullOrUndefined } from 'util';
 
