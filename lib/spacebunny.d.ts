@@ -5,7 +5,7 @@
 /// <reference types="node" />
 import { EventEmitter } from 'events';
 export interface ISpaceBunnyParams {
-    endpoint?: any;
+    endpoint?: IEndpoint;
     deviceKey?: string;
     channels?: IChannel[];
     deviceId?: string;
@@ -82,9 +82,9 @@ export interface ISpaceBunnySubscribeOptions {
     discardFromApi?: boolean;
 }
 export interface ICachedMessage {
-    message: any;
+    message: Record<string, unknown>;
     channel: string;
-    options?: object;
+    options?: Record<string, unknown>;
 }
 /**
  * @constructor
@@ -195,6 +195,6 @@ declare class SpaceBunny extends EventEmitter {
     private generateHostname;
     private loadCachedMessages;
     protected writeCachedMessagesFile: () => void;
-    protected cacheMessage: (channel: string, message: any, options: any) => void;
+    protected cacheMessage: (channel: string, message: Record<string, unknown>, options: Record<string, unknown>) => void;
 }
 export default SpaceBunny;

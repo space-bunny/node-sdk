@@ -47,7 +47,7 @@ declare class MqttClient extends SpaceBunny {
      * @param {Object} opts - publication options
      * @return a promise containing the result of the operation
      */
-    publish: (channel: string, message: any, opts?: IClientPublishOptions) => Promise<any>;
+    publish: (channel: string, message: Record<string, unknown>, opts?: IClientPublishOptions) => Promise<boolean>;
     /**
      * Destroy the connection between the mqtt client and broker
      *

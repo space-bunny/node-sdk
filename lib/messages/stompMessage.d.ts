@@ -39,6 +39,6 @@ declare class StompMessage {
     ack: () => void;
     nack: () => void;
     getChannelName: () => string;
-    getContent: () => object;
+    getContent: () => Record<string, unknown> | string;
 }
 export default StompMessage;

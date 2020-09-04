@@ -36,7 +36,7 @@ class AmqpStreamClient extends AmqpClient {
     this.defaultStreamRoutingKey = '#';
     this.streamQueueArguments = { exclusive: true, autoDelete: true, durable: false };
     this.amqpStreamListeners = {};
-    this.on('connect', () => { this.bindAmqpStreamListeners(); });
+    this.on('connect', () => { void this.bindAmqpStreamListeners(); });
     this.on('disconnect', () => { this.amqpStreamListeners = {}; });
     this.on('channelClose', () => { this.clearStreamConsumers(); });
   }
@@ -51,10 +51,10 @@ class AmqpStreamClient extends AmqpClient {
    */
   public streamFrom = async (streamHooks: IAmqpLiveStreamHook | Array<IAmqpLiveStreamHook> = [], opts: IAmqpConsumeOptions = {}): Promise<Array<string|void>> => {
     const hooks: Array<IAmqpLiveStreamHook> = Array.isArray(streamHooks) ? streamHooks : [streamHooks];
-    const names = [];
+    const names: string[] = [];
     for (let index = 0; index < hooks.length; index += 1) {
       const streamHook = hooks[index];
-      const name = this.addAmqpStreamListener(streamHook, opts);
+      const name: string = this.addAmqpStreamListener(streamHook, opts);
       // eslint-disable-next-line no-await-in-loop
       await this.bindAmqpStreamListener(name);
       names.push(name);

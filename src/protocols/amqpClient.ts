@@ -8,11 +8,13 @@
 import * as amqp from 'amqplib';
 import cloneDeep from 'lodash.clonedeep';
 // Import some helpers modules
-import { isNullOrUndefined, promisify } from 'util';
+import { isDeepStrictEqual, isNullOrUndefined, promisify } from 'util';
 
 import AmqpMessage from '../messages/amqpMessage';
 // Import SpaceBunny main module from which AmqpClient inherits
-import SpaceBunny, { ISpaceBunnyParams, ISpaceBunnySubscribeOptions } from '../spacebunny';
+import SpaceBunny, {
+  ICachedMessage, ISpaceBunnyParams, ISpaceBunnySubscribeOptions
+} from '../spacebunny';
 import { encapsulateContent } from '../utils';
 
 export interface IAmqpConsumeOptions extends ISpaceBunnySubscribeOptions {
@@ -34,7 +36,7 @@ export interface IAmqpPublishOptions {
   withConfirm?: boolean;
 }
 
-export type IAmqpCallback = (message: any, fields?: object, properties?: object) => Promise<void>|void;
+export type IAmqpCallback = (message: Record<string, unknown>|string, fields?: amqp.MessageFields, properties?: amqp.MessageProperties) => Promise<void>|void;
 
 export type IAmqpListener = {
   callback: IAmqpCallback;
@@ -47,7 +49,7 @@ class AmqpClient extends SpaceBunny {
 
   private amqpChannels: { [key: string]: amqp.Channel };
 
-  private defaultConnectionOpts: any;
+  private defaultConnectionOpts: Record<string, unknown>;
 
   private ackTypes: string[];
 
@@ -71,8 +73,8 @@ class AmqpClient extends SpaceBunny {
     this.connected = false;
     this.amqpListeners = {};
     this.on('connect', () => {
-      this.bindAmqpListeners();
-      this.publishCachedMessages();
+      void this.bindAmqpListeners();
+      void this.publishCachedMessages();
     });
     this.on('disconnect', () => { this.amqpListeners = {}; });
     this.on('channelClose', () => { this.clearConsumers(); });
@@ -100,7 +102,7 @@ class AmqpClient extends SpaceBunny {
    * @param {Object} opts - publication options
    * @return promise containing the result of the subscription
    */
-  public publish = async (channel: string, message: any, opts: IAmqpPublishOptions = {}, publishOpts: amqp.Options.Publish = {}): Promise<boolean> => {
+  public publish = async (channel: string, message: Record<string, unknown>, opts: IAmqpPublishOptions = {}, publishOpts: amqp.Options.Publish = {}): Promise<boolean> => {
     const { routingKey = undefined, topic = undefined, withConfirm = false } = opts;
     const ch: amqp.Channel | amqp.ConfirmChannel = await this.createChannel('output', { withConfirm });
     if (this.isConnected()) {
@@ -167,7 +169,7 @@ class AmqpClient extends SpaceBunny {
    *
    * @return a promise containing current connection
    */
-  public connect = async (opts: amqp.Options.Connect = {}, socketOptions: object = {}): Promise<amqp.Connection|void> => {
+  public connect = async (opts: amqp.Options.Connect = {}, socketOptions: Record<string, unknown> = {}): Promise<amqp.Connection|void> => {
     if (this.isConnected()) { return this.amqpConnection; }
     await this.getEndpointConfigs();
     try {
@@ -179,7 +181,7 @@ class AmqpClient extends SpaceBunny {
         username: this.connectionParams.deviceId || this.connectionParams.client,
         password: this.connectionParams.secret,
         vhost: this.connectionParams.vhost.replace('/', '%2f'),
-        frameMax: opts.frameMax || this.defaultConnectionOpts.frameMax,
+        frameMax: opts.frameMax || (this.defaultConnectionOpts.frameMax as number),
         heartbeat: opts.heartbeat || this.heartbeat
       }, {
         timeout: this.connectionTimeout,
@@ -194,7 +196,7 @@ class AmqpClient extends SpaceBunny {
         this.amqpConnection = undefined;
         this.connected = false;
         if (this.autoReconnect) {
-          this.connect(opts);
+          void this.connect(opts);
         }
       };
       const onBlock = (reason) => {
@@ -219,10 +221,10 @@ class AmqpClient extends SpaceBunny {
       this.connected = false;
       this.log('error', 'Error during connection');
       if (this.autoReconnect) {
-        this.log('error', error.message);
+        this.log('error', (error as Error).message);
         const timeout = promisify(setTimeout);
         await timeout(this.reconnectTimeout);
-        this.connect(opts);
+        void this.connect(opts);
       } else {
         throw error;
       }
@@ -332,7 +334,7 @@ class AmqpClient extends SpaceBunny {
     try {
       const { ack = undefined, allUpTo = false, requeue = false } = opts;
       if (isNullOrUndefined(message)) { return; }
-      // Create message object
+      // Create message Record<string, unknown>
       const { discardMine, discardFromApi } = opts;
       const amqpMessage = new AmqpMessage({
         message,
@@ -347,7 +349,7 @@ class AmqpClient extends SpaceBunny {
         return;
       }
       // Call message callback
-      callback(amqpMessage.getContent(), amqpMessage.getFields(), amqpMessage.getProperties());
+      void callback(amqpMessage.getContent(), amqpMessage.getFields(), amqpMessage.getProperties());
       // Check if ACK is needed
       if (ackNeeded) { amqpMessage.ack({ allUpTo }); }
     } catch (error) {
@@ -458,14 +460,16 @@ class AmqpClient extends SpaceBunny {
       const cachedMessagesToSend = cloneDeep(this.cachedMessages);
       this.log('debug', `Publishing ${cachedMessagesToSend.length} cached messages...`);
       for (let index = 0; index < cachedMessagesToSend.length; index += 1) {
-        const cachedMessage = cachedMessagesToSend[index];
+        const cachedMessage: ICachedMessage = cachedMessagesToSend[index];
         this.log('silly', `Sending message ${index + 1} from cache`);
         const { message, channel, options } = cachedMessage;
         // eslint-disable-next-line no-await-in-loop
         const res: boolean = await this.publish(channel, message, options);
         if (res) {
           // remove message from cache when successful send
-          const itemToRemove = this.cachedMessages.findIndex(message);
+          const itemToRemove = this.cachedMessages.findIndex((el: ICachedMessage) => {
+            return isDeepStrictEqual(el, cachedMessage);
+          });
           this.cachedMessages.splice(itemToRemove, 1);
         }
       }

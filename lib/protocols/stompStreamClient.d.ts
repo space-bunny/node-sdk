@@ -12,6 +12,9 @@ export interface IStompLiveStreamHook extends ILiveStreamHook {
     callback: IStompCallback;
     ack?: 'client';
 }
+export interface IStompLiveStreamDestination extends ILiveStreamHook {
+    type?: string;
+}
 export declare type IStompStreamListener = {
     streamHook: IStompLiveStreamHook;
     opts?: IStompConsumeOptions;
@@ -72,7 +75,7 @@ declare class StompStreamClient extends StompClient {
      * @param {String} routingKey - binding pattern
      * @return a string that represents the topic name for that channel
      */
-    streamChannelTopicFor: (params?: any) => string;
+    streamChannelTopicFor: (params?: IStompLiveStreamDestination) => string;
     /**
      * Generate the subscription string for cached live streams
      *
@@ -91,6 +94,6 @@ declare class StompStreamClient extends StompClient {
      * @param {String} routingKey - binding pattern
      * @return a string that represents the topic name for that channel
      */
-    streamTopicFor: (params?: any) => string;
+    streamTopicFor: (params?: IStompLiveStreamDestination) => string;
 }
 export default StompStreamClient;

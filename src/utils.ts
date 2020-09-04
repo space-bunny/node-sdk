@@ -2,19 +2,20 @@
  * Automatically parse message content
  *
  * @private
- * @param {Object/String} message - the received message
+ * @param {Buffer|string} message - the received message
  * @return an object containing the input message with parsed content
  */
-export function parseContent(message: any): object {
-  let parsedMessage = message;
+export function parseContent(message: Buffer|string): Record<string, unknown>|string {
+  let parsedMessage: Record<string, unknown>|string = message as unknown as Record<string, unknown>;
   if (Buffer.isBuffer(parsedMessage)) {
     parsedMessage = parsedMessage.toString('utf-8');
   }
-  let res: object;
+  let res: Record<string, unknown> | string = parsedMessage;
   try {
-    res = JSON.parse(parsedMessage);
+    res = JSON.parse(parsedMessage as string) as Record<string, unknown>;
   } catch (ex) {
-    res = parsedMessage;
+    // eslint-disable-next-line no-console
+    console.error(ex);
   }
   return res;
 }
@@ -27,7 +28,7 @@ export function parseContent(message: any): object {
  * @param {Object} content - content to publish, could be a string or a JSON object
  * @return the content encapsulated in the proper way
  */
-export function encapsulateContent(content: object): string {
+export function encapsulateContent(content: Record<string, unknown>): string {
   let encapsulatedContent: string;
   try {
     encapsulatedContent = JSON.stringify(content);

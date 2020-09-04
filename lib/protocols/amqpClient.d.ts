@@ -21,7 +21,7 @@ export interface IAmqpPublishOptions {
     topic?: string;
     withConfirm?: boolean;
 }
-export declare type IAmqpCallback = (message: any, fields?: object, properties?: object) => Promise<void> | void;
+export declare type IAmqpCallback = (message: Record<string, unknown> | string, fields?: amqp.MessageFields, properties?: amqp.MessageProperties) => Promise<void> | void;
 export declare type IAmqpListener = {
     callback: IAmqpCallback;
     opts?: IAmqpConsumeOptions;
@@ -57,7 +57,7 @@ declare class AmqpClient extends SpaceBunny {
      * @param {Object} opts - publication options
      * @return promise containing the result of the subscription
      */
-    publish: (channel: string, message: any, opts?: IAmqpPublishOptions, publishOpts?: amqp.Options.Publish) => Promise<boolean>;
+    publish: (channel: string, message: Record<string, unknown>, opts?: IAmqpPublishOptions, publishOpts?: amqp.Options.Publish) => Promise<boolean>;
     /**
      * Destroy the connection between the amqp client and broker
      *
@@ -71,7 +71,7 @@ declare class AmqpClient extends SpaceBunny {
      *
      * @return a promise containing current connection
      */
-    connect: (opts?: amqp.Options.Connect, socketOptions?: object) => Promise<amqp.Connection | void>;
+    connect: (opts?: amqp.Options.Connect, socketOptions?: Record<string, unknown>) => Promise<amqp.Connection | void>;
     isConnected: () => boolean;
     removeAmqpListener: (name: string) => Promise<void>;
     /**

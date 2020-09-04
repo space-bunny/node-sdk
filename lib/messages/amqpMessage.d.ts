@@ -34,7 +34,7 @@ declare class AmqpMessage {
      *
      * @return Boolean - true if it comes from API, false otherwise
      */
-    fromApi: () => any;
+    fromApi: () => boolean;
     ack: (opts?: {
         allUpTo?: boolean;
     }) => void;
@@ -42,9 +42,9 @@ declare class AmqpMessage {
         allUpTo?: boolean;
         requeue?: boolean;
     }) => void;
-    getContent: () => object;
-    getProperties: () => object;
-    getFields: () => object;
+    getContent: () => Record<string, unknown> | string;
+    getProperties: () => amqp.MessageProperties;
+    getFields: () => amqp.MessageFields;
     getChannelName: () => string;
 }
 export default AmqpMessage;

@@ -10,7 +10,7 @@ import { parseContent } from '../utils';
 class AmqpMessage {
   private message: amqp.ConsumeMessage | null;
 
-  private content: object;
+  private content: Record<string, unknown>|string;
 
   private channel: amqp.Channel | amqp.ConfirmChannel;
 
@@ -38,7 +38,7 @@ class AmqpMessage {
     const { message = undefined, receiverId = '', channel = undefined, subscriptionOpts = {} } = opts;
     const { discardMine = false, discardFromApi = false } = subscriptionOpts;
     this.message = message;
-    this.content = parseContent((message) ? message.content : {});
+    this.content = parseContent((message) ? message.content : '{}');
     this.channel = channel;
     try {
       const [senderId, channelName] = this.message.fields.routingKey.split('.');
@@ -57,7 +57,7 @@ class AmqpMessage {
    *
    * @return Boolean - true if should be not considered, false otherwise
    */
-  blackListed = () => {
+  blackListed = (): boolean => {
     if (this.discardMine && this.receiverId === this.senderId && !this.fromApi()) return true;
     if (this.discardFromApi && this.fromApi()) return true;
     return false;
@@ -69,29 +69,29 @@ class AmqpMessage {
    *
    * @return Boolean - true if it comes from API, false otherwise
    */
-  fromApi = () => {
-    return (this.message.properties.headers && this.message.properties.headers[AmqpMessage.FROM_API_HEADER]);
+  fromApi = (): boolean => {
+    return (this.message.properties.headers && this.message.properties.headers[AmqpMessage.FROM_API_HEADER] === 'true');
   }
 
-  ack = (opts: { allUpTo?: boolean } = {}) => {
+  ack = (opts: { allUpTo?: boolean } = {}): void => {
     const { allUpTo = false } = opts;
     this.channel.ack(this.message, allUpTo);
   }
 
-  nack = (opts: { allUpTo?: boolean; requeue?: boolean } = {}) => {
+  nack = (opts: { allUpTo?: boolean; requeue?: boolean } = {}): void => {
     const { allUpTo = false, requeue = true } = opts;
     this.channel.nack(this.message, allUpTo, requeue);
   }
 
-  getContent = (): object => {
+  getContent = (): Record<string, unknown> | string => {
     return this.content;
   }
 
-  getProperties = (): object => {
+  getProperties = (): amqp.MessageProperties => {
     return this.message.properties;
   }
 
-  getFields = (): object => {
+  getFields = (): amqp.MessageFields => {
     return this.message.fields;
   }
 

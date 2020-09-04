@@ -46,7 +46,7 @@ class MqttStreamClient extends MqttClient {
       const promise = this.addStreamHook(streamHook, opts);
       promises.push(promise);
     }
-    return Promise.all(promises);
+    return Promise.all(promises) as Promise<Array<string | void>>;
   }
 
   /**
@@ -76,7 +76,7 @@ class MqttStreamClient extends MqttClient {
       this.log('error', 'Missing Callback');
       return;
     }
-    let topicName = topic;
+    let topicName: string = topic;
     let topicQOS: QoS = qos || this.connectionOpts.qos;
     if (!isNullOrUndefined(stream) && stream.length > 0) {
       if (!this.liveStreamExists(stream)) {
@@ -106,7 +106,7 @@ class MqttStreamClient extends MqttClient {
    * @param {String} channel - channel name from which you want to stream
    * @return a string that represents the topic name for that channel
    */
-  private streamChannelTopicFor = (params: any = {}) => {
+  private streamChannelTopicFor = (params: ILiveStreamHook = {}): string => {
     const {
       deviceId = '', channel = '',
       routingKey = '', topic = ''
@@ -132,7 +132,7 @@ class MqttStreamClient extends MqttClient {
    * @param {String} streamName - stream name from which you want to stream
    * @return a string that represents the topic name for that stream
    */
-  streamTopicFor = (stream = '') => {
+  streamTopicFor = (stream = ''): string => {
     return `${stream}/${this.liveStreamSuffix}`;
   }
 }

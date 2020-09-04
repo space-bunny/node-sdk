@@ -9,10 +9,10 @@ import mqtt, {
 } from 'async-mqtt';
 import fs from 'fs';
 import cloneDeep from 'lodash.clonedeep';
-import { isNullOrUndefined, promisify } from 'util';
+import { isDeepStrictEqual, isNullOrUndefined, promisify } from 'util';
 
 // import { promisify } from 'util';
-import SpaceBunny, { ISpaceBunnyParams } from '../spacebunny';
+import SpaceBunny, { ICachedMessage, ISpaceBunnyParams } from '../spacebunny';
 import { encapsulateContent } from '../utils';
 
 export type IMqttCallback = (topic?: string, message?: any) => Promise<void> | void;
@@ -68,7 +68,7 @@ class MqttClient extends SpaceBunny {
     } else {
       this.tlsOpts.rejectUnauthorized = true;
     }
-    this.on('connect', () => { this.publishCachedMessages(); });
+    this.on('connect', () => { void this.publishCachedMessages(); });
   }
 
   /**
@@ -94,7 +94,7 @@ class MqttClient extends SpaceBunny {
    * @param {Object} opts - publication options
    * @return a promise containing the result of the operation
    */
-  public publish = async (channel: string, message: any, opts: IClientPublishOptions = { qos: 1 }): Promise<any> => {
+  public publish = async (channel: string, message: Record<string, unknown>, opts: IClientPublishOptions = { qos: 1 }): Promise<boolean> => {
     // Publish message
     if (this.isConnected()) {
       const topic = this.topicFor(null, channel);
@@ -102,6 +102,7 @@ class MqttClient extends SpaceBunny {
         const bufferedMessage = Buffer.from(encapsulateContent(message));
         await this.mqttClient.publish(topic, bufferedMessage, opts);
         this.log('silly', `Published message on topic ${topic}`);
+        return true;
       } catch (error) {
         this.log('error', `Error publishing on topic ${topic}`);
         throw error;
@@ -178,9 +179,9 @@ class MqttClient extends SpaceBunny {
       this.mqttClient.on('close', onError);
       this.mqttClient.on('message', (msgTopic: string, message: Buffer) => {
         try {
-          let msg: any = {};
+          let msg: Record<string, unknown>|string = {};
           try {
-            msg = JSON.parse(message.toString());
+            msg = JSON.parse(message.toString()) as Record<string, unknown>;
           } catch (e) {
             msg = message.toString();
           }
@@ -188,7 +189,7 @@ class MqttClient extends SpaceBunny {
             const { callback, topics } = listener;
             if (topics.length === 0 || topics.includes(msgTopic)) {
               this.log('debug', `Received message for topic ${msgTopic}`, msg);
-              callback(msgTopic, msg);
+              void callback(msgTopic, msg);
             } else {
               this.log('silly', `Received unlistened message for topic ${msgTopic}`, msg);
             }
@@ -208,17 +209,17 @@ class MqttClient extends SpaceBunny {
       }
       this.log('error', 'Error during connection');
       if (this.autoReconnect) {
-        this.log('error', error.message);
+        this.log('error', (error as Error).message);
         const timeout = promisify(setTimeout);
         await timeout(this.reconnectTimeout);
-        this.connect(opts);
+        void this.connect(opts);
       } else {
         throw error;
       }
     }
   }
 
-  isConnected = () => {
+  isConnected = (): boolean => {
     return (!isNullOrUndefined(this.mqttClient) && this.mqttClient.connected);
   }
 
@@ -295,7 +296,9 @@ class MqttClient extends SpaceBunny {
         const res: boolean = await this.publish(channel, message, { qos: 1, ...options });
         if (res) {
           // remove message from cache when successful send
-          const itemToRemove = this.cachedMessages.findIndex(message);
+          const itemToRemove = this.cachedMessages.findIndex((el: ICachedMessage) => {
+            return isDeepStrictEqual(el, cachedMessage);
+          });
           this.cachedMessages.splice(itemToRemove, 1);
         }
       }

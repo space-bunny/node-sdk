@@ -6,19 +6,24 @@
 
 import cloneDeep from 'lodash.clonedeep';
 // Import some helpers modules
-import { isNullOrUndefined } from 'util';
+import { isDeepStrictEqual, isNullOrUndefined } from 'util';
 
 // Import stomp library
 import Stomp, { Client, IMessage, StompHeaders } from '@stomp/stompjs';
 
 import StompMessage from '../messages/stompMessage';
 // Import SpaceBunny main module from which StompClient inherits
-import SpaceBunny, { ISpaceBunnySubscribeOptions } from '../spacebunny';
+import SpaceBunny, { ICachedMessage, ISpaceBunnySubscribeOptions } from '../spacebunny';
 import { encapsulateContent } from '../utils';
 
 export interface IStompPublishOptions {
   routingKey?: string;
   topic?: string;
+}
+
+export interface IStompDestinationhOptions extends IStompPublishOptions {
+  type?: string;
+  channel?: string;
 }
 
 export interface IStompConsumeOptions extends ISpaceBunnySubscribeOptions {
@@ -64,7 +69,6 @@ class StompClient extends SpaceBunny {
     this.tlsProtocol = 'wss';
     this.wsEndpoint = 'ws';
     this.connectionHeaders = {
-      // eslint-disable-next-line @typescript-eslint/camelcase
       max_hbrlck_fails: '10',
       'accept-version': '1.0,1.1,1.2',
       'heart-beat': '10000,10000'
@@ -75,7 +79,7 @@ class StompClient extends SpaceBunny {
     this.ackTypes = ['client'];
     this.on('connect', () => {
       this.bindStompListners();
-      this.publishCachedMessages();
+      void this.publishCachedMessages();
     });
     this.on('disconnect', () => { this.stompListeners = {}; });
   }
@@ -113,7 +117,7 @@ class StompClient extends SpaceBunny {
    * @param {Object} opts - publication options
    * @return a promise containing the result of the operation
    */
-  public publish = (channel: string, message: any, opts: IStompPublishOptions = {}): Promise<boolean> => {
+  public publish = (channel: string, message: Record<string, unknown>, opts: IStompPublishOptions = {}): Promise<boolean> => {
     return new Promise((resolve, reject) => {
       if (this.isConnected()) {
         try {
@@ -233,7 +237,7 @@ class StompClient extends SpaceBunny {
     });
   }
 
-  public isConnected = () => {
+  public isConnected = (): boolean => {
     return (!isNullOrUndefined(this.stompClient) && this.stompClient.connected);
   }
 
@@ -243,7 +247,7 @@ class StompClient extends SpaceBunny {
 
   // ------------ PRIVATE METHODS -------------------
 
-  protected consumeCallback = (callback: IStompCallback, opts: IStompConsumeOptions = {}, message: IMessage) => {
+  protected consumeCallback = (callback: IStompCallback, opts: IStompConsumeOptions = {}, message: IMessage): void => {
     try {
       // Create message object
       const stompMessage = new StompMessage({ message, receiverId: this.getDeviceId(), subscriptionOpts: opts });
@@ -254,7 +258,7 @@ class StompClient extends SpaceBunny {
         return;
       }
       // Call message callback
-      callback(stompMessage);
+      void callback(stompMessage);
       // Check if ACK is needed
       if (ackNeeded) { message.ack(); }
     } catch (error) {
@@ -270,7 +274,6 @@ class StompClient extends SpaceBunny {
     this.stompListeners[name] = { callback, topic, opts };
     return name;
   }
-
 
   private bindStompListners = (): void => {
     const names = Object.keys(this.stompListeners);
@@ -312,7 +315,7 @@ class StompClient extends SpaceBunny {
    * @param {String} channel - channel name on which you want to publish a message
    * @return a string that represents the topic name for that channel
    */
-  public subcriptionFor = (type: string, channel: string) => {
+  public subcriptionFor = (type: string, channel: string): string => {
     return `/${type}/${this.getDeviceId()}.${channel}`;
   }
 
@@ -324,7 +327,7 @@ class StompClient extends SpaceBunny {
    * @param {String} channel - channel name on which you want to publish a message
    * @return a string that represents the topic name for that channel
    */
-  public destinationFor = (params: any = {}) => {
+  public destinationFor = (params: IStompDestinationhOptions = {}): string => {
     const {
       type = this.defaultResource, channel = '',
       topic = '', routingKey = ''
@@ -353,7 +356,7 @@ class StompClient extends SpaceBunny {
    * @param {String} ack - the ack type, it should be 'client' or null
    * @return boolean - true if messages have to be autoacked, false otherwise
    */
-  protected autoAck = (ack: string) => {
+  protected autoAck = (ack: string): boolean => {
     if (ack) {
       if (!this.ackTypes.includes(ack)) {
         this.emit('error', 'Wrong acknowledge type'); // eslint-disable-line no-console
@@ -368,7 +371,7 @@ class StompClient extends SpaceBunny {
     return false;
   }
 
-  private publishCachedMessages = async () => {
+  private publishCachedMessages = async (): Promise<void> => {
     if (this.isConnected() && this.cachedMessages.length > 0) {
       const cachedMessagesToSend = cloneDeep(this.cachedMessages);
       this.log('debug', `Publishing ${cachedMessagesToSend.length} cached messages...`);
@@ -380,7 +383,9 @@ class StompClient extends SpaceBunny {
         const res: boolean = await this.publish(channel, message, options);
         if (res) {
           // remove message from cache when successful send
-          const itemToRemove = this.cachedMessages.findIndex(message);
+          const itemToRemove = this.cachedMessages.findIndex((el: ICachedMessage) => {
+            return isDeepStrictEqual(el, cachedMessage);
+          });
           this.cachedMessages.splice(itemToRemove, 1);
         }
       }

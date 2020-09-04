@@ -10,10 +10,10 @@ import fs from 'fs';
 import { camelizeKeys } from 'humps';
 import urljoin from 'url-join';
 import { isNullOrUndefined } from 'util';
-import uuid from 'uuid-v4';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface ISpaceBunnyParams {
-  endpoint?: any;
+  endpoint?: IEndpoint;
   deviceKey?: string;
   channels?: IChannel[];
   deviceId?: string;
@@ -97,9 +97,9 @@ export interface ISpaceBunnySubscribeOptions {
 }
 
 export interface ICachedMessage {
-  message: any;
+  message: Record<string, unknown>;
   channel: string;
-  options?: object;
+  options?: Record<string, unknown>;
 }
 
 /**
@@ -304,7 +304,7 @@ class SpaceBunny extends EventEmitter {
       }
     } catch (error) {
       this.log('error', 'Error getting endpoint configurations.');
-      throw new Error(error.message);
+      throw error;
     }
     return {};
   }
@@ -313,8 +313,10 @@ class SpaceBunny extends EventEmitter {
     return this.constructor.name;
   }
 
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   protected log = (level: string, message: string|Error, ...meta: any): void => {
-    const prefixedMessage = `${this.getClassName()} - ${message}`;
+    const msg = (message instanceof Error) ? message.message : message;
+    const prefixedMessage = `${this.getClassName()} - ${msg}`;
     if (this.verbose) {
       this.emit('log', { level, message: prefixedMessage, ...meta });
     }
@@ -398,7 +400,7 @@ class SpaceBunny extends EventEmitter {
   protected tempQueue = (prefix: string, suffix: string, currentTime: number|void = undefined): string => {
     const timestamp = currentTime || new Date().getTime();
     const deviceId = this.connectionParams.client || this.connectionParams.deviceId;
-    return `${uuid()}-${timestamp}-${deviceId}-`
+    return `${uuidv4()}-${timestamp}-${deviceId}-`
       + `${this.exchangeName(prefix, suffix)}.`
       + `${this.tempQueueSuffix}`;
   }
@@ -438,15 +440,15 @@ class SpaceBunny extends EventEmitter {
 
   // TODO Load from LocalStorage if in browser
   private loadCachedMessages = () => {
-    let cachedMessages = [];
+    let cachedMessages: ICachedMessage[] = [];
     if (this.cachedMessagesPath && fs.existsSync(this.cachedMessagesPath)) {
-      cachedMessages = JSON.parse(fs.readFileSync(this.cachedMessagesPath, { encoding: 'utf-8' }));
+      cachedMessages = JSON.parse(fs.readFileSync(this.cachedMessagesPath, { encoding: 'utf-8' })) as ICachedMessage[];
     }
     this.cachedMessages = cachedMessages || [];
   }
 
   // TODO Save to LocalStorage if in browser
-  protected writeCachedMessagesFile = () => {
+  protected writeCachedMessagesFile = (): void => {
     try {
       fs.writeFileSync(this.cachedMessagesPath, JSON.stringify(this.cachedMessages, null, 2));
       this.log('silly', `Cached messages written to: ${this.cachedMessagesPath}`);
@@ -456,8 +458,8 @@ class SpaceBunny extends EventEmitter {
     }
   }
 
-  protected cacheMessage = (channel: string, message: any, options: any) => {
-    const messageToCache = { channel, message, options };
+  protected cacheMessage = (channel: string, message: Record<string, unknown>, options: Record<string, unknown>): void => {
+    const messageToCache: ICachedMessage = { channel, message, options };
     if (!this.cachedMessages.includes(messageToCache)) {
       if (this.cachedMessages.length >= this.cacheSize) {
         // remove eldest message

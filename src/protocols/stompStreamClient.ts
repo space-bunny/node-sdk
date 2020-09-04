@@ -21,6 +21,10 @@ export interface IStompLiveStreamHook extends ILiveStreamHook {
   ack?: 'client';
 }
 
+export interface IStompLiveStreamDestination extends ILiveStreamHook {
+  type?: string;
+}
+
 export type IStompStreamListener = {
   streamHook: IStompLiveStreamHook;
   opts?: IStompConsumeOptions;
@@ -40,7 +44,7 @@ class StompStreamClient extends StompClient {
     super(opts);
     this.defaultPattern = '#';
     this.stompStreamListeners = {};
-    this.on('connect', () => { this.bindStompStreamListeners(); });
+    this.on('connect', () => { void this.bindStompStreamListeners(); });
     this.on('disconnect', () => { this.stompStreamListeners = {}; });
   }
 
@@ -54,7 +58,7 @@ class StompStreamClient extends StompClient {
    */
   public streamFrom = async (streamHooks: IStompLiveStreamHook | Array<IStompLiveStreamHook> = [], opts: any = {}): Promise<Array<string | void>> => {
     const hooks: Array<IStompLiveStreamHook> = Array.isArray(streamHooks) ? streamHooks : [streamHooks];
-    const names = [];
+    const names: string[] = [];
     for (let index = 0; index < hooks.length; index += 1) {
       const streamHook = hooks[index];
       const name = this.addStompStreamListener(streamHook, opts);
@@ -233,7 +237,7 @@ class StompStreamClient extends StompClient {
    * @param {String} routingKey - binding pattern
    * @return a string that represents the topic name for that channel
    */
-  streamChannelTopicFor = (params: any = {}) => {
+  streamChannelTopicFor = (params: IStompLiveStreamDestination = {}): string => {
     const {
       deviceId = undefined, channel = undefined, type = this.defaultResource,
       routingKey = this.defaultPattern, topic = undefined
@@ -259,7 +263,7 @@ class StompStreamClient extends StompClient {
    * @param {String} type - resource type on which subscribe or publish [exchange/queue]
    * @return a string that represents the topic name for that channel
    */
-  private cachedStreamTopicFor = (params: any = {}) => {
+  private cachedStreamTopicFor = (params: IStompLiveStreamDestination = {}): string => {
     const {
       stream = undefined, type = this.existingQueuePrefix
     } = params;
@@ -276,7 +280,7 @@ class StompStreamClient extends StompClient {
    * @param {String} routingKey - binding pattern
    * @return a string that represents the topic name for that channel
    */
-  streamTopicFor = (params: any = {}) => {
+  streamTopicFor = (params: IStompLiveStreamDestination = {}): string => {
     const {
       stream = undefined, type = this.defaultResource, routingKey = this.defaultPattern
     } = params;

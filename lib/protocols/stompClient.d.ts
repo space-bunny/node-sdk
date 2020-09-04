@@ -10,6 +10,10 @@ export interface IStompPublishOptions {
     routingKey?: string;
     topic?: string;
 }
+export interface IStompDestinationhOptions extends IStompPublishOptions {
+    type?: string;
+    channel?: string;
+}
 export interface IStompConsumeOptions extends ISpaceBunnySubscribeOptions {
     ack?: 'client';
 }
@@ -55,7 +59,7 @@ declare class StompClient extends SpaceBunny {
      * @param {Object} opts - publication options
      * @return a promise containing the result of the operation
      */
-    publish: (channel: string, message: any, opts?: IStompPublishOptions) => Promise<boolean>;
+    publish: (channel: string, message: Record<string, unknown>, opts?: IStompPublishOptions) => Promise<boolean>;
     /**
      * Destroy the connection between the stomp client and broker
      *
@@ -93,7 +97,7 @@ declare class StompClient extends SpaceBunny {
      * @param {String} channel - channel name on which you want to publish a message
      * @return a string that represents the topic name for that channel
      */
-    destinationFor: (params?: any) => string;
+    destinationFor: (params?: IStompDestinationhOptions) => string;
     /**
      * Check if the SDK have to automatically ack messages
      * By default STOMP messages are acked by the server

@@ -10,7 +10,7 @@ import { parseContent } from '../utils';
 class StompMessage {
   private message: IMessage;
 
-  private content: object;
+  private content: Record<string, unknown>|string;
 
   private headers: StompHeaders;
 
@@ -52,7 +52,7 @@ class StompMessage {
   *
   * @return Boolean - true if should be not considered, false otherwise
   */
-  public blackListed = () => {
+  public blackListed = (): boolean => {
     if (this.discardMine && this.receiverId === this.senderId && !this.fromApi()) return true;
     if (this.discardFromApi && this.fromApi()) return true;
     return false;
@@ -64,17 +64,17 @@ class StompMessage {
   *
   * @return Boolean - true if it comes from API, false otherwise
   */
-  private fromApi = () => {
-    return (this.headers && this.headers[StompMessage.FROM_API_HEADER]);
+  private fromApi = (): boolean => {
+    return (this.headers && this.headers[StompMessage.FROM_API_HEADER] === 'true');
   }
 
-  public ack = () => { this.message.ack(); }
+  public ack = (): void => { this.message.ack(); }
 
-  public nack = () => { this.message.nack(); }
+  public nack = (): void => { this.message.nack(); }
 
   public getChannelName = (): string => { return this.channelName; }
 
-  public getContent = (): object => { return this.content; }
+  public getContent = (): Record<string, unknown>|string => { return this.content; }
 }
 
 export default StompMessage;
