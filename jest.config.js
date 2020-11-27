@@ -4,4 +4,5 @@ module.exports = {
   // testRegex: '(/__tests__/.*|\\.(test|spec))\\.(ts|tsx|js)$',
   moduleFileExtensions: ['ts', 'js', 'json'],
   setupFilesAfterEnv: ['./test/testHelper.ts'],
+  resetMocks: true
 };

@@ -147,6 +147,7 @@ class AmqpClient extends SpaceBunny {
             delete this.amqpChannels[channelName];
           }
         }
+        this.amqpConnection.removeAllListeners();
         await this.amqpConnection.close();
       } catch (error) {
         this.log('error', 'Error disconnecting client.');
@@ -192,8 +193,10 @@ class AmqpClient extends SpaceBunny {
           this.emit('error', err);
           this.log('error', err);
         }
-        this.amqpConnection.removeAllListeners();
-        this.amqpConnection = undefined;
+        if (!isNullOrUndefined(this.amqpConnection)) {
+          this.amqpConnection.removeAllListeners();
+          this.amqpConnection = undefined;
+        }
         this.connected = false;
         if (this.autoReconnect) {
           void this.connect(opts);
@@ -289,8 +292,10 @@ class AmqpClient extends SpaceBunny {
           const errorCallback = (err: Error) => {
             if (err) { this.log('error', err); }
             // TODO close channel in function of error type??
-            this.amqpChannels[channelName].removeAllListeners();
-            this.amqpChannels[channelName] = undefined;
+            if (!isNullOrUndefined(this.amqpChannels[channelName])) {
+              this.amqpChannels[channelName].removeAllListeners();
+              this.amqpChannels[channelName] = undefined;
+            }
             // emit channelClose to clear consumers
             if (channel.startsWith('input')) {
               this.emit('channelClose', channelName);

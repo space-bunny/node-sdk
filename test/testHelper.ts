@@ -1,7 +1,9 @@
 // Global file
+import * as AxiosMocks from './mocks/axios';
 
 // beforeEach(() => {
 // });
 
-// afterEach(async () => {
-// });
+afterEach(() => {
+  AxiosMocks.resetMocks();
+});

@@ -121,6 +121,7 @@ class MqttClient extends SpaceBunny {
     if (this.isConnected()) {
       try {
         await this.unsubscribe();
+        this.mqttClient.removeAllListeners();
         await this.mqttClient.end();
       } catch (error) {
         this.log('error', 'Error disconnecting client.');
@@ -168,8 +169,10 @@ class MqttClient extends SpaceBunny {
           this.emit('error', err);
           this.log('error', err);
         }
-        this.mqttClient.removeAllListeners();
-        this.mqttClient = undefined;
+        if (!isNullOrUndefined(this.mqttClient)) {
+          this.mqttClient.removeAllListeners();
+          this.mqttClient = undefined;
+        }
         // Already done by mqttjs??
         // if (this.autoReconnect) {
         //   this.connect(opts);
