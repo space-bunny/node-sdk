@@ -10,6 +10,15 @@ All notable changes to this project will be documented in this file.
 - `0.6.x` Releases - [0.6.0] [0.6.1]
 - `0.6.x` Releases - [0.6.0] [0.6.1]
 - `0.7.x` Releases - [0.7.0] [0.7.1] [0.7.2] [0.7.3] [0.7.4] [0.7.5] [0.7.6] [0.7.7] [0.7.8] [0.7.9] [0.7.11] [0.7.12] [0.7.13] [0.7.14] [0.7.15]
+- `1.0.x` Releases - [1.0.0]
+
+---
+
+## [1.0.0](https://github.com/space-bunny/node-sdk/releases/tag/v1.0.0)
+
+#### Changed
+
+- Rewrite the library in TS
 
 ---
 
@@ -195,13 +204,13 @@ All notable changes to this project will be documented in this file.
 
 ## [0.2.0](https://github.com/space-bunny/node-sdk/releases/tag/v0.2.0)
 
-#### Added  
+#### Added
 
 - Ack / Nack handling for STOMP clients
 - support for DiscardMine and DiscardFromApi options
 
 ## [0.1.0](https://github.com/space-bunny/node-sdk/releases/tag/v0.1.0)
 
-#### Added  
+#### Added
 - AMQP, STOMP, MQTT clients
 - AMQP, STOMP, MQTT stream clients
