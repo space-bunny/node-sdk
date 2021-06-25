@@ -111,8 +111,14 @@
             return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
-        var messageCallback = function(content, headers) {
-          $('#messages').append('<pre>' + htmlEntities(content.content) + '</pre>');
+        var messageCallback = function(message) {
+          var content = '';
+          try {
+            content = JSON.stringify(message.content);
+          } catch (error) {
+            content = message.content;
+          }
+          $('#messages').append('<pre>' + htmlEntities(content) + '</pre>');
         };
         if(window.WebSocket) {
 
@@ -144,10 +150,14 @@
             }
 
             webStompClient = new StompClient(connectionParams);
-            webStompClient.onReceive(messageCallback).then(function(res) {
-              toggleButtons('connect');
-              flashMessage('Successfully connected!', 'success');
-            }).catch(function(reason) {
+            webStompClient.connect().then(function(){
+              webStompClient.onMessage(messageCallback).then(function (res) {
+                toggleButtons('connect');
+                flashMessage('Successfully connected!', 'success');
+              }).catch(function (reason) {
+                console.error(reason);
+              });
+            }).catch(function (reason) {
               console.error(reason);
             });
           });

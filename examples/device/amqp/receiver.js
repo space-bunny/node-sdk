@@ -1,9 +1,9 @@
-const AmqpClient = require('../../../lib/spacebunny').AmqpClient;
 const args = require('minimist')(process.argv.slice(2));
+const { AmqpClient } = require('../../../lib/spacebunny');
 
 // callback called when a message is received
 const messageCallback = (amqpMessage) => {
-  console.log(amqpMessage);   // eslint-disable-line no-console
+  console.log(amqpMessage); // eslint-disable-line no-console
 };
 
 // Prerequisites: you have created a device through the Space Bunny's web interface. You also have a 'data' channel (name
@@ -13,8 +13,8 @@ const messageCallback = (amqpMessage) => {
 // Once everything is set up get your Device-Key from Space Bunny's web application: on the web interface,
 // go to devices section and create or pick an existing device. Click on the 'SHOW CONFIGURATION' link,
 // copy the Device-Key and substitute it here:
-const deviceKey = args['deviceKey'] || args['device-key'] || args['device_key'] || 'my-device-key';
-const tls = (args['tls'] !== false);
+const deviceKey = args.deviceKey || args['device-key'] || args.device_key || 'my-device-key';
+const tls = (args.tls !== false);
 const connectionParams = { deviceKey, tls };
 // You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
 
@@ -47,10 +47,10 @@ const amqpClient = new AmqpClient(connectionParams);
 // will be opened calling the onReceive method
 const disconnect = () => {
   amqpClient.disconnect().then(() => {
-    console.log('Bye Bye.');   // eslint-disable-line no-console
+    console.log('Bye Bye.'); // eslint-disable-line no-console
     process.exit(0);
-  }).catch(function(reason) {
-    console.error(reason);  // eslint-disable-line no-console
+  }).catch((reason) => {
+    console.error(reason); // eslint-disable-line no-console
     process.exit(1);
   });
 };
@@ -78,10 +78,10 @@ const subscriptionOpts = { noAck: false, allUpTo: false, requeue: false, discard
 // When a message is sent on the inbox channel of the current device, the callback function will bel called
 amqpClient.connect().then(() => {
   amqpClient.onReceive(messageCallback, subscriptionOpts).then(() => {
-    console.log('Start receiving..');  // eslint-disable-line no-console
+    console.log('Start receiving..'); // eslint-disable-line no-console
   }).catch((reason) => {
-    console.error(reason);  // eslint-disable-line no-console
+    console.error(reason); // eslint-disable-line no-console
   });
 }).catch((reason) => {
-  console.error(reason);  // eslint-disable-line no-console
+  console.error(reason); // eslint-disable-line no-console
 });
