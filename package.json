@@ -1,6 +1,6 @@
 {
   "name": "spacebunny",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "NodeJS client library for Space Bunny IoT platform",
   "main": "lib/spacebunny.js",
   "types": "lib/index.d.ts",
@@ -47,7 +47,7 @@
     "@stomp/stompjs": "5.4.4",
     "amqplib": "0.6.0",
     "async-mqtt": "2.6.1",
-    "axios": "0.20.0",
+    "axios": "0.21.1",
     "bufferutil": "4.0.1",
     "humps": "2.0.1",
     "lodash.clonedeep": "4.5.0",
