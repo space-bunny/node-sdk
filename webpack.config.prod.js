@@ -2,6 +2,8 @@ const path = require('path');
 const webpack = require('webpack');
 const WebpackMd5Hash = require('webpack-md5-hash');
 const TerserPlugin = require('terser-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const WebpackShellPlugin = require('webpack-shell-plugin');
 const minimist = require('minimist');
 const _ = require('lodash');
 const { resolve } = require('path');
@@ -13,6 +15,8 @@ const argv = minimist(process.argv.slice(2));
 const platform = (argv.platform) || process.platform;
 const arch = (argv.arch) || process.arch;
 const outputPath = path.join(__dirname, 'lib');
+
+const copyTypesCommand = 'ncp ./lib/indexNode.d.ts ./lib/index.d.ts';
 
 if (process.env.ANALYZER !== 'true') {
   console.log(`\nCompile for ${platform}-${arch} in ${outputPath}\n`); // eslint-disable-line no-console
@@ -29,7 +33,7 @@ const baseConfig = {
     modules: [__dirname, 'node_modules'],
     extensions: ['.ts', '.tsx', '.js', '.json']
   },
-  entry: { spacebunny: './src/index.ts' },
+  entry: { spacebunny: './src/indexNode.ts' },
   target: 'node',
   output: {
     path: outputPath,
@@ -76,6 +80,18 @@ const baseConfig = {
       noInfo: true, // set to false to see a list of every file being bundled.
       options: {}
     }),
+
+    new CopyWebpackPlugin({ patterns: [
+      { from: './src/index.js', to: './index.js', toType: 'file' },
+    ] }, { debug: false }),
+
+    new WebpackShellPlugin({
+      onBuildEnd: [
+        copyTypesCommand,
+      ],
+      safe: true
+    }),
+
   ],
   module: {
     rules: [
