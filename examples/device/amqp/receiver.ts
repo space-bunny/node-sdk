@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import minimist from 'minimist';
 
-import { AmqpClient } from '../../../src/index';
+import { AmqpClient } from '../../../src/indexNode';
 import { ISpaceBunnyParams } from '../../../src/spacebunny';
 
 dotenv.config();

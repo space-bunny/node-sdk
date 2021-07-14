@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import minimist from 'minimist';
 
-import { MqttStreamClient } from '../../../src/index';
+import { MqttStreamClient } from '../../../src/indexNode';
 import { ISpaceBunnyParams } from '../../../src/spacebunny';
 
 dotenv.config();

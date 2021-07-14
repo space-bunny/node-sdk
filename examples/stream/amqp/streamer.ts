@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import minimist from 'minimist';
 
-import { AmqpStreamClient } from '../../../src/index';
+import { AmqpStreamClient } from '../../../src/indexNode';
 import { ISpaceBunnyParams } from '../../../src/spacebunny';
 
 dotenv.config();
