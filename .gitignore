@@ -32,3 +32,5 @@ node_modules
 
 .tags*
 stats.json
+
+.npmrc
