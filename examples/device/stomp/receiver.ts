@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import minimist from 'minimist';
 
-import { StompClient } from '../../../src/index';
+import { StompClient } from '../../../src/indexNode';
 import { ISpaceBunnyParams } from '../../../src/spacebunny';
 
 dotenv.config();

@@ -42,7 +42,7 @@ declare class AmqpMessage {
         allUpTo?: boolean;
         requeue?: boolean;
     }) => void;
-    getContent: () => Record<string, unknown> | string;
+    getContent: <T = string | Record<string, unknown>>() => T;
     getProperties: () => amqp.MessageProperties;
     getFields: () => amqp.MessageFields;
     getChannelName: () => string;

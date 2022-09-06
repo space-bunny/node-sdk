@@ -83,8 +83,8 @@ class AmqpMessage {
     this.channel.nack(this.message, allUpTo, requeue);
   }
 
-  getContent = (): Record<string, unknown> | string => {
-    return this.content;
+  getContent = <T = Record<string, unknown> | string >(): T => {
+    return this.content as T;
   }
 
   getProperties = (): amqp.MessageProperties => {
