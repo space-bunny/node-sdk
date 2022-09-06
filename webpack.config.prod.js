@@ -83,6 +83,7 @@ const baseConfig = {
 
     new CopyWebpackPlugin({ patterns: [
       { from: './src/index.js', to: './index.js', toType: 'file' },
+      { from: './static/spacebunny.web.d.ts', to: './spacebunny.web.d.ts', toType: 'file' },
     ] }, { debug: false }),
 
     new WebpackShellPlugin({

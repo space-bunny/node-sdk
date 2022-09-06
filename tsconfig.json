@@ -1,5 +1,5 @@
 {
-  "exclude": [".vscode", "node_modules", "configs", "dist", "test", "examples"],
+  "exclude": [".vscode", "node_modules", "configs", "dist", "test", "examples", "lib", "static"],
   "compilerOptions": {
     "target": "es6",
     "module": "commonjs",

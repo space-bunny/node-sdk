@@ -60,13 +60,13 @@ export interface IChannel {
     name: string;
 }
 export interface IEndpoint {
-    protocol: string;
-    secureProtocol: string;
-    host: string;
-    port: number;
-    securePort: number;
-    deviceConfigurationsPath: string;
-    liveStreamKeyConfigurationsPath: string;
+    protocol?: string;
+    secureProtocol?: string;
+    host?: string;
+    port?: number;
+    securePort?: number;
+    deviceConfigurationsPath?: string;
+    liveStreamKeyConfigurationsPath?: string;
     url?: string;
 }
 export interface ILiveStreamHook {

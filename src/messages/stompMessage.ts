@@ -74,7 +74,7 @@ class StompMessage {
 
   public getChannelName = (): string => { return this.channelName; }
 
-  public getContent = (): Record<string, unknown>|string => { return this.content; }
+  public getContent = <T = Record<string, unknown>| string >(): T => { return this.content as T; }
 }
 
 export default StompMessage;

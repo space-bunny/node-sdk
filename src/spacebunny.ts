@@ -72,13 +72,13 @@ export interface IChannel {
 }
 
 export interface IEndpoint {
-  protocol: string;
-  secureProtocol: string;
-  host: string;
-  port: number;
-  securePort: number;
-  deviceConfigurationsPath: string;
-  liveStreamKeyConfigurationsPath: string;
+  protocol?: string;
+  secureProtocol?: string;
+  host?: string;
+  port?: number;
+  securePort?: number;
+  deviceConfigurationsPath?: string;
+  liveStreamKeyConfigurationsPath?: string;
   url?: string;
 }
 
@@ -454,7 +454,7 @@ class SpaceBunny extends EventEmitter {
       this.log('silly', `Cached messages written to: ${this.cachedMessagesPath}`);
     } catch (error) {
       this.log('error', 'Error writing cached messages');
-      this.log('error', error);
+      this.log('error', error as Error);
     }
   }
 
