@@ -6,7 +6,7 @@
 
 import * as amqp from 'amqplib';
 
-import { ILiveStreamHook, ISpaceBunnyParams } from '../spacebunny';
+import SpaceBunny, { ILiveStreamHook, ISpaceBunnyParams } from '../spacebunny';
 import { isNullOrUndefined } from '../utils';
 import AmqpClient, { IAmqpCallback, IAmqpConsumeOptions, IRoutingKey } from './amqpClient';
 
@@ -92,7 +92,7 @@ class AmqpStreamClient extends AmqpClient {
   };
 
   private addAmqpStreamListener = (streamHook: IAmqpLiveStreamHook, opts: IAmqpConsumeOptions = {}): string => {
-    const name = `subscription-${new Date().getTime()}`;
+    const name = SpaceBunny.generateSubscriptionName();
     this.amqpStreamListeners[name] = { streamHook, opts };
     return name;
   };

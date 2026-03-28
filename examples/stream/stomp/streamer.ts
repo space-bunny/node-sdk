@@ -1,68 +1,62 @@
 import dotenv from 'dotenv';
-
+import minimist from 'minimist';
 import { StompStreamClient } from '../../../src/indexNode';
-
-const args = require('minimist')(process.argv.slice(2));
+import { ISpaceBunnyParams } from '../../../src/spacebunny';
 
 dotenv.config();
-
-// callback called when a message is received
-const messageCallback = (content) => {
-  console.log(content); // eslint-disable-line no-console
-};
-
-// Auto Config
-// You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
-const connectionParams = {
-  client: args['client'] || process.env.CLIENT || 'your-client-id',
-  secret: args['secret'] || process.env.SECRET || 'your-secret',
-};
-
-// Auto Config with tls
-// You can also provide the endpointUrl to use a different end point, default is http://api.demo.spacebunny.io
-// const connectionParams = {
-//   client: 'your-client-id',
-//   secret: 'your-secret',
-//   tls: true,
-//   ca: '/path/to/ca_certificate.pem',
-//   cert: '/path/to/client_certificate.pem',
-//   key: '/path/to/client_key.pem'
-// };
-
-// Manual Config
-// const connectionParams = {
-//   client: 'your-client-id',
-//   secret: 'your-secret',
-//   host: 'host',
-//   port: 61613, // default for MQTT
-//   vhost: 'vhost'
-// };
-
-// Stream hooks contains the stream name from which you want to collect data
-// and the callback which is invoked when receiving a message on that stream
-// the boolean cache option can be passed to specify the stream connection mode.
-//
-// Options:
-// stream: represents the stream name
-// cache: (default true)
-//    true (or missing) means that you want to read messages from the stream cache
-//    false means that you want to read messages in a temporary queue that will be delete on disconnect
-
-const stream = args['stream'] || process.env.STREAM || '';
-const streams = Array.isArray(stream) ? stream : [stream];
-const streamHooks = [];
-for (const streamName of streams) {
-  streamHooks.push({ stream: streamName, callback: messageCallback });
-}
+const args = minimist(process.argv.slice(2));
 
 (async () => {
+  const tls = args.tls !== 'false';
+  const client = args.client || process.env.CLIENT;
+  const secret = args.secret || process.env.SECRET;
+
+  let connectionParams: ISpaceBunnyParams = {
+    tls,
+    autoReconnect: false,
+    heartbeat: 10,
+    connectionTimeout: 5000,
+    client,
+    secret,
+  };
+
+  // Optional: manual host/port/vhost configuration
+  const host = args.host || process.env.HOST;
+  const vhost = args.vhost || process.env.VHOST;
+  if (host && vhost) {
+    connectionParams = {
+      ...connectionParams,
+      host,
+      port: parseInt(process.env.PORT || '15673', 10),
+      vhost,
+    };
+  }
+
   const streamClient = new StompStreamClient(connectionParams);
+
+  process.once('SIGINT', async () => {
+    await streamClient.disconnect();
+    console.log('Disconnected.');
+    process.exit(0);
+  });
 
   await streamClient.connect();
 
-  try {
-    await streamClient.streamFrom(streamHooks)
-  } catch (error) {
-    console.error(error);
+  // Build stream hooks from --stream arguments
+  // Usage: --stream=data --stream=alarms
+  const streamArg = args.stream || process.env.STREAM || '';
+  const streams = Array.isArray(streamArg) ? streamArg : streamArg.split(' ').filter(Boolean);
+
+  const streamHooks = streams.map((name: string) => ({
+    stream: name,
+    callback: (stompMessage: unknown) => {
+      console.log(`[${name}]`, stompMessage);
+    },
+  }));
+
+  if (streamHooks.length > 0) {
+    await streamClient.streamFrom(streamHooks);
   }
-})()
+
+  console.log('Waiting for streamed messages...');
+})();

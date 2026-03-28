@@ -6,7 +6,7 @@
 import crypto from 'crypto';
 import { EventEmitter } from 'events';
 import fs from 'fs';
-import { camelizeKeys, isNullOrUndefined, urlJoin } from './utils';
+import { camelizeKeys, isDeepStrictEqual, isNullOrUndefined, urlJoin } from './utils';
 
 export interface ISpaceBunnyParams {
   endpoint?: IEndpoint;
@@ -168,6 +168,13 @@ class SpaceBunny extends EventEmitter {
   protected static DEFAULT_HEARTBEAT = 60;
 
   protected static DEFAULT_CACHE_SIZE = 100;
+
+  private static subscriptionCounter = 0;
+
+  protected static generateSubscriptionName(): string {
+    SpaceBunny.subscriptionCounter += 1;
+    return `subscription-${Date.now()}-${SpaceBunny.subscriptionCounter}`;
+  }
 
   constructor(opts: ISpaceBunnyParams = {}) {
     super();
@@ -481,8 +488,9 @@ class SpaceBunny extends EventEmitter {
 
   // TODO Save to LocalStorage if in browser
   protected writeCachedMessagesFile = (): void => {
+    if (!this.cachedMessagesPath) return;
     try {
-      fs.writeFileSync(this.cachedMessagesPath!, JSON.stringify(this.cachedMessages, null, 2));
+      fs.writeFileSync(this.cachedMessagesPath, JSON.stringify(this.cachedMessages, null, 2));
       this.log('silly', `Cached messages written to: ${this.cachedMessagesPath}`);
     } catch (error) {
       this.log('error', 'Error writing cached messages');
@@ -496,7 +504,8 @@ class SpaceBunny extends EventEmitter {
     options: Record<string, unknown>
   ): void => {
     const messageToCache: ICachedMessage = { channel, message, options };
-    if (!this.cachedMessages.includes(messageToCache)) {
+    const alreadyCached = this.cachedMessages.some((el) => isDeepStrictEqual(el, messageToCache));
+    if (!alreadyCached) {
       if (this.cachedMessages.length >= this.cacheSize) {
         // remove eldest message
         this.log('debug', 'Message cache full, removing eldest message');

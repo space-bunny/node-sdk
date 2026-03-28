@@ -11,7 +11,7 @@ import Stomp from '@stomp/stompjs';
 import { isNullOrUndefined } from '../utils';
 
 import StompMessage from '../messages/stompMessage';
-import { ILiveStreamHook } from '../spacebunny';
+import SpaceBunny, { ILiveStreamHook } from '../spacebunny';
 // Import StompClient main module from which StompStreamClient inherits
 import StompClient, { IStompConsumeOptions } from './stompClient';
 
@@ -110,6 +110,7 @@ class StompStreamClient extends StompClient {
           this.stompClient!.deactivate();
           this.stompClient = undefined;
           this.emit('disconnect');
+          resolve(true);
         } catch (error) {
           reject(error);
         }
@@ -143,7 +144,7 @@ class StompStreamClient extends StompClient {
   };
 
   private addStompStreamListener = (streamHook: IStompLiveStreamHook, opts: IStompConsumeOptions = {}): string => {
-    const name = `subscription-${new Date().getTime()}`;
+    const name = SpaceBunny.generateSubscriptionName();
     this.stompStreamListeners[name] = { streamHook, opts };
     return name;
   };

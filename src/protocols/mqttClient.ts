@@ -100,6 +100,7 @@ class MqttClient extends SpaceBunny {
     const topic = this.topicFor(null, this.inboxTopic);
     this.addMqttListener(topic, callback, topic);
     await this.subscribe(topic, opts);
+    return topic;
   };
 
   /**
@@ -190,22 +191,19 @@ class MqttClient extends SpaceBunny {
         mqttConnectionParams = { ...mqttConnectionParams, ...this.tlsOpts };
       }
       this.mqttClient = await mqtt.connectAsync(mqttConnectionParams);
-      const onError = (err: Error) => {
-        if (err) {
-          this.emit('error', err);
-          this.log('error', err);
-        }
-        if (!isNullOrUndefined(this.mqttClient)) {
-          this.mqttClient.removeAllListeners();
-          this.mqttClient = undefined;
-        }
-        // Already done by mqttjs??
-        // if (this.autoReconnect) {
-        //   this.connect(opts);
-        // }
-      };
-      this.mqttClient.on('error', onError);
-      this.mqttClient.on('close', () => onError(new Error('Connection closed')));
+      this.mqttClient.on('error', (err: Error) => {
+        this.emit('error', err);
+        this.log('error', err);
+      });
+      this.mqttClient.on('close', () => {
+        this.log('info', 'Connection closed');
+      });
+      this.mqttClient.on('offline', () => {
+        this.log('warn', 'Client offline');
+      });
+      this.mqttClient.on('reconnect', () => {
+        this.log('info', 'Reconnecting...');
+      });
       this.mqttClient.on('message', (msgTopic: string, message: Buffer) => {
         try {
           let msg: Record<string, unknown> | string = {};
@@ -289,14 +287,7 @@ class MqttClient extends SpaceBunny {
       if (topicsToUnsubscribe.length > 0) {
         await this.mqttClient!.unsubscribeAsync(topicsToUnsubscribe);
       }
-      for (let index = 0; index < topicsToUnsubscribe.length; index += 1) {
-        const topic = topicsToUnsubscribe[index];
-        for (let idx = 0; idx < this.topics.length; idx += 1) {
-          if (this.topics[idx] === topic) {
-            this.topics.splice(idx, 1);
-          }
-        }
-      }
+      this.topics = this.topics.filter((t) => !topicsToUnsubscribe.includes(t));
       this.log('info', `Client unsubscribed from topics: ${topicsToUnsubscribe.join(',')}`);
     } else {
       throw new Error(
@@ -334,7 +325,9 @@ class MqttClient extends SpaceBunny {
           const itemToRemove = this.cachedMessages.findIndex((el: ICachedMessage) => {
             return isDeepStrictEqual(el, cachedMessage);
           });
-          this.cachedMessages.splice(itemToRemove, 1);
+          if (itemToRemove !== -1) {
+            this.cachedMessages.splice(itemToRemove, 1);
+          }
         }
       }
       this.writeCachedMessagesFile();

@@ -129,6 +129,8 @@ declare class SpaceBunny extends EventEmitter {
     protected static DEFAULT_RECONNECT_TIMEOUT: number;
     protected static DEFAULT_HEARTBEAT: number;
     protected static DEFAULT_CACHE_SIZE: number;
+    private static subscriptionCounter;
+    protected static generateSubscriptionName(): string;
     constructor(opts?: ISpaceBunnyParams);
     /**
      * Check if Device-Key or connection parameters have already been passed
@@ -226,6 +228,7 @@ declare class AmqpClient extends SpaceBunny {
     private defaultConnectionOpts;
     private ackTypes;
     private connected;
+    private reconnecting;
     private amqpListeners;
     /**
      * @constructor

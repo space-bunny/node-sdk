@@ -54,6 +54,8 @@ class AmqpClient extends SpaceBunny {
 
   private connected: boolean;
 
+  private reconnecting: boolean;
+
   private amqpListeners: { [name: string]: IAmqpListener };
 
   /**
@@ -70,6 +72,7 @@ class AmqpClient extends SpaceBunny {
     this.defaultConnectionOpts = { frameMax: 32768 };
     this.ackTypes = ['auto', 'manual'];
     this.connected = false;
+    this.reconnecting = false;
     this.amqpListeners = {};
     this.on('connect', () => {
       void this.bindAmqpListeners();
@@ -207,6 +210,7 @@ class AmqpClient extends SpaceBunny {
         }
       );
       const onError = (err: Error) => {
+        if (this.reconnecting) return;
         if (err) {
           this.emit('error', err);
           this.log('error', err);
@@ -217,7 +221,10 @@ class AmqpClient extends SpaceBunny {
         }
         this.connected = false;
         if (this.autoReconnect) {
-          void this.connect(opts);
+          this.reconnecting = true;
+          void this.connect(opts).finally(() => {
+            this.reconnecting = false;
+          });
         }
       };
       const onBlock = (reason: string) => {
@@ -412,7 +419,7 @@ class AmqpClient extends SpaceBunny {
   };
 
   private addAmqpListener = (callback: IAmqpCallback, opts: IAmqpConsumeOptions = {}): string => {
-    const name = `subscription-${new Date().getTime()}`;
+    const name = SpaceBunny.generateSubscriptionName();
     this.amqpListeners[name] = { callback, opts };
     return name;
   };
@@ -516,7 +523,9 @@ class AmqpClient extends SpaceBunny {
           const itemToRemove = this.cachedMessages.findIndex((el: ICachedMessage) => {
             return isDeepStrictEqual(el, cachedMessage);
           });
-          this.cachedMessages.splice(itemToRemove, 1);
+          if (itemToRemove !== -1) {
+            this.cachedMessages.splice(itemToRemove, 1);
+          }
         }
       }
       this.writeCachedMessagesFile();

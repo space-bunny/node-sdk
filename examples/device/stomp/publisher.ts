@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import minimist from 'minimist';
-import { MqttClient } from '../../../src/indexNode';
+import { StompClient } from '../../../src/indexNode';
 import { ISpaceBunnyParams } from '../../../src/spacebunny';
 
 dotenv.config();
@@ -21,12 +21,12 @@ const args = minimist(process.argv.slice(2));
       deviceId: process.env.DEVICE_ID,
       secret: process.env.SECRET,
       host: process.env.HOST,
-      port: parseInt(process.env.PORT || '8883', 10),
+      port: parseInt(process.env.PORT || '15673', 10),
       vhost: process.env.VHOST,
     };
   }
 
-  const client = new MqttClient(connectionParams);
+  const client = new StompClient(connectionParams);
 
   process.once('SIGINT', async () => {
     await client.disconnect();
@@ -40,7 +40,7 @@ const args = minimist(process.argv.slice(2));
   for (let n = 0; n < 60; n += 1) {
     const content = { some: 'json', index: n + 1 };
     try {
-      await client.publish(channel, content, { qos: 1 });
+      await client.publish(channel, content);
       console.log(`Published message ${n + 1} on channel '${channel}'`);
     } catch (error) {
       console.error('Publish error:', error);

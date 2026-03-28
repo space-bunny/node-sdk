@@ -281,7 +281,7 @@ class StompClient extends SpaceBunny {
   // ------------ PRIVATE METHODS -------------------
 
   private addStompListener = (callback: IStompCallback, topic: string, opts: IStompConsumeOptions = {}): string => {
-    const name = `subscription-${new Date().getTime()}`;
+    const name = SpaceBunny.generateSubscriptionName();
     this.stompListeners[name] = { callback, topic, opts };
     return name;
   };
@@ -396,7 +396,9 @@ class StompClient extends SpaceBunny {
           const itemToRemove = this.cachedMessages.findIndex((el: ICachedMessage) => {
             return isDeepStrictEqual(el, cachedMessage);
           });
-          this.cachedMessages.splice(itemToRemove, 1);
+          if (itemToRemove !== -1) {
+            this.cachedMessages.splice(itemToRemove, 1);
+          }
         }
       }
       this.writeCachedMessagesFile();
