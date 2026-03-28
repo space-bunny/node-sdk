@@ -4,17 +4,13 @@
  * @module StompClient
  */
 
-import cloneDeep from 'lodash.clonedeep';
-// Import some helpers modules
-import { isDeepStrictEqual, isNullOrUndefined } from 'util';
-
 // Import stomp library
 import Stomp, { Client, IMessage, StompHeaders } from '@stomp/stompjs';
 
 import StompMessage from '../messages/stompMessage';
 // Import SpaceBunny main module from which StompClient inherits
 import SpaceBunny, { ICachedMessage, ISpaceBunnySubscribeOptions } from '../spacebunny';
-import { encapsulateContent } from '../utils';
+import { encapsulateContent, isDeepStrictEqual, isNullOrUndefined } from '../utils';
 
 export interface IStompPublishOptions {
   routingKey?: string;
@@ -36,10 +32,10 @@ export type IStompListener = {
   topic: string;
   opts?: IStompConsumeOptions;
   subscription?: Stomp.StompSubscription;
-}
+};
 
 class StompClient extends SpaceBunny {
-  protected stompClient: Stomp.Client;
+  protected stompClient: Stomp.Client | undefined;
 
   protected stompListeners: { [name: string]: IStompListener } = {};
 
@@ -55,7 +51,7 @@ class StompClient extends SpaceBunny {
 
   protected wsEndpoint: string;
 
-  protected topics: string[];
+  protected topics: string[] = [];
 
   /**
    * @constructor
@@ -71,7 +67,7 @@ class StompClient extends SpaceBunny {
     this.connectionHeaders = {
       max_hbrlck_fails: '10',
       'accept-version': '1.0,1.1,1.2',
-      'heart-beat': '10000,10000'
+      'heart-beat': '10000,10000',
     };
     this.connectionOpts = {};
     this.existingQueuePrefix = 'amq/queue';
@@ -81,7 +77,9 @@ class StompClient extends SpaceBunny {
       this.bindStompListners();
       void this.publishCachedMessages();
     });
-    this.on('disconnect', () => { this.stompListeners = {}; });
+    this.on('disconnect', () => {
+      this.stompListeners = {};
+    });
   }
 
   /**
@@ -103,11 +101,11 @@ class StompClient extends SpaceBunny {
         }
         resolve();
       } catch (error) {
-        this.log('error', error);
+        this.log('error', error as Error);
         reject(error);
       }
     });
-  }
+  };
 
   /**
    * Publish a message on a specific channel
@@ -117,14 +115,18 @@ class StompClient extends SpaceBunny {
    * @param {Object} opts - publication options
    * @return a promise containing the result of the operation
    */
-  public publish = (channel: string, message: Record<string, unknown>, opts: IStompPublishOptions = {}): Promise<boolean> => {
+  public publish = (
+    channel: string,
+    message: Record<string, unknown>,
+    opts: IStompPublishOptions = {}
+  ): Promise<boolean> => {
     return new Promise((resolve, reject) => {
       if (this.isConnected()) {
         try {
           // Publish message
           const { routingKey = undefined, topic = undefined } = opts;
           const destination = this.destinationFor({ channel, routingKey, topic });
-          this.stompClient.publish({
+          this.stompClient!.publish({
             destination,
             headers: {},
             body: encapsulateContent(message),
@@ -135,10 +137,12 @@ class StompClient extends SpaceBunny {
           reject(error);
         }
       } else {
-        reject(new Error(`${this.getClassName()} - Error sending message on channel ${channel} when client is not connected`));
+        reject(
+          new Error(`${this.getClassName()} - Error sending message on channel ${channel} when client is not connected`)
+        );
       }
     });
-  }
+  };
 
   /**
    * Destroy the connection between the stomp client and broker
@@ -160,7 +164,7 @@ class StompClient extends SpaceBunny {
             }
             delete this.stompListeners[name];
           }
-          this.stompClient.deactivate();
+          this.stompClient!.deactivate();
           this.stompClient = undefined;
           this.emit('disconnect');
           resolve(true);
@@ -169,7 +173,7 @@ class StompClient extends SpaceBunny {
         }
       }
     });
-  }
+  };
 
   /**
    * Establish an stomp connection with the broker.
@@ -179,23 +183,26 @@ class StompClient extends SpaceBunny {
    * @return a promise containing current connection
    */
   public connect = async (opts: Stomp.StompConfig = {}): Promise<Stomp.Client> => {
-    if (this.isConnected()) { return this.stompClient; }
+    if (this.isConnected()) {
+      return this.stompClient!;
+    }
     await this.getEndpointConfigs();
     return new Promise((resolve, reject) => {
       try {
         // code is runnning in a browser: web STOMP uses Web sockets
-        const protocol = (this.tls) ? this.tlsProtocol : this.protocol;
-        const port = (this.tls)
-          ? this.connectionParams.protocols.webStomp.tlsPort : this.connectionParams.protocols.webStomp.port;
+        const protocol = this.tls ? this.tlsProtocol : this.protocol;
+        const port = this.tls
+          ? this.connectionParams.protocols!.webStomp!.tlsPort
+          : this.connectionParams.protocols!.webStomp!.port;
         const connectionString = `${protocol}://${this.connectionParams.host}:${port}/ws`;
         const stompConfig: Stomp.StompConfig = {
           // Typically login, passcode and vhost
           // Adjust these for your broker
           connectHeaders: {
             ...this.connectionHeaders,
-            login: this.connectionParams.deviceId || this.connectionParams.client,
-            passcode: this.connectionParams.secret,
-            host: this.connectionParams.vhost
+            login: this.connectionParams.deviceId || this.connectionParams.client || '',
+            passcode: this.connectionParams.secret || '',
+            host: this.connectionParams.vhost || '',
           },
 
           // Broker URL, should start with ws:// or wss:// - adjust for your broker setup
@@ -208,7 +215,7 @@ class StompClient extends SpaceBunny {
           // },
 
           // If disconnected, it will retry after reconnectDelay ms
-          reconnectDelay: (this.autoReconnect) ? opts.reconnectDelay || this.reconnectTimeout : 0,
+          reconnectDelay: this.autoReconnect ? opts.reconnectDelay || this.reconnectTimeout : 0,
 
           heartbeatIncoming: opts.heartbeatIncoming || this.heartbeat,
 
@@ -218,7 +225,7 @@ class StompClient extends SpaceBunny {
           onConnect: () => {
             this.emit('connect');
             this.log('info', 'Client connected!');
-            resolve(this.stompClient);
+            resolve(this.stompClient!);
           },
 
           // onDisconnect: () => {
@@ -235,37 +242,41 @@ class StompClient extends SpaceBunny {
         reject(error);
       }
     });
-  }
+  };
 
   public isConnected = (): boolean => {
-    return (!isNullOrUndefined(this.stompClient) && this.stompClient.connected);
-  }
+    return !isNullOrUndefined(this.stompClient) && this.stompClient.connected;
+  };
 
   public removeStompListener = (name: string): void => {
     delete this.stompListeners[name];
-  }
+  };
 
   // ------------ PRIVATE METHODS -------------------
 
   protected consumeCallback = (callback: IStompCallback, opts: IStompConsumeOptions = {}, message: IMessage): void => {
     try {
       // Create message object
-      const stompMessage = new StompMessage({ message, receiverId: this.getDeviceId(), subscriptionOpts: opts });
+      const stompMessage = new StompMessage({ message, receiverId: this.getDeviceId() || '', subscriptionOpts: opts });
       const ackNeeded = this.autoAck(opts.ack);
       // Check if should be accepted or not
       if (stompMessage.blackListed()) {
-        if (ackNeeded) { message.nack(); }
+        if (ackNeeded) {
+          message.nack();
+        }
         return;
       }
       // Call message callback
       void callback(stompMessage);
       // Check if ACK is needed
-      if (ackNeeded) { message.ack(); }
+      if (ackNeeded) {
+        message.ack();
+      }
     } catch (error) {
       this.log('error', 'Error consuming message');
-      this.log('error', error);
+      this.log('error', error as Error);
     }
-  }
+  };
 
   // ------------ PRIVATE METHODS -------------------
 
@@ -273,7 +284,7 @@ class StompClient extends SpaceBunny {
     const name = `subscription-${new Date().getTime()}`;
     this.stompListeners[name] = { callback, topic, opts };
     return name;
-  }
+  };
 
   private bindStompListners = (): void => {
     const names = Object.keys(this.stompListeners);
@@ -282,7 +293,7 @@ class StompClient extends SpaceBunny {
       // eslint-disable-next-line no-await-in-loop
       this.bindStompListner(name);
     }
-  }
+  };
 
   private bindStompListner = (name: string): void => {
     if (isNullOrUndefined(this.stompListeners[name])) {
@@ -296,8 +307,10 @@ class StompClient extends SpaceBunny {
     const { callback, opts, topic } = this.stompListeners[name];
 
     if (this.isConnected()) {
-      this.stompListeners[name].subscription = this.stompClient.subscribe(topic,
-        this.consumeCallback.bind(this, callback, opts));
+      this.stompListeners[name].subscription = this.stompClient!.subscribe(
+        topic,
+        this.consumeCallback.bind(this, callback, opts)
+      );
       if (!this.topics.includes(topic)) {
         this.topics.push(topic);
       }
@@ -305,7 +318,7 @@ class StompClient extends SpaceBunny {
     } else {
       throw new Error(`${this.getClassName()} - Trying to subscribe when client is not connected`);
     }
-  }
+  };
 
   /**
    * Generate the subscription string for a specific channel
@@ -317,7 +330,7 @@ class StompClient extends SpaceBunny {
    */
   public subcriptionFor = (type: string, channel: string): string => {
     return `/${type}/${this.getDeviceId()}.${channel}`;
-  }
+  };
 
   /**
    * Generate the destination string for a specific channel
@@ -328,15 +341,12 @@ class StompClient extends SpaceBunny {
    * @return a string that represents the topic name for that channel
    */
   public destinationFor = (params: IStompDestinationhOptions = {}): string => {
-    const {
-      type = this.defaultResource, channel = '',
-      topic = '', routingKey = ''
-    } = params;
+    const { type = this.defaultResource, channel = '', topic = '', routingKey = '' } = params;
     let messageRoutingKey: string;
     if (routingKey.length > 0) {
       messageRoutingKey = routingKey;
     } else {
-      messageRoutingKey = this.getDeviceId();
+      messageRoutingKey = this.getDeviceId() || '';
       if (!isNullOrUndefined(channel) && channel.length > 0) {
         messageRoutingKey += `.${channel || ''}`;
       }
@@ -345,7 +355,7 @@ class StompClient extends SpaceBunny {
       }
     }
     return `/${type}/${this.getDeviceId()}/${messageRoutingKey}`;
-  }
+  };
 
   /**
    * Check if the SDK have to automatically ack messages
@@ -356,7 +366,7 @@ class StompClient extends SpaceBunny {
    * @param {String} ack - the ack type, it should be 'client' or null
    * @return boolean - true if messages have to be autoacked, false otherwise
    */
-  protected autoAck = (ack: string): boolean => {
+  protected autoAck = (ack: string | undefined): boolean => {
     if (ack) {
       if (!this.ackTypes.includes(ack)) {
         this.emit('error', 'Wrong acknowledge type'); // eslint-disable-line no-console
@@ -369,11 +379,11 @@ class StompClient extends SpaceBunny {
       }
     }
     return false;
-  }
+  };
 
   private publishCachedMessages = async (): Promise<void> => {
     if (this.isConnected() && this.cachedMessages.length > 0) {
-      const cachedMessagesToSend = cloneDeep(this.cachedMessages);
+      const cachedMessagesToSend = structuredClone(this.cachedMessages);
       this.log('debug', `Publishing ${cachedMessagesToSend.length} cached messages...`);
       for (let index = 0; index < cachedMessagesToSend.length; index += 1) {
         const cachedMessage = cachedMessagesToSend[index];
@@ -391,7 +401,7 @@ class StompClient extends SpaceBunny {
       }
       this.writeCachedMessagesFile();
     }
-  }
+  };
 }
 
 export default StompClient;

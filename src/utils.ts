@@ -38,4 +38,28 @@ export function encapsulateContent(content: Record<string, unknown>): string {
   return encapsulatedContent;
 }
 
-export default { parseContent, encapsulateContent };
+/**
+ * Check if a value is null or undefined
+ */
+export function isNullOrUndefined(value: unknown): value is null | undefined {
+  return value === null || value === undefined;
+}
+
+/**
+ * Deep strict equality check for plain objects
+ * Replacement for util.isDeepStrictEqual
+ */
+export function isDeepStrictEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false;
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  if (keysA.length !== keysB.length) return false;
+  for (const key of keysA) {
+    if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
+    if (!isDeepStrictEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])) return false;
+  }
+  return true;
+}
+
+export default { parseContent, encapsulateContent, isNullOrUndefined, isDeepStrictEqual };

@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [master, develop]
+  pull_request:
+    branches: [master, develop]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify exports
+        run: node -e "const sb = require('./lib/index.js'); const expected = ['AmqpClient','AmqpStreamClient','Client','MqttClient','MqttStreamClient','StompClient','StompStreamClient','StreamClient']; const actual = Object.keys(sb).sort(); if(JSON.stringify(actual) !== JSON.stringify(expected.sort())) { console.error('Export mismatch', actual); process.exit(1); } console.log('Exports OK:', actual);"

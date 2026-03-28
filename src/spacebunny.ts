@@ -5,12 +5,12 @@
 
 // Import some helpers modules
 import axios, { AxiosRequestConfig } from 'axios';
+import crypto from 'crypto';
 import { EventEmitter } from 'events';
 import fs from 'fs';
 import { camelizeKeys } from 'humps';
 import urljoin from 'url-join';
-import { isNullOrUndefined } from 'util';
-import { v4 as uuidv4 } from 'uuid';
+import { isNullOrUndefined } from './utils';
 
 export interface ISpaceBunnyParams {
   endpoint?: IEndpoint;
@@ -113,25 +113,25 @@ class SpaceBunny extends EventEmitter {
 
   protected endpoint: IEndpoint;
 
-  protected deviceKey: string;
+  protected deviceKey: string | undefined;
 
-  protected channels: IChannel[];
+  protected channels: IChannel[] | undefined;
 
-  protected deviceId: string;
+  protected deviceId: string | undefined;
 
-  protected client: string;
+  protected client: string | undefined;
 
-  protected secret: string;
+  protected secret: string | undefined;
 
-  protected host: string;
+  protected host: string | undefined;
 
-  protected port: number;
+  protected port: number | undefined;
 
-  protected vhost: string;
+  protected vhost: string | undefined;
 
-  protected protocol: string;
+  protected protocol!: string;
 
-  protected tlsProtocol: string;
+  protected tlsProtocol!: string;
 
   protected inboxTopic: string;
 
@@ -143,7 +143,7 @@ class SpaceBunny extends EventEmitter {
 
   protected tls: boolean;
 
-  protected tlsOpts: ITlsOptions;
+  protected tlsOpts!: ITlsOptions;
 
   protected autoReconnect = true;
 
@@ -161,9 +161,9 @@ class SpaceBunny extends EventEmitter {
 
   protected caching: boolean;
 
-  protected cachedMessagesPath: string;
+  protected cachedMessagesPath: string | undefined;
 
-  protected cachedMessages: ICachedMessage[];
+  protected cachedMessages!: ICachedMessage[];
 
   protected static DEFAULT_CONNECTION_TIMEOUT = 5000;
 
@@ -176,8 +176,26 @@ class SpaceBunny extends EventEmitter {
   constructor(opts: ISpaceBunnyParams = {}) {
     super();
     this.connectionParams = camelizeKeys(opts);
-    const { endpoint, deviceKey, channels, deviceId, client, secret, host, port, vhost, inboxTopic,
-      tls, verbose, autoReconnect, heartbeat, connectionTimeout, caching, cacheSize, cachedMessagesPath } = this.connectionParams;
+    const {
+      endpoint,
+      deviceKey,
+      channels,
+      deviceId,
+      client,
+      secret,
+      host,
+      port,
+      vhost,
+      inboxTopic,
+      tls,
+      verbose,
+      autoReconnect,
+      heartbeat,
+      connectionTimeout,
+      caching,
+      cacheSize,
+      cachedMessagesPath,
+    } = this.connectionParams;
     const defaultEndpoint: IEndpoint = {
       protocol: 'http',
       secureProtocol: 'https',
@@ -185,7 +203,7 @@ class SpaceBunny extends EventEmitter {
       port: 80,
       securePort: 443,
       deviceConfigurationsPath: 'device_configurations',
-      liveStreamKeyConfigurationsPath: 'live_stream_key_configurations'
+      liveStreamKeyConfigurationsPath: 'live_stream_key_configurations',
     };
     this.endpoint = { ...defaultEndpoint, ...endpoint };
     // becomes true when no configs are pulled from endpoint
@@ -204,11 +222,11 @@ class SpaceBunny extends EventEmitter {
     this.liveStreams = [];
     this.tls = !(tls === false);
     this.autoReconnect = !(autoReconnect === false);
-    this.verbose = (verbose === true);
+    this.verbose = verbose === true;
     this.heartbeat = heartbeat || SpaceBunny.DEFAULT_HEARTBEAT;
     this.connectionTimeout = connectionTimeout || SpaceBunny.DEFAULT_CONNECTION_TIMEOUT;
     this.endpointConfigs = {};
-    this.caching = (caching === true);
+    this.caching = caching === true;
     this.cacheSize = cacheSize || SpaceBunny.DEFAULT_CACHE_SIZE;
     this.cachedMessagesPath = cachedMessagesPath;
     this.loadCachedMessages();
@@ -229,22 +247,24 @@ class SpaceBunny extends EventEmitter {
     try {
       // Contact endpoint to retrieve configs
       // Switch endpoint if you are using sdk as device or as access key stream
-      if ((this.deviceId && this.secret) || this.deviceKey) { // Device credentials
+      if ((this.deviceId && this.secret) || this.deviceKey) {
+        // Device credentials
         // uses endpoint passed from user, default endpoint otherwise
         const hostname = this.generateHostname();
-        const uri = urljoin(hostname, this.endpoint.deviceConfigurationsPath);
-        if (this.deviceKey) { // Get configs from endpoint
+        const uri = urljoin(hostname, this.endpoint.deviceConfigurationsPath!);
+        if (this.deviceKey) {
+          // Get configs from endpoint
           const options: AxiosRequestConfig = {
             url: uri,
             method: 'GET',
             responseType: 'json',
             headers: {
               'Device-Key': this.deviceKey,
-              'Content-Type': 'application/json'
-            }
+              'Content-Type': 'application/json',
+            },
           };
           const response = await axios(options);
-          this.endpointConfigs = (camelizeKeys(response.data) as IEndpointConfigs);
+          this.endpointConfigs = camelizeKeys(response.data) as IEndpointConfigs;
           this.connectionParams = this.endpointConfigs.connection || {};
           this.channels = this.endpointConfigs.channels || [];
           return this.endpointConfigs;
@@ -264,7 +284,8 @@ class SpaceBunny extends EventEmitter {
           this.manualConfigurations = true;
           return this.endpointConfigs;
         }
-      } else if (this.client && this.secret) { // Access key credentials
+      } else if (this.client && this.secret) {
+        // Access key credentials
         if (this.host && this.port && this.vhost) {
           // Manually provided configs
           this.connectionParams.protocols = {};
@@ -283,7 +304,7 @@ class SpaceBunny extends EventEmitter {
         // Get configs from endpoint
         // uses endpoint passed from user, default endpoint otherwise
         const hostname = this.generateHostname();
-        const uri = urljoin(hostname, this.endpoint.liveStreamKeyConfigurationsPath);
+        const uri = urljoin(hostname, this.endpoint.liveStreamKeyConfigurationsPath!);
         const options: AxiosRequestConfig = {
           url: uri,
           method: 'GET',
@@ -291,15 +312,16 @@ class SpaceBunny extends EventEmitter {
           headers: {
             'Live-Stream-Key-Client': this.client,
             'Live-Stream-Key-Secret': this.secret,
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         };
         const response = await axios(options);
-        this.endpointConfigs = (camelizeKeys(response.data) as IEndpointConfigs);
+        this.endpointConfigs = camelizeKeys(response.data) as IEndpointConfigs;
         this.connectionParams = this.endpointConfigs.connection || {};
         this.liveStreams = this.endpointConfigs.liveStreams || [];
         return this.endpointConfigs;
-      } else { // No configs or missing some info
+      } else {
+        // No configs or missing some info
         throw new Error('Missing Device Key or wrong connection parameters');
       }
     } catch (error) {
@@ -307,15 +329,15 @@ class SpaceBunny extends EventEmitter {
       throw error;
     }
     return {};
-  }
+  };
 
   protected getClassName = (): string => {
     return this.constructor.name;
-  }
+  };
 
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  protected log = (level: string, message: string|Error, ...meta: any): void => {
-    const msg = (message instanceof Error) ? message.message : message;
+  protected log = (level: string, message: string | Error, ...meta: any): void => {
+    const msg = message instanceof Error ? message.message : message;
     const prefixedMessage = `${this.getClassName()} - ${msg}`;
     if (this.verbose) {
       this.emit('log', { level, message: prefixedMessage, ...meta });
@@ -324,39 +346,43 @@ class SpaceBunny extends EventEmitter {
       // eslint-disable-next-line no-console
       console.log(new Date().toISOString(), prefixedMessage, ...meta);
     }
-  }
+  };
 
-  public isConnected = (): boolean => { return false; }
+  public isConnected = (): boolean => {
+    return false;
+  };
 
-  public isStreamClient = (): boolean => { return this.getClassName().includes('Stream'); }
+  public isStreamClient = (): boolean => {
+    return this.getClassName().includes('Stream');
+  };
 
   /**
    * @return all channels configured for the current device
    */
   public getChannels = (): IChannel[] => {
     return this.channels || this.endpointConfigs.channels || [];
-  }
+  };
 
   /**
    * @return the device ID for the current device
    */
-  public getDeviceId = (): string => {
+  public getDeviceId = (): string | undefined => {
     return this.deviceId || this.connectionParams.deviceId;
-  }
+  };
 
   /**
    * @return the client for the current stream
    */
-  public getClient = (): string => {
+  public getClient = (): string | undefined => {
     return this.client;
-  }
+  };
 
   /**
    * @return the Inbox topic for the current device
    */
   public getInboxTopic = (): string => {
     return this.inboxTopic;
-  }
+  };
 
   /**
    * Return a Stream ID from a stream name given in input
@@ -365,12 +391,14 @@ class SpaceBunny extends EventEmitter {
    * @return the stream ID which corresponds to the input stream name
    */
   protected liveStreamByName = (streamName: string): string => {
-    const liveStreams = this.liveStreams.filter((stream) => { return stream.name === streamName; });
+    const liveStreams = this.liveStreams.filter((stream) => {
+      return stream.name === streamName;
+    });
     if (liveStreams.length > 0) {
       return liveStreams[0].name || streamName;
     }
     return streamName;
-  }
+  };
 
   /**
    * Check if a stream exists
@@ -380,13 +408,17 @@ class SpaceBunny extends EventEmitter {
    */
   protected liveStreamExists = (streamName: string): boolean => {
     // skip this check for manual configuration
-    if (this.manualConfigurations) { return true; }
+    if (this.manualConfigurations) {
+      return true;
+    }
     if (isNullOrUndefined(streamName) || streamName.length === 0) {
       return false;
     }
-    const liveStreams = this.liveStreams.filter((stream) => { return stream.name === streamName; });
-    return (liveStreams.length > 0);
-  }
+    const liveStreams = this.liveStreams.filter((stream) => {
+      return stream.name === streamName;
+    });
+    return liveStreams.length > 0;
+  };
 
   /**
    * Generate a temporary queue name
@@ -397,13 +429,15 @@ class SpaceBunny extends EventEmitter {
    * @param {Numeric} currentTime - current timestamp
    * @return a string that represents the topic name for that channel
    */
-  protected tempQueue = (prefix: string, suffix: string, currentTime: number|void = undefined): string => {
+  protected tempQueue = (prefix: string, suffix: string, currentTime: number | void = undefined): string => {
     const timestamp = currentTime || new Date().getTime();
     const deviceId = this.connectionParams.client || this.connectionParams.deviceId;
-    return `${uuidv4()}-${timestamp}-${deviceId}-`
-      + `${this.exchangeName(prefix, suffix)}.`
-      + `${this.tempQueueSuffix}`;
-  }
+    return (
+      `${crypto.randomUUID()}-${timestamp}-${deviceId}-` +
+      `${this.exchangeName(prefix, suffix)}.` +
+      `${this.tempQueueSuffix}`
+    );
+  };
 
   /**
    * Generate the exchange name for a device's channel
@@ -414,8 +448,8 @@ class SpaceBunny extends EventEmitter {
    * @return a string that represents the complete exchange name
    */
   protected exchangeName = (prefix: string, suffix: string): string => {
-    return (prefix.length > 0 && suffix.length > 0) ? `${this.liveStreamByName(prefix)}.${suffix}` : `${suffix}`;
-  }
+    return prefix.length > 0 && suffix.length > 0 ? `${this.liveStreamByName(prefix)}.${suffix}` : `${suffix}`;
+  };
 
   // ------------ PRIVATE METHODS -------------------
 
@@ -429,14 +463,14 @@ class SpaceBunny extends EventEmitter {
     if (this.endpoint.url) {
       return this.endpoint.url;
     }
-    const port = (this.tls) ? this.endpoint.securePort : this.endpoint.port;
+    const port = this.tls ? this.endpoint.securePort : this.endpoint.port;
     let hostname = `${this.endpoint.host}:${port}`;
-    const protocol = (this.tls) ? this.endpoint.secureProtocol : this.endpoint.protocol;
-    if (!hostname.startsWith(protocol)) {
+    const protocol = this.tls ? this.endpoint.secureProtocol : this.endpoint.protocol;
+    if (protocol && !hostname.startsWith(protocol)) {
       hostname = `${protocol}://${hostname}`;
     }
     return hostname;
-  }
+  };
 
   // TODO Load from LocalStorage if in browser
   private loadCachedMessages = () => {
@@ -445,20 +479,24 @@ class SpaceBunny extends EventEmitter {
       cachedMessages = JSON.parse(fs.readFileSync(this.cachedMessagesPath, { encoding: 'utf-8' })) as ICachedMessage[];
     }
     this.cachedMessages = cachedMessages || [];
-  }
+  };
 
   // TODO Save to LocalStorage if in browser
   protected writeCachedMessagesFile = (): void => {
     try {
-      fs.writeFileSync(this.cachedMessagesPath, JSON.stringify(this.cachedMessages, null, 2));
+      fs.writeFileSync(this.cachedMessagesPath!, JSON.stringify(this.cachedMessages, null, 2));
       this.log('silly', `Cached messages written to: ${this.cachedMessagesPath}`);
     } catch (error) {
       this.log('error', 'Error writing cached messages');
       this.log('error', error as Error);
     }
-  }
+  };
 
-  protected cacheMessage = (channel: string, message: Record<string, unknown>, options: Record<string, unknown>): void => {
+  protected cacheMessage = (
+    channel: string,
+    message: Record<string, unknown>,
+    options: Record<string, unknown>
+  ): void => {
     const messageToCache: ICachedMessage = { channel, message, options };
     if (!this.cachedMessages.includes(messageToCache)) {
       if (this.cachedMessages.length >= this.cacheSize) {
@@ -471,7 +509,7 @@ class SpaceBunny extends EventEmitter {
       this.cachedMessages.push(messageToCache);
       this.writeCachedMessagesFile();
     }
-  }
+  };
 }
 
 export default SpaceBunny;

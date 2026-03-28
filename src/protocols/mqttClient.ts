@@ -5,21 +5,22 @@
  */
 
 import mqtt, {
-  AsyncMqttClient, IClientOptions, IClientPublishOptions, IClientSubscribeOptions, QoS
-} from 'async-mqtt';
+  type MqttClient as MqttClientType,
+  type IClientOptions,
+  type IClientPublishOptions,
+  type IClientSubscribeOptions,
+} from 'mqtt';
+import type { QoS } from 'mqtt-packet';
 import fs from 'fs';
-import cloneDeep from 'lodash.clonedeep';
-import { isDeepStrictEqual, isNullOrUndefined, promisify } from 'util';
 
-// import { promisify } from 'util';
 import SpaceBunny, { ICachedMessage, ISpaceBunnyParams } from '../spacebunny';
-import { encapsulateContent } from '../utils';
+import { encapsulateContent, isDeepStrictEqual, isNullOrUndefined } from '../utils';
 
 export type IMqttCallback = (topic?: string, message?: any) => Promise<void> | void;
 export type IMqttListener = {
   callback: IMqttCallback;
   topics?: string[];
-}
+};
 
 export type IMqttConnectionOptions = {
   qos?: QoS;
@@ -27,10 +28,10 @@ export type IMqttConnectionOptions = {
   reconnectPeriod?: number;
   keepalive?: number;
   connectTimeout?: number;
-}
+};
 
 class MqttClient extends SpaceBunny {
-  protected mqttClient: AsyncMqttClient;
+  protected mqttClient: MqttClientType | undefined;
 
   protected mqttListeners: { [name: string]: IMqttListener } = {};
 
@@ -52,23 +53,35 @@ class MqttClient extends SpaceBunny {
     this.connectionOpts = { qos: 1, clean: true };
     const { cert, key, passphrase, ca, pfx, disableCertCheck } = opts;
     this.tlsOpts = {};
-    if (cert) { this.tlsOpts.cert = fs.readFileSync(cert); }
-    if (key) { this.tlsOpts.key = fs.readFileSync(key); }
-    if (passphrase) { this.tlsOpts.passphrase = passphrase; }
+    if (cert) {
+      this.tlsOpts.cert = fs.readFileSync(cert);
+    }
+    if (key) {
+      this.tlsOpts.key = fs.readFileSync(key);
+    }
+    if (passphrase) {
+      this.tlsOpts.passphrase = passphrase;
+    }
     if (ca) {
       if (Array.isArray(ca)) {
-        this.tlsOpts.ca = ca.map((element) => { return fs.readFileSync(element); });
+        this.tlsOpts.ca = ca.map((element) => {
+          return fs.readFileSync(element);
+        });
       } else {
         this.tlsOpts.ca = [fs.readFileSync(ca)];
       }
     }
-    if (pfx) { this.tlsOpts.pfx = fs.readFileSync(pfx); }
+    if (pfx) {
+      this.tlsOpts.pfx = fs.readFileSync(pfx);
+    }
     if (disableCertCheck) {
       this.tlsOpts.rejectUnauthorized = false;
     } else {
       this.tlsOpts.rejectUnauthorized = true;
     }
-    this.on('connect', () => { void this.publishCachedMessages(); });
+    this.on('connect', () => {
+      void this.publishCachedMessages();
+    });
   }
 
   /**
@@ -79,12 +92,15 @@ class MqttClient extends SpaceBunny {
    * @param {Object} options - subscription options
    * @return promise containing the result of the subscription
    */
-  public onMessage = async (callback: IMqttCallback, opts: IClientSubscribeOptions = { qos: 1 }): Promise<string|void> => {
+  public onMessage = async (
+    callback: IMqttCallback,
+    opts: IClientSubscribeOptions = { qos: 1 }
+  ): Promise<string | void> => {
     // subscribe for inbox messages
     const topic = this.topicFor(null, this.inboxTopic);
     this.addMqttListener(topic, callback, topic);
     await this.subscribe(topic, opts);
-  }
+  };
 
   /**
    * Publish a message on a specific channel
@@ -94,13 +110,17 @@ class MqttClient extends SpaceBunny {
    * @param {Object} opts - publication options
    * @return a promise containing the result of the operation
    */
-  public publish = async (channel: string, message: Record<string, unknown>, opts: IClientPublishOptions = { qos: 1 }): Promise<boolean> => {
+  public publish = async (
+    channel: string,
+    message: Record<string, unknown>,
+    opts: IClientPublishOptions = { qos: 1 }
+  ): Promise<boolean> => {
     // Publish message
     if (this.isConnected()) {
       const topic = this.topicFor(null, channel);
       try {
         const bufferedMessage = Buffer.from(encapsulateContent(message));
-        await this.mqttClient.publish(topic, bufferedMessage, opts);
+        await this.mqttClient!.publishAsync(topic, bufferedMessage, opts);
         this.log('silly', `Published message on topic ${topic}`);
         return true;
       } catch (error) {
@@ -108,9 +128,11 @@ class MqttClient extends SpaceBunny {
         throw error;
       }
     } else {
-      throw new Error(`${this.getClassName()} - Error sending message on channel ${channel} when client is not connected.`);
+      throw new Error(
+        `${this.getClassName()} - Error sending message on channel ${channel} when client is not connected.`
+      );
     }
-  }
+  };
 
   /**
    * Destroy the connection between the mqtt client and broker
@@ -121,8 +143,8 @@ class MqttClient extends SpaceBunny {
     if (this.isConnected()) {
       try {
         await this.unsubscribe();
-        this.mqttClient.removeAllListeners();
-        await this.mqttClient.end();
+        this.mqttClient!.removeAllListeners();
+        await this.mqttClient!.endAsync();
       } catch (error) {
         this.log('error', 'Error disconnecting client.');
         throw error;
@@ -143,27 +165,31 @@ class MqttClient extends SpaceBunny {
    * @param {Object} opts - connection options
    * @return a promise containing current connection
    */
-  public connect = async (opts: IClientOptions = {}): Promise<AsyncMqttClient|void> => {
-    if (this.isConnected()) { return this.mqttClient; }
+  public connect = async (opts: IClientOptions = {}): Promise<MqttClientType | void> => {
+    if (this.isConnected()) {
+      return this.mqttClient;
+    }
     await this.getEndpointConfigs();
     try {
       const clientId = this.connectionParams.deviceId || this.connectionParams.client;
       let mqttConnectionParams: IClientOptions = {
         host: this.connectionParams.host,
-        protocol: (this.tls) ? 'mqtts' : 'mqtt',
-        port: (this.tls) ? this.connectionParams.protocols.mqtt.tlsPort : this.connectionParams.protocols.mqtt.port,
+        protocol: this.tls ? 'mqtts' : 'mqtt',
+        port: this.tls ? this.connectionParams.protocols!.mqtt!.tlsPort : this.connectionParams.protocols!.mqtt!.port,
         username: `${this.connectionParams.vhost}:${clientId}`,
         password: this.connectionParams.secret,
         // Client id is used for resource authorization, multiple clients with the same clientId are not allowed
         clientId,
         connectTimeout: opts.connectTimeout || this.connectionTimeout,
-        reconnectPeriod: (this.autoReconnect) ? (opts.reconnectPeriod || this.reconnectTimeout) : 0, // disable autoreconnect ??
-        clean: (isNullOrUndefined(opts.clean)) ? true : opts.clean,
+        reconnectPeriod: this.autoReconnect ? opts.reconnectPeriod || this.reconnectTimeout : 0, // disable autoreconnect ??
+        clean: isNullOrUndefined(opts.clean) ? true : opts.clean,
         keepalive: opts.keepalive || this.heartbeat,
         // ...opts
       };
-      if (this.tls) { mqttConnectionParams = { ...mqttConnectionParams, ...this.tlsOpts }; }
-      this.mqttClient = await mqtt.connectAsync(null, mqttConnectionParams, this.autoReconnect);
+      if (this.tls) {
+        mqttConnectionParams = { ...mqttConnectionParams, ...this.tlsOpts };
+      }
+      this.mqttClient = await mqtt.connectAsync(mqttConnectionParams);
       const onError = (err: Error) => {
         if (err) {
           this.emit('error', err);
@@ -179,10 +205,10 @@ class MqttClient extends SpaceBunny {
         // }
       };
       this.mqttClient.on('error', onError);
-      this.mqttClient.on('close', onError);
+      this.mqttClient.on('close', () => onError(new Error('Connection closed')));
       this.mqttClient.on('message', (msgTopic: string, message: Buffer) => {
         try {
-          let msg: Record<string, unknown>|string = {};
+          let msg: Record<string, unknown> | string = {};
           try {
             msg = JSON.parse(message.toString()) as Record<string, unknown>;
           } catch (e) {
@@ -190,7 +216,7 @@ class MqttClient extends SpaceBunny {
           }
           Object.entries(this.mqttListeners).forEach(([, listener]) => {
             const { callback, topics } = listener;
-            if (topics.length === 0 || topics.includes(msgTopic)) {
+            if (!topics || topics.length === 0 || topics.includes(msgTopic)) {
               this.log('debug', `Received message for topic ${msgTopic}`, msg);
               void callback(msgTopic, msg);
             } else {
@@ -199,7 +225,7 @@ class MqttClient extends SpaceBunny {
           });
         } catch (error) {
           this.log('error', 'Error consuming message');
-          this.log('error', error);
+          this.log('error', error as Error);
         }
       });
       this.emit('connect');
@@ -213,39 +239,41 @@ class MqttClient extends SpaceBunny {
       this.log('error', 'Error during connection');
       if (this.autoReconnect) {
         this.log('error', (error as Error).message);
-        const timeout = promisify(setTimeout);
-        await timeout(this.reconnectTimeout);
+        await new Promise((resolve) => setTimeout(resolve, this.reconnectTimeout));
         void this.connect(opts);
       } else {
         throw error;
       }
     }
-  }
+  };
 
   isConnected = (): boolean => {
-    return (!isNullOrUndefined(this.mqttClient) && this.mqttClient.connected);
-  }
+    return !isNullOrUndefined(this.mqttClient) && this.mqttClient.connected;
+  };
 
   // ------------ PROTECTED METHODS -------------------
 
   protected addMqttListener = (name: string, callback: IMqttCallback, topics?: string | string[]): void => {
-    this.mqttListeners[name] = { callback, topics: Array.isArray(topics) ? topics : [topics] };
-  }
+    this.mqttListeners[name] = { callback, topics: Array.isArray(topics) ? topics : topics ? [topics] : [] };
+  };
 
   protected removeMqttListener = (name: string): void => {
     delete this.mqttListeners[name];
-  }
+  };
 
-  protected subscribe = async (topics: string | string[], opts: IClientSubscribeOptions = { qos: 1 }): Promise<void> => {
+  protected subscribe = async (
+    topics: string | string[],
+    opts: IClientSubscribeOptions = { qos: 1 }
+  ): Promise<void> => {
     if (this.isConnected()) {
-      const topicsToSubscribe = (Array.isArray(topics)) ? topics : [topics];
-      await this.mqttClient.subscribe(topicsToSubscribe, opts);
+      const topicsToSubscribe = Array.isArray(topics) ? topics : [topics];
+      await this.mqttClient!.subscribeAsync(topicsToSubscribe, opts);
       this.topics.push(...topicsToSubscribe);
       this.log('info', `Client subscribed to topics: ${topicsToSubscribe.join(',')}`);
     } else {
       throw new Error(`${this.getClassName()} - Trying to subscribe when client is not connected`);
     }
-  }
+  };
 
   /**
    * Unsubscribe client from a list of topics
@@ -255,21 +283,25 @@ class MqttClient extends SpaceBunny {
    * @return a promise containing the result of the operation
    */
   protected async unsubscribe(topics: string | string[] = []): Promise<void> {
-    let topicsToUnsubscribe = (this.topics.length > 0 && topics.length === 0) ? this.topics : topics;
-    topicsToUnsubscribe = (Array.isArray(topicsToUnsubscribe)) ? topicsToUnsubscribe : [topicsToUnsubscribe];
+    let topicsToUnsubscribe = this.topics.length > 0 && topics.length === 0 ? this.topics : topics;
+    topicsToUnsubscribe = Array.isArray(topicsToUnsubscribe) ? topicsToUnsubscribe : [topicsToUnsubscribe];
     if (this.isConnected()) {
       if (topicsToUnsubscribe.length > 0) {
-        await this.mqttClient.unsubscribe(topicsToUnsubscribe);
+        await this.mqttClient!.unsubscribeAsync(topicsToUnsubscribe);
       }
       for (let index = 0; index < topicsToUnsubscribe.length; index += 1) {
         const topic = topicsToUnsubscribe[index];
         for (let idx = 0; idx < this.topics.length; idx += 1) {
-          if (this.topics[idx] === topic) { this.topics.splice(idx, 1); }
+          if (this.topics[idx] === topic) {
+            this.topics.splice(idx, 1);
+          }
         }
       }
       this.log('info', `Client unsubscribed from topics: ${topicsToUnsubscribe.join(',')}`);
     } else {
-      throw new Error(`${this.getClassName()} - Error trying to unsucscribe from ${topicsToUnsubscribe.join(',')} on an invalid connection`);
+      throw new Error(
+        `${this.getClassName()} - Error trying to unsucscribe from ${topicsToUnsubscribe.join(',')} on an invalid connection`
+      );
     }
   }
 
@@ -283,13 +315,13 @@ class MqttClient extends SpaceBunny {
    * @param {String} channel - channel name on which you want to publish a message
    * @return a string that represents the topic name for that channel
    */
-  private topicFor = (deviceId: string|void|null, channel: string) => {
+  private topicFor = (deviceId: string | void | null, channel: string) => {
     return `${deviceId || this.getDeviceId()}/${channel}`;
-  }
+  };
 
   private publishCachedMessages = async () => {
     if (this.isConnected() && this.cachedMessages.length > 0) {
-      const cachedMessagesToSend = cloneDeep(this.cachedMessages);
+      const cachedMessagesToSend = structuredClone(this.cachedMessages);
       this.log('debug', `Publishing ${cachedMessagesToSend.length} cached messages...`);
       for (let index = 0; index < cachedMessagesToSend.length; index += 1) {
         const cachedMessage = cachedMessagesToSend[index];
@@ -307,7 +339,7 @@ class MqttClient extends SpaceBunny {
       }
       this.writeCachedMessagesFile();
     }
-  }
+  };
 }
 
 export default MqttClient;

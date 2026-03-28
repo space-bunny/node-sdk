@@ -3,15 +3,30 @@
 </p>
 
 [![NPM](https://img.shields.io/npm/v/spacebunny.svg?style=flat-square)](https://www.npmjs.com/package/spacebunny)
+[![CI](https://github.com/space-bunny/node-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/space-bunny/node-sdk/actions/workflows/ci.yml)
 
 [Space Bunny](http://spacebunny.io) is the IoT platform that makes it easy for you and your devices to send and exchange messages with a server or even with each other. You can store the data, receive timely event notifications, monitor live streams and remotely control your devices. Easy to use, and ready to scale at any time.
 
 This is the source code repository for Node SDK.
 Please feel free to contribute!
 
+## Requirements
+
+- Node.js >= 18.0.0
+
 ## Installation
 
-`npm install spacebunny --save`
+```bash
+npm install spacebunny --save
+```
+
+## Supported protocols
+
+| Protocol | Device | Stream |
+|----------|--------|--------|
+| AMQP     | publish, receive | stream from live streams and channels |
+| MQTT     | publish, receive | stream from live streams and channels |
+| STOMP    | publish, receive (Node + Browser) | stream from live streams and channels |
 
 ## Basic usage
 
@@ -100,7 +115,7 @@ For more advanced usage please refer to example files in `examples` folder
 
 ## Usage within a web page (plain JS)
 
-Space Bunny Node SDK is bundled using Webpack to allow the integration of the library within a web page
+Space Bunny Node SDK is bundled to allow integration within a web page (STOMP protocol only)
 
 ### Device
 
@@ -202,13 +217,30 @@ For more advanced usage please refer to example files in `public` and `examples`
 
 Examples will be available on port 8080
 
-## Build dist version
+## Development
 
-`npm run build`
+### Scripts
 
-## Generate documentation
+| Script | Description |
+|--------|-------------|
+| `npm run build` | Build library with tsup |
+| `npm run typecheck` | TypeScript type checking |
+| `npm run lint` | ESLint |
+| `npm run lint:fix` | ESLint with auto-fix |
+| `npm run format` | Format code with Prettier |
+| `npm run test` | Run all tests |
+| `npm run test:unit` | Run unit tests only |
+| `npm run test:coverage` | Run tests with coverage |
+| `npm run start:dev` | Start dev mode with watch |
 
-`npm run docs`
+### Tech stack
+
+- **TypeScript** 5.7
+- **Build**: tsup (esbuild)
+- **Test**: Jest 29 + ts-jest
+- **Lint**: ESLint 9 (flat config) + Prettier
+- **CI/CD**: GitHub Actions (Node 18, 20, 22)
+- **Git hooks**: Husky 9
 
 ## License
 

@@ -5,9 +5,9 @@
  */
 
 import * as amqp from 'amqplib';
-import { isNullOrUndefined } from 'util';
 
 import { ILiveStreamHook, ISpaceBunnyParams } from '../spacebunny';
+import { isNullOrUndefined } from '../utils';
 import AmqpClient, { IAmqpCallback, IAmqpConsumeOptions, IRoutingKey } from './amqpClient';
 
 export interface IAmqpLiveStreamHook extends ILiveStreamHook {
@@ -18,7 +18,7 @@ export type IAmqpStreamListener = {
   streamHook: IAmqpLiveStreamHook;
   opts?: IAmqpConsumeOptions;
   consumerTag?: string;
-}
+};
 
 class AmqpStreamClient extends AmqpClient {
   private defaultStreamRoutingKey: string;
@@ -36,9 +36,15 @@ class AmqpStreamClient extends AmqpClient {
     this.defaultStreamRoutingKey = '#';
     this.streamQueueArguments = { exclusive: true, autoDelete: true, durable: false };
     this.amqpStreamListeners = {};
-    this.on('connect', () => { void this.bindAmqpStreamListeners(); });
-    this.on('disconnect', () => { this.amqpStreamListeners = {}; });
-    this.on('channelClose', () => { this.clearStreamConsumers(); });
+    this.on('connect', () => {
+      void this.bindAmqpStreamListeners();
+    });
+    this.on('disconnect', () => {
+      this.amqpStreamListeners = {};
+    });
+    this.on('channelClose', () => {
+      this.clearStreamConsumers();
+    });
   }
 
   /**
@@ -49,7 +55,10 @@ class AmqpStreamClient extends AmqpClient {
    * @param {Object} options - subscription options
    * @return promise containing the result of multiple subscriptions
    */
-  public streamFrom = async (streamHooks: IAmqpLiveStreamHook | Array<IAmqpLiveStreamHook> = [], opts: IAmqpConsumeOptions = {}): Promise<Array<string|void>> => {
+  public streamFrom = async (
+    streamHooks: IAmqpLiveStreamHook | Array<IAmqpLiveStreamHook> = [],
+    opts: IAmqpConsumeOptions = {}
+  ): Promise<Array<string | void>> => {
     const hooks: Array<IAmqpLiveStreamHook> = Array.isArray(streamHooks) ? streamHooks : [streamHooks];
     const names: string[] = [];
     for (let index = 0; index < hooks.length; index += 1) {
@@ -60,16 +69,16 @@ class AmqpStreamClient extends AmqpClient {
       names.push(name);
     }
     return names;
-  }
+  };
 
   public removeAmqpStreamListener = async (name: string): Promise<void> => {
     if (isNullOrUndefined(this.amqpStreamListeners[name])) {
       this.log('error', `AMQP listener ${name} does not exist.`);
       return;
     }
-    await this.unsubscribe(this.amqpStreamListeners[name].consumerTag);
+    await this.unsubscribe(this.amqpStreamListeners[name].consumerTag!);
     delete this.amqpStreamListeners[name];
-  }
+  };
 
   // ------------ PRIVATE METHODS -------------------
 
@@ -80,13 +89,13 @@ class AmqpStreamClient extends AmqpClient {
       const listener = this.amqpStreamListeners[name];
       delete listener.consumerTag;
     }
-  }
+  };
 
   private addAmqpStreamListener = (streamHook: IAmqpLiveStreamHook, opts: IAmqpConsumeOptions = {}): string => {
     const name = `subscription-${new Date().getTime()}`;
     this.amqpStreamListeners[name] = { streamHook, opts };
     return name;
-  }
+  };
 
   private bindAmqpStreamListeners = async (): Promise<void> => {
     const names = Object.keys(this.amqpStreamListeners);
@@ -95,7 +104,7 @@ class AmqpStreamClient extends AmqpClient {
       // eslint-disable-next-line no-await-in-loop
       await this.bindAmqpStreamListener(name);
     }
-  }
+  };
 
   /**
    * Start consuming messages from a device's channel
@@ -122,10 +131,15 @@ class AmqpStreamClient extends AmqpClient {
     const { streamHook, opts } = this.amqpStreamListeners[name];
     // Receive messages from stream
     const {
-      stream = undefined, deviceId = undefined, channel = undefined, cache = true,
-      topic = undefined, routingKey = undefined, callback = undefined
+      stream = undefined,
+      deviceId = undefined,
+      channel = undefined,
+      cache = true,
+      topic = undefined,
+      routingKey = undefined,
+      callback = undefined,
     } = streamHook;
-    const noAck = isNullOrUndefined(opts.ack);
+    const noAck = isNullOrUndefined(opts?.ack);
     if (isNullOrUndefined(stream) && (isNullOrUndefined(channel) || isNullOrUndefined(deviceId))) {
       throw new Error(`${this.getClassName()} - Missing Stream or Device ID and Channel`);
     }
@@ -155,28 +169,32 @@ class AmqpStreamClient extends AmqpClient {
           tempQueue = this.tempQueue(stream, this.liveStreamSuffix, currentTime);
           await ch.checkExchange(streamExchange);
           await ch.assertQueue(tempQueue, this.streamQueueArguments);
-          await ch.bindQueue(tempQueue, streamExchange, routingKey);
+          await ch.bindQueue(tempQueue, streamExchange, routingKey || '#');
         }
       } else {
         // else if current hook is channel (or a couple deviceId, channel)
         // creates a temp queue, binds to channel exchange and starts consuming
-        const channelExchangeName = this.exchangeName(deviceId, channel);
+        const channelExchangeName = this.exchangeName(deviceId!, channel!);
         streamName = channelExchangeName;
-        tempQueue = this.tempQueue(deviceId, channel, currentTime);
+        tempQueue = this.tempQueue(deviceId!, channel!, currentTime);
         await ch.checkExchange(channelExchangeName);
         await ch.assertQueue(tempQueue, this.streamQueueArguments);
-        await ch.bindQueue(tempQueue, channelExchangeName, this.streamRoutingKeyFor({ deviceId, channel, routingKey, topic }));
+        await ch.bindQueue(
+          tempQueue,
+          channelExchangeName,
+          this.streamRoutingKeyFor({ deviceId, channel, routingKey, topic })
+        );
       }
-      const { consumerTag } = await ch.consume(tempQueue,
-        this.consumeCallback.bind(this, ch, callback, opts),
-        { noAck });
+      const { consumerTag } = await ch.consume(tempQueue, this.consumeCallback.bind(this, ch, callback, opts), {
+        noAck,
+      });
       this.log('debug', `Streaming from ${streamName}..`);
       this.amqpStreamListeners[name].consumerTag = consumerTag;
     } catch (error) {
       this.log('error', 'Error adding stream hook', streamHook);
       throw error;
     }
-  }
+  };
 
   /**
    * Generate the exchange name for a device's channel
@@ -187,7 +205,7 @@ class AmqpStreamClient extends AmqpClient {
    */
   private cachedStreamQueue = (streamName: string) => {
     return `${streamName}.${this.liveStreamSuffix}`;
-  }
+  };
 
   /**
    * Generate the exchange name for a device's channel
@@ -206,14 +224,18 @@ class AmqpStreamClient extends AmqpClient {
       return routingKey; // return routing key if present
     }
     let streamRoutingKey = deviceId || '';
-    if (channel) { streamRoutingKey += `.${channel}`; }
-    if (topic) { streamRoutingKey += `.${topic}`; }
+    if (channel) {
+      streamRoutingKey += `.${channel}`;
+    }
+    if (topic) {
+      streamRoutingKey += `.${topic}`;
+    }
     return `${streamRoutingKey}`;
-  }
+  };
 }
 
 // Remove unwanted methods inherited from AmqpClient
-delete AmqpStreamClient.prototype.onMessage;
-delete AmqpStreamClient.prototype.publish;
+delete (AmqpStreamClient.prototype as any).onMessage;
+delete (AmqpStreamClient.prototype as any).publish;
 
 export default AmqpStreamClient;

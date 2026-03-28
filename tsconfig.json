@@ -1,19 +1,19 @@
 {
   "exclude": [".vscode", "node_modules", "configs", "dist", "test", "examples", "lib", "static"],
   "compilerOptions": {
-    "target": "es6",
+    "target": "es2020",
     "module": "commonjs",
     "pretty": true,
     "sourceMap": true,
     "outDir": "",
     "importHelpers": true,
     "strict": true,
-    "noImplicitAny": false,
-    "strictNullChecks": false,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": false,
+    "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "node",
@@ -23,22 +23,12 @@
     "emitDecoratorMetadata": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "declaration": true,
     "declarationDir": "lib",
     "lib": [
-      "es5",
-      "es6",
-      "dom",
-      "es2015.core",
-      "es2015.collection",
-      "es2015.generator",
-      "es2015.iterable",
-      "es2015.promise",
-      "es2015.proxy",
-      "es2015.reflect",
-      "es2015.symbol",
-      "es2015.symbol.wellknown",
-      "esnext.asynciterable"
+      "es2020",
+      "dom"
     ]
   }
 }
