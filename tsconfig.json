@@ -6,7 +6,7 @@
     "pretty": true,
     "sourceMap": true,
     "outDir": "",
-    "importHelpers": true,
+    "importHelpers": false,
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,

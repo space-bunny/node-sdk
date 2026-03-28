@@ -242,6 +242,16 @@ Examples will be available on port 8080
 - **CI/CD**: GitHub Actions (Node 18, 20, 22)
 - **Git hooks**: Husky 9
 
+### Runtime dependencies
+
+Only 3 protocol-specific dependencies:
+
+- `@stomp/stompjs` — STOMP protocol
+- `amqplib` — AMQP protocol
+- `mqtt` — MQTT protocol
+
+No utility libraries (axios, lodash, etc.) — the SDK uses native Node.js APIs (`fetch`, `crypto`, `structuredClone`).
+
 ## License
 
 The library is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).

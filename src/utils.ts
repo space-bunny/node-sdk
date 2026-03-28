@@ -5,8 +5,8 @@
  * @param {Buffer|string} message - the received message
  * @return an object containing the input message with parsed content
  */
-export function parseContent(message: Buffer|string): Record<string, unknown>|string {
-  let parsedMessage: Record<string, unknown>|string = message as unknown as Record<string, unknown>;
+export function parseContent(message: Buffer | string): Record<string, unknown> | string {
+  let parsedMessage: Record<string, unknown> | string = message as unknown as Record<string, unknown>;
   if (Buffer.isBuffer(parsedMessage)) {
     parsedMessage = parsedMessage.toString('utf-8');
   }
@@ -62,4 +62,37 @@ export function isDeepStrictEqual(a: unknown, b: unknown): boolean {
   return true;
 }
 
-export default { parseContent, encapsulateContent, isNullOrUndefined, isDeepStrictEqual };
+/**
+ * Join URL segments with proper slash handling
+ * Replacement for url-join
+ */
+export function urlJoin(...parts: string[]): string {
+  return parts
+    .map((part, i) => {
+      if (i === 0) return part.replace(/\/+$/, '');
+      return part.replace(/^\/+/, '').replace(/\/+$/, '');
+    })
+    .filter(Boolean)
+    .join('/');
+}
+
+/**
+ * Recursively convert snake_case keys to camelCase
+ * Replacement for humps.camelizeKeys
+ */
+export function camelizeKeys(obj: unknown): unknown {
+  if (Array.isArray(obj)) return obj.map(camelizeKeys);
+  if (obj !== null && typeof obj === 'object') {
+    return Object.keys(obj).reduce(
+      (acc, key) => {
+        const camelKey = key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+        acc[camelKey] = camelizeKeys((obj as Record<string, unknown>)[key]);
+        return acc;
+      },
+      {} as Record<string, unknown>
+    );
+  }
+  return obj;
+}
+
+export default { parseContent, encapsulateContent, isNullOrUndefined, isDeepStrictEqual, urlJoin, camelizeKeys };

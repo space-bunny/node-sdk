@@ -11,7 +11,7 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
     clean: true,
-    external: ['amqplib', 'mqtt', '@stomp/stompjs', 'axios', 'humps', 'url-join', 'bufferutil', 'utf-8-validate'],
+    external: ['amqplib', 'mqtt', '@stomp/stompjs'],
   },
   // Browser CJS bundle (STOMP only, deps bundled)
   {

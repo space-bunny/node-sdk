@@ -3,14 +3,10 @@
  * @module SpaceBunny
  */
 
-// Import some helpers modules
-import axios, { AxiosRequestConfig } from 'axios';
 import crypto from 'crypto';
 import { EventEmitter } from 'events';
 import fs from 'fs';
-import { camelizeKeys } from 'humps';
-import urljoin from 'url-join';
-import { isNullOrUndefined } from './utils';
+import { camelizeKeys, isNullOrUndefined, urlJoin } from './utils';
 
 export interface ISpaceBunnyParams {
   endpoint?: IEndpoint;
@@ -175,7 +171,7 @@ class SpaceBunny extends EventEmitter {
 
   constructor(opts: ISpaceBunnyParams = {}) {
     super();
-    this.connectionParams = camelizeKeys(opts);
+    this.connectionParams = camelizeKeys(opts) as ISpaceBunnyParams;
     const {
       endpoint,
       deviceKey,
@@ -251,20 +247,21 @@ class SpaceBunny extends EventEmitter {
         // Device credentials
         // uses endpoint passed from user, default endpoint otherwise
         const hostname = this.generateHostname();
-        const uri = urljoin(hostname, this.endpoint.deviceConfigurationsPath!);
+        const uri = urlJoin(hostname, this.endpoint.deviceConfigurationsPath!);
         if (this.deviceKey) {
           // Get configs from endpoint
-          const options: AxiosRequestConfig = {
-            url: uri,
+          const response = await fetch(uri, {
             method: 'GET',
-            responseType: 'json',
             headers: {
               'Device-Key': this.deviceKey,
               'Content-Type': 'application/json',
             },
-          };
-          const response = await axios(options);
-          this.endpointConfigs = camelizeKeys(response.data) as IEndpointConfigs;
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          const data = await response.json();
+          this.endpointConfigs = camelizeKeys(data) as IEndpointConfigs;
           this.connectionParams = this.endpointConfigs.connection || {};
           this.channels = this.endpointConfigs.channels || [];
           return this.endpointConfigs;
@@ -304,19 +301,20 @@ class SpaceBunny extends EventEmitter {
         // Get configs from endpoint
         // uses endpoint passed from user, default endpoint otherwise
         const hostname = this.generateHostname();
-        const uri = urljoin(hostname, this.endpoint.liveStreamKeyConfigurationsPath!);
-        const options: AxiosRequestConfig = {
-          url: uri,
+        const uri = urlJoin(hostname, this.endpoint.liveStreamKeyConfigurationsPath!);
+        const response = await fetch(uri, {
           method: 'GET',
-          responseType: 'json',
           headers: {
-            'Live-Stream-Key-Client': this.client,
-            'Live-Stream-Key-Secret': this.secret,
+            'Live-Stream-Key-Client': this.client!,
+            'Live-Stream-Key-Secret': this.secret!,
             'Content-Type': 'application/json',
           },
-        };
-        const response = await axios(options);
-        this.endpointConfigs = camelizeKeys(response.data) as IEndpointConfigs;
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const data = await response.json();
+        this.endpointConfigs = camelizeKeys(data) as IEndpointConfigs;
         this.connectionParams = this.endpointConfigs.connection || {};
         this.liveStreams = this.endpointConfigs.liveStreams || [];
         return this.endpointConfigs;

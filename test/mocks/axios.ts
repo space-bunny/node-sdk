@@ -1,52 +1,53 @@
-import axios from 'axios';
-import MockAdapter from 'axios-mock-adapter';
 import { faker } from '@faker-js/faker';
 
-const mock = new MockAdapter(axios);
-
-export function apiCalls(method: string, api: string): number {
-  const calls = (mock.history as Record<string, any[]>)[method].filter((call: any) => call.url.endsWith(api));
-  return calls.length;
-}
+const mockResponses: Map<string, { status: number; body: unknown }> = new Map();
 
 export function resetMocks(): void {
-  mock.reset();
+  mockResponses.clear();
+  global.fetch = jest.fn();
 }
 
 export function mockDeviceConfigs(): void {
-  mock.onGet('/device_configurations').reply(() => {
-    return [
-      200,
-      {
-        connection: {
-          host: 'endpoint.spacebunny.io',
-          protocols: {
-            amqp: [],
-            mqtt: [],
-            stomp: [],
-            webStomp: [],
-          },
-          deviceName: faker.commerce.product(),
-          deviceId: faker.string.alphanumeric(24),
-          secret: faker.string.uuid(),
-          vhost: faker.string.alphanumeric(24),
-        },
-        properties: {},
-        channels: ['alarms', 'data'].map((n) => {
-          return {
-            id: faker.string.alphanumeric(24),
-            name: n,
-            properties: {},
-            createdAt: faker.date.recent().toISOString(),
-            updatedAt: faker.date.recent().toISOString(),
-            plugin: [],
-          };
-        }),
+  const responseBody = {
+    connection: {
+      host: 'endpoint.spacebunny.io',
+      protocols: {
+        amqp: [],
+        mqtt: [],
+        stomp: [],
+        web_stomp: [],
       },
-    ];
+      device_name: faker.commerce.product(),
+      device_id: faker.string.alphanumeric(24),
+      secret: faker.string.uuid(),
+      vhost: faker.string.alphanumeric(24),
+    },
+    properties: {},
+    channels: ['alarms', 'data'].map((n) => {
+      return {
+        id: faker.string.alphanumeric(24),
+        name: n,
+        properties: {},
+        created_at: faker.date.recent().toISOString(),
+        updated_at: faker.date.recent().toISOString(),
+        plugin: [],
+      };
+    }),
+  };
+
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    statusText: 'OK',
+    json: () => Promise.resolve(responseBody),
   });
 }
 
 export function mockBadDeviceConfigs(): void {
-  mock.onGet('/device_configurations').reply(401);
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: false,
+    status: 401,
+    statusText: 'Unauthorized',
+    json: () => Promise.resolve({}),
+  });
 }
